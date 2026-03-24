@@ -10,6 +10,7 @@ const PANELS = [
 	{ id: 'elements',  icon: '◻', label: __( 'Elements',  'socialframe' ) },
 	{ id: 'text',      icon: 'T', label: __( 'Text',      'socialframe' ) },
 	{ id: 'media',     icon: '🖼', label: __( 'Media',     'socialframe' ) },
+	{ id: 'layers',    icon: '≡', label: __( 'Layers',    'socialframe' ) },
 ];
 
 export function IconNav() {

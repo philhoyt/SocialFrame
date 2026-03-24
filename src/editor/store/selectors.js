@@ -14,3 +14,5 @@ export const canUndo             = ( state ) => state.undoIndex >= 0;
 export const canRedo             = ( state ) => state.undoIndex < state.undoStack.length - 1;
 export const getUndoLabel        = ( state ) => state.undoStack[ state.undoIndex ]?.label ?? null;
 export const getRedoLabel        = ( state ) => state.undoStack[ state.undoIndex + 1 ]?.label ?? null;
+export const getLayers           = ( state ) => state.layers;
+export const getSelectedObjectId = ( state ) => state.selection.objectId;

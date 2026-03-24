@@ -3,7 +3,27 @@ import * as fabric from 'fabric';
 const { themeColors, themeFonts } = window.socialFrameConfig ?? {};
 
 let _idCounter = 0;
-const genId = () => `sf-${ ++_idCounter }-${ Date.now() }`;
+export const genId = () => `sf-${ ++_idCounter }-${ Date.now() }`;
+
+/**
+ * Return a human-readable default name for a Fabric object based on its type.
+ *
+ * @param {fabric.Object} obj
+ * @returns {string}
+ */
+export function getDefaultLayerName( obj ) {
+	switch ( obj.type ) {
+		case 'i-text':
+		case 'text':
+		case 'textbox':  return 'Text';
+		case 'image':    return 'Image';
+		case 'rect':     return 'Rectangle';
+		case 'circle':   return 'Circle';
+		case 'triangle': return 'Triangle';
+		case 'line':     return 'Line';
+		default:         return 'Object';
+	}
+}
 
 function defaultFill() {
 	return themeColors?.[ 0 ]?.color ?? '#3b5998';

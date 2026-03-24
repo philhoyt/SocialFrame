@@ -4,7 +4,7 @@ import * as fabric from 'fabric';
 
 import { STORE_KEY } from '../store';
 import { FORMATS } from '../utils/formats';
-import { createShape, createText, getObjectType, extractProperties } from '../utils/fabricHelpers';
+import { createShape, createText, getObjectType, extractProperties, genId, getDefaultLayerName } from '../utils/fabricHelpers';
 
 /**
  * Initializes and manages the Fabric.js canvas instance.
@@ -44,7 +44,10 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		// Load existing JSON if present.
 		if ( fabricJson ) {
 			try {
-				canvas.loadFromJSON( fabricJson ).then( () => canvas.renderAll() );
+				canvas.loadFromJSON( fabricJson ).then( () => {
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+				} );
 			} catch ( e ) {
 				// eslint-disable-next-line no-console
 				console.warn( 'SocialFrame: could not load fabricJson, starting with blank canvas.', e );
@@ -56,10 +59,10 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		canvas.on( 'selection:updated', ( e ) => syncSelection( e.selected?.[ 0 ], dispatch ) );
 		canvas.on( 'selection:cleared', ()   => dispatch.clearSelection() );
 
-		// Mark dirty on any canvas mutation.
+		// Mark dirty and sync layers on any canvas mutation.
 		canvas.on( 'object:modified', () => dispatch.markDirty() );
-		canvas.on( 'object:added',    () => dispatch.markDirty() );
-		canvas.on( 'object:removed',  () => dispatch.markDirty() );
+		canvas.on( 'object:added',    () => { dispatch.markDirty(); syncLayersToStore( canvas, dispatch ); } );
+		canvas.on( 'object:removed',  () => { dispatch.markDirty(); syncLayersToStore( canvas, dispatch ); } );
 
 		return () => {
 			canvas.dispose();
@@ -316,6 +319,97 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		} );
 	}, [ dispatch ] );
 
+	// ── Layer management ──────────────────────────────────────────────────────
+
+	const selectById = useCallback( ( id ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) return;
+		canvas.setActiveObject( obj );
+		canvas.renderAll();
+	}, [] );
+
+	const moveLayerUp = useCallback( ( id ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) return;
+		canvas.bringObjectForward( obj );
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Move layer up',
+			undo: () => { canvas.sendObjectBackwards( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			redo: () => { canvas.bringObjectForward( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
+	const moveLayerDown = useCallback( ( id ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) return;
+		canvas.sendObjectBackwards( obj );
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Move layer down',
+			undo: () => { canvas.bringObjectForward( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			redo: () => { canvas.sendObjectBackwards( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
+	const duplicateById = useCallback( async ( id ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) return;
+		const clone = await obj.clone();
+		clone.set( { id: genId(), left: ( obj.left ?? 0 ) + 20, top: ( obj.top ?? 0 ) + 20 } );
+		if ( obj.name ) clone.name = obj.name;
+		canvas.add( clone );
+		canvas.setActiveObject( clone );
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Duplicate layer',
+			undo: () => { canvas.remove( clone ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			redo: () => { canvas.add( clone ); canvas.setActiveObject( clone ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
+	const deleteById = useCallback( ( id ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) return;
+		canvas.remove( obj );
+		canvas.discardActiveObject();
+		canvas.renderAll();
+		dispatch.clearSelection();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Delete layer',
+			undo: () => { canvas.add( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			redo: () => { canvas.remove( obj ); canvas.discardActiveObject(); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
+	const renameById = useCallback( ( id, name ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) return;
+		const prev = obj.name;
+		obj.name   = name;
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Rename layer',
+			undo: () => { obj.name = prev;  syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			redo: () => { obj.name = name; syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
 	return {
 		getFabric,
 		getJSON,
@@ -332,6 +426,12 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		setBackgroundImage,
 		updateBackgroundImageFit,
 		clearBackgroundImage,
+		selectById,
+		moveLayerUp,
+		moveLayerDown,
+		duplicateById,
+		deleteById,
+		renameById,
 	};
 }
 
@@ -408,4 +508,22 @@ function syncSelection( obj, dispatch ) {
 		objectId: obj.id ?? null,
 		properties,
 	} );
+}
+
+/**
+ * Rebuild the layers list in the store from the current canvas objects.
+ * Layers are returned bottom-to-top (index 0 = front) for display purposes.
+ *
+ * @param {fabric.Canvas} canvas
+ * @param {Object}        dispatch @wordpress/data dispatch object for STORE_KEY.
+ */
+function syncLayersToStore( canvas, dispatch ) {
+	const objects = canvas.getObjects();
+	// Reverse so the topmost layer is first in the list.
+	const layers = [ ...objects ].reverse().map( ( obj ) => ( {
+		id:   obj.id ?? null,
+		name: obj.name || getDefaultLayerName( obj ),
+		type: getObjectType( obj ),
+	} ) );
+	dispatch.setLayers( layers );
 }

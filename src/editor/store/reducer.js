@@ -15,6 +15,7 @@ const DEFAULT_STATE = {
 	lastSaved: null,
 	undoStack: [],
 	undoIndex: -1,
+	layers: [],
 };
 
 export function reducer( state = DEFAULT_STATE, action ) {
@@ -86,6 +87,9 @@ export function reducer( state = DEFAULT_STATE, action ) {
 			state.undoStack[ state.undoIndex + 1 ].redo();
 			return { ...state, undoIndex: state.undoIndex + 1, isDirty: true };
 		}
+
+		case 'SET_LAYERS':
+			return { ...state, layers: action.layers };
 
 		default:
 			return state;

@@ -120,3 +120,108 @@
 	object-fit: cover;
 	display: block;
 }
+
+/* ── Layers panel ──────────────────────────────────────────────────────────── */
+
+.socialframe-layers__empty {
+	color: #666;
+	font-size: 12px;
+	text-align: center;
+	padding: 24px 0;
+}
+
+.socialframe-layers__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.socialframe-layers__item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px;
+	border-radius: 4px;
+	cursor: pointer;
+	border: 1px solid transparent;
+	background: #2c2c2c;
+	transition: background 0.1s, border-color 0.1s;
+	min-width: 0;
+}
+
+.socialframe-layers__item:hover {
+	background: #383838;
+}
+
+.socialframe-layers__item.is-selected {
+	background: #1a3a5c;
+	border-color: #0073aa;
+}
+
+.socialframe-layers__type-icon {
+	flex-shrink: 0;
+	font-size: 12px;
+	color: #888;
+	width: 14px;
+	text-align: center;
+}
+
+.socialframe-layers__name {
+	flex: 1;
+	font-size: 12px;
+	color: #ccc;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+	user-select: none;
+}
+
+.socialframe-layers__rename-input {
+	flex: 1;
+	background: #1a1a1a;
+	border: 1px solid #0073aa;
+	border-radius: 3px;
+	color: #fff;
+	font-size: 12px;
+	padding: 2px 4px;
+	min-width: 0;
+	outline: none;
+}
+
+.socialframe-layers__actions {
+	display: flex;
+	gap: 2px;
+	flex-shrink: 0;
+	opacity: 0;
+	transition: opacity 0.1s;
+}
+
+.socialframe-layers__item:hover .socialframe-layers__actions,
+.socialframe-layers__item.is-selected .socialframe-layers__actions {
+	opacity: 1;
+}
+
+.socialframe-layers__action-btn {
+	background: none;
+	border: none;
+	color: #888;
+	cursor: pointer;
+	font-size: 11px;
+	padding: 2px 4px;
+	border-radius: 3px;
+	line-height: 1;
+}
+
+.socialframe-layers__action-btn:hover {
+	background: #555;
+	color: #fff;
+}
+
+.socialframe-layers__action-btn--delete:hover {
+	background: #7a2222;
+	color: #fff;
+}

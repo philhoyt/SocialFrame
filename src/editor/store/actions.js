@@ -29,3 +29,5 @@ export const pushHistory = ( entry ) => ( { type: 'PUSH_HISTORY', entry } );
 export const undoAction = () => ( { type: 'UNDO' } );
 
 export const redoAction = () => ( { type: 'REDO' } );
+
+export const setLayers = ( layers ) => ( { type: 'SET_LAYERS', layers } );
