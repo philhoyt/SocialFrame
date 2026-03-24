@@ -53,5 +53,15 @@ function socialframe_get_formats(): array {
 			'width'  => 1000,
 			'height' => 1500,
 		],
+		'youtube-thumbnail'  => [
+			'label'  => 'YouTube Thumbnail',
+			'width'  => 1920,
+			'height' => 1080,
+		],
+		'youtube-short'      => [
+			'label'  => 'YouTube Short',
+			'width'  => 1080,
+			'height' => 1920,
+		],
 	];
 }

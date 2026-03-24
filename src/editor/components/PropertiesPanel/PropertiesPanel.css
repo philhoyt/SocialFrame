@@ -118,3 +118,15 @@
 	border-color: #0073aa;
 	color: #fff;
 }
+
+.socialframe-props__align-grid {
+	display: grid;
+	grid-template-columns: repeat( 3, 1fr );
+	gap: 4px;
+}
+
+.socialframe-props__align-btn {
+	font-size: 16px;
+	padding: 6px 4px;
+	text-align: center;
+}

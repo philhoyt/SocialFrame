@@ -4,6 +4,7 @@ import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
+import { AlignmentSection } from './AlignmentSection';
 
 const { themeColors, themeFonts } = window.socialFrameConfig ?? {};
 
@@ -148,6 +149,7 @@ export function TextProperties() {
 					onChange={ ( v ) => update( { opacity: v / 100 }, 'Opacity' ) }
 				/>
 			</div>
+		<AlignmentSection />
 		</div>
 	);
 }

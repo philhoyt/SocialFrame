@@ -16,9 +16,11 @@ const FIT_MODES = [
 export function ArtboardPanel() {
 	const fabric = useFabric();
 
-	const [ fitMode,    setFitMode    ] = useState( 'cover' );
-	const [ hasBgImage, setHasBgImage ] = useState( false );
-	const [ bgSrc,      setBgSrc      ] = useState( '' );
+	const [ fitMode,     setFitMode     ] = useState( 'cover' );
+	const [ hasBgImage,  setHasBgImage  ] = useState( false );
+	const [ bgSrc,       setBgSrc       ] = useState( '' );
+	const [ snapEnabled, setSnapEnabled ] = useState( false );
+	const [ gridSize,    setGridSize    ] = useState( 20 );
 
 	// Initialise from the canvas when the panel first mounts (e.g. loading an existing design).
 	useEffect( () => {
@@ -55,6 +57,19 @@ export function ArtboardPanel() {
 		// Re-apply immediately if a background image is already set.
 		if ( hasBgImage ) {
 			fabric?.updateBackgroundImageFit( newMode );
+		}
+	};
+
+	const handleSnapToggle = () => {
+		const next = ! snapEnabled;
+		setSnapEnabled( next );
+		fabric?.setSnapToGrid( next, gridSize );
+	};
+
+	const handleGridSizeChange = ( size ) => {
+		setGridSize( size );
+		if ( snapEnabled ) {
+			fabric?.setSnapToGrid( true, size );
 		}
 	};
 
@@ -123,6 +138,34 @@ export function ArtboardPanel() {
 					>
 						{ __( 'Remove Image', 'socialframe' ) }
 					</Button>
+				) }
+			</div>
+
+			<div className="socialframe-props__section">
+				<p className="socialframe-props__section-title">{ __( 'Grid', 'socialframe' ) }</p>
+				<button
+					className={ `socialframe-props__toggle-btn${ snapEnabled ? ' socialframe-props__toggle-btn--active' : '' }` }
+					style={ { width: '100%' } }
+					onClick={ handleSnapToggle }
+				>
+					{ snapEnabled
+						? __( 'Snap to Grid: On', 'socialframe' )
+						: __( 'Snap to Grid: Off', 'socialframe' ) }
+				</button>
+
+				{ snapEnabled && (
+					<div className="socialframe-props__button-group" style={ { marginTop: 8 } }>
+						{ [ 10, 20, 40 ].map( ( size ) => (
+							<button
+								key={ size }
+								className={ `socialframe-props__toggle-btn${ gridSize === size ? ' socialframe-props__toggle-btn--active' : '' }` }
+								style={ { flex: 1 } }
+								onClick={ () => handleGridSizeChange( size ) }
+							>
+								{ size }px
+							</button>
+						) ) }
+					</div>
 				) }
 			</div>
 		</div>

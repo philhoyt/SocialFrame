@@ -4,6 +4,7 @@ import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
+import { AlignmentSection } from './AlignmentSection';
 
 export function ImageProperties() {
 	const props  = useSelect( ( select ) => select( STORE_KEY ).getSelectionProps() );
@@ -89,6 +90,7 @@ export function ImageProperties() {
 					{ __( 'Replace Image', 'socialframe' ) }
 				</Button>
 			</div>
+		<AlignmentSection />
 		</div>
 	);
 }

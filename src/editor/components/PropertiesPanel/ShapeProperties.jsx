@@ -5,6 +5,7 @@ import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
+import { AlignmentSection } from './AlignmentSection';
 
 const { themeColors } = window.socialFrameConfig ?? {};
 
@@ -135,6 +136,7 @@ export function ShapeProperties() {
 						{ __( 'Fill with Image', 'socialframe' ) }
 					</Button>
 				</div>
+		<AlignmentSection />
 		</div>
 	);
 }

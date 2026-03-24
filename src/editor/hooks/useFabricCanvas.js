@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from '@wordpress/element';
 import { useDispatch } from '@wordpress/data';
 import * as fabric from 'fabric';
+import { initAligningGuidelines } from 'fabric/extensions';
 
 import { STORE_KEY } from '../store';
 import { FORMATS } from '../utils/formats';
@@ -23,6 +24,7 @@ import { createShape, createText, getObjectType, extractProperties, genId, getDe
  */
 export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 	const fabricRef = useRef( null );
+	const snapRef   = useRef( { enabled: false, size: 20 } );
 	const dispatch  = useDispatch( STORE_KEY );
 
 	// Initialize Fabric once on mount.
@@ -40,6 +42,13 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		} );
 
 		fabricRef.current = canvas;
+
+		// Enable smart alignment guides (object-to-object + canvas edges).
+		const cleanupGuides = initAligningGuidelines( canvas, {
+			color:  'rgba(0, 115, 170, 0.85)',
+			width:  1,
+			margin: 6,
+		} );
 
 		// Load existing JSON if present.
 		if ( fabricJson ) {
@@ -64,6 +73,43 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		canvas.on( 'object:added',    () => { dispatch.markDirty(); syncLayersToStore( canvas, dispatch ); } );
 		canvas.on( 'object:removed',  () => { dispatch.markDirty(); syncLayersToStore( canvas, dispatch ); } );
 
+		// Snap to grid while dragging (when enabled).
+		canvas.on( 'object:moving', ( e ) => {
+			if ( ! snapRef.current.enabled ) return;
+			const { size } = snapRef.current;
+			const obj = e.target;
+			obj.set( {
+				left: Math.round( obj.left / size ) * size,
+				top:  Math.round( obj.top  / size ) * size,
+			} );
+		} );
+
+		// Double-click on a textbox: shrink the bounding box to fit the current text
+		// (like Figma's "fit to content"), then enter editing mode.
+		canvas.on( 'mouse:dblclick', ( e ) => {
+			const obj = e.target;
+			if ( ! obj || obj.type !== 'textbox' ) return;
+
+			const prevWidth = obj.width;
+
+			// Unlock wrapping, measure the natural content width, then lock again.
+			obj.set( 'width', 9999 );
+			obj.initDimensions();
+			const naturalWidth = Math.max( Math.ceil( obj.calcTextWidth() ), 50 );
+			obj.set( 'width', naturalWidth );
+			obj.initDimensions();
+			canvas.renderAll();
+
+			if ( naturalWidth !== prevWidth ) {
+				dispatch.markDirty();
+				dispatch.pushHistory( {
+					label: 'Fit text to content',
+					undo: () => { obj.set( 'width', prevWidth );     obj.initDimensions(); canvas.renderAll(); },
+					redo: () => { obj.set( 'width', naturalWidth );  obj.initDimensions(); canvas.renderAll(); },
+				} );
+			}
+		} );
+
 		// Remove text objects that are empty when the user stops editing them.
 		canvas.on( 'text:editing:exited', ( e ) => {
 			const obj = e.target;
@@ -76,6 +122,7 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		} );
 
 		return () => {
+			cleanupGuides();
 			canvas.dispose();
 			fabricRef.current = null;
 		};
@@ -334,6 +381,48 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		} );
 	}, [ dispatch ] );
 
+	// ── Alignment ─────────────────────────────────────────────────────────────
+
+	const alignObject = useCallback( ( direction ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getActiveObject();
+		if ( ! canvas || ! obj ) return;
+
+		// getBoundingRect accounts for rotation — gives the axis-aligned visual box.
+		const bbox    = obj.getBoundingRect();
+		const offsetL = obj.left - bbox.left;
+		const offsetT = obj.top  - bbox.top;
+		const canvasW = canvas.width;
+		const canvasH = canvas.height;
+		const prevLeft = obj.left;
+		const prevTop  = obj.top;
+
+		let newLeft = obj.left;
+		let newTop  = obj.top;
+
+		switch ( direction ) {
+			case 'left':    newLeft = offsetL; break;
+			case 'centerH': newLeft = ( canvasW - bbox.width )  / 2 + offsetL; break;
+			case 'right':   newLeft = canvasW - bbox.width  + offsetL; break;
+			case 'top':     newTop  = offsetT; break;
+			case 'centerV': newTop  = ( canvasH - bbox.height ) / 2 + offsetT; break;
+			case 'bottom':  newTop  = canvasH - bbox.height + offsetT; break;
+		}
+
+		obj.set( { left: newLeft, top: newTop } );
+		canvas.renderAll();
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: `Align ${ direction }`,
+			undo: () => { obj.set( { left: prevLeft, top: prevTop } ); canvas.renderAll(); },
+			redo: () => { obj.set( { left: newLeft,  top: newTop  } ); canvas.renderAll(); },
+		} );
+	}, [ dispatch ] );
+
+	const setSnapToGrid = useCallback( ( enabled, size = 20 ) => {
+		snapRef.current = { enabled, size };
+	}, [] );
+
 	// ── Layer management ──────────────────────────────────────────────────────
 
 	const selectById = useCallback( ( id ) => {
@@ -441,6 +530,8 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		setBackgroundImage,
 		updateBackgroundImageFit,
 		clearBackgroundImage,
+		alignObject,
+		setSnapToGrid,
 		selectById,
 		moveLayerUp,
 		moveLayerDown,
