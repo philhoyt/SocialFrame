@@ -1,6 +1,8 @@
 <?php
 /**
  * Global helper functions for SocialFrame.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );
@@ -31,22 +33,22 @@ function socialframe_get_formats(): array {
 			'width'  => 1080,
 			'height' => 1920,
 		],
-		'facebook-post'   => [
+		'facebook-post'      => [
 			'label'  => 'Facebook Post',
 			'width'  => 1200,
 			'height' => 630,
 		],
-		'twitter-post'    => [
+		'twitter-post'       => [
 			'label'  => 'Twitter/X Post',
 			'width'  => 1200,
 			'height' => 675,
 		],
-		'linkedin-post'   => [
+		'linkedin-post'      => [
 			'label'  => 'LinkedIn Post',
 			'width'  => 1200,
 			'height' => 627,
 		],
-		'pinterest-pin'   => [
+		'pinterest-pin'      => [
 			'label'  => 'Pinterest Pin',
 			'width'  => 1000,
 			'height' => 1500,

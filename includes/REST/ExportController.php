@@ -1,6 +1,8 @@
 <?php
 /**
  * REST controller for SocialFrame design export.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );
@@ -50,6 +52,8 @@ class ExportController extends AbstractController {
 
 	/**
 	 * POST /designs/:id/export — generate and save PNG to media library.
+	 *
+	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function handle_export( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$id         = (int) $request->get_param( 'id' );
@@ -147,14 +151,12 @@ class ExportController extends AbstractController {
 		$orig_h = imagesy( $src );
 
 		if ( $orig_w <= $max_width ) {
-			imagedestroy( $src );
 			return $binary;
 		}
 
-		$ratio  = $max_width / $orig_w;
-		$new_h  = (int) round( $orig_h * $ratio );
-		$dst    = imagescale( $src, $max_width, $new_h, IMG_BILINEAR_FIXED );
-		imagedestroy( $src );
+		$ratio = $max_width / $orig_w;
+		$new_h = (int) round( $orig_h * $ratio );
+		$dst   = imagescale( $src, $max_width, $new_h, IMG_BILINEAR_FIXED );
 
 		if ( ! $dst ) {
 			return false;
@@ -163,8 +165,7 @@ class ExportController extends AbstractController {
 		ob_start();
 		imagepng( $dst );
 		$output = ob_get_clean();
-		imagedestroy( $dst );
 
-		return $output ?: false;
+		return ( ! empty( $output ) ) ? $output : false;
 	}
 }

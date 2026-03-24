@@ -1,6 +1,8 @@
 <?php
 /**
  * REST controller for SocialFrame designs.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );
@@ -113,6 +115,8 @@ class DesignsController extends AbstractController {
 
 	/**
 	 * GET /designs — list designs or templates.
+	 *
+	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function get_designs( WP_REST_Request $request ): WP_REST_Response {
 		$type = $request->get_param( 'type' );
@@ -140,6 +144,8 @@ class DesignsController extends AbstractController {
 
 	/**
 	 * POST /designs — create a new design or template.
+	 *
+	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function create_design( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$title       = sanitize_text_field( $request->get_param( 'title' ) );
@@ -174,6 +180,8 @@ class DesignsController extends AbstractController {
 
 	/**
 	 * GET /designs/:id — fetch a single design.
+	 *
+	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function get_design( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$post = $this->get_graphic_post( (int) $request->get_param( 'id' ) );
@@ -187,6 +195,8 @@ class DesignsController extends AbstractController {
 
 	/**
 	 * PUT /designs/:id — update a design's title and/or Fabric JSON.
+	 *
+	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function update_design( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$post = $this->get_graphic_post( (int) $request->get_param( 'id' ) );
@@ -214,6 +224,8 @@ class DesignsController extends AbstractController {
 
 	/**
 	 * DELETE /designs/:id — delete a design.
+	 *
+	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function delete_design( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$post = $this->get_graphic_post( (int) $request->get_param( 'id' ) );
@@ -228,7 +240,12 @@ class DesignsController extends AbstractController {
 			return new WP_Error( 'delete_failed', __( 'Could not delete the design.', 'socialframe' ), [ 'status' => 500 ] );
 		}
 
-		return $this->respond( [ 'deleted' => true, 'id' => $post->ID ] );
+		return $this->respond(
+			[
+				'deleted' => true,
+				'id'      => $post->ID,
+			]
+		);
 	}
 
 	/**

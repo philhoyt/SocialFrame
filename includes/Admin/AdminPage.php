@@ -1,6 +1,8 @@
 <?php
 /**
  * Admin management page for SocialFrame.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );
@@ -165,9 +167,9 @@ class AdminPage {
 			'socialframe-new-design',
 			'socialFrameNewConfig',
 			[
-				'restUrl'  => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
-				'nonce'    => wp_create_nonce( 'wp_rest' ),
-				'formats'  => socialframe_get_formats(),
+				'restUrl'    => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
+				'nonce'      => wp_create_nonce( 'wp_rest' ),
+				'formats'    => socialframe_get_formats(),
 				'editorBase' => esc_url( admin_url( 'admin.php?page=socialframe-editor' ) ),
 			]
 		);

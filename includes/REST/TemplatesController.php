@@ -1,6 +1,8 @@
 <?php
 /**
  * REST controller for SocialFrame templates.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );
@@ -35,15 +37,19 @@ class TemplatesController extends AbstractController {
 
 	/**
 	 * GET /templates — list bundled and user-saved templates.
+	 *
+	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function get_templates( WP_REST_Request $request ): WP_REST_Response {
 		$bundled   = $this->get_bundled_templates();
 		$user_made = $this->get_user_templates();
 
-		return $this->respond( [
-			'bundled'  => $bundled,
-			'userMade' => $user_made,
-		] );
+		return $this->respond(
+			[
+				'bundled'  => $bundled,
+				'userMade' => $user_made,
+			]
+		);
 	}
 
 	/**

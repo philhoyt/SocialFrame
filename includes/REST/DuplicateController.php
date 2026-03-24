@@ -1,6 +1,8 @@
 <?php
 /**
  * REST controller for duplicating SocialFrame designs.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );
@@ -42,6 +44,8 @@ class DuplicateController extends AbstractController {
 
 	/**
 	 * POST /designs/:id/duplicate — copy a post and its meta as a new design.
+	 *
+	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function handle_duplicate( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$id          = (int) $request->get_param( 'id' );

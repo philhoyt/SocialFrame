@@ -1,6 +1,8 @@
 <?php
 /**
  * Theme data extraction for SocialFrame.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );

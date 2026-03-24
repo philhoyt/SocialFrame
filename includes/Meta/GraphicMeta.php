@@ -1,6 +1,8 @@
 <?php
 /**
  * Post meta registration for SocialFrame graphics.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );

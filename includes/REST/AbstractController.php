@@ -1,6 +1,8 @@
 <?php
 /**
  * Abstract base controller for SocialFrame REST endpoints.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );

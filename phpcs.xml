@@ -11,12 +11,17 @@
     <arg value="sp"/>
 
     <rule ref="WordPress">
-        <!-- Allow short array syntax. -->
+        <!-- Allow short array syntax (both Generic and Universal/phpcsextra sniffs). -->
         <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
         <!-- Allow PSR-4 file naming. -->
         <exclude name="WordPress.Files.FileName"/>
         <!-- Allow declare(strict_types) after namespace. -->
         <exclude name="PSR1.Files.SideEffects"/>
+        <!-- Allow $class parameter name in the autoloader (common PSR-4 convention). -->
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.classFound"/>
+        <!-- meta_query is required for filtering by custom meta; no alternative exists. -->
+        <exclude name="WordPress.DB.SlowDBQuery.slow_db_query_meta_query"/>
     </rule>
 
     <rule ref="WordPress-Core"/>

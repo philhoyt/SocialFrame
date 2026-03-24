@@ -1,6 +1,8 @@
 <?php
 /**
  * Boot orchestrator for SocialFrame.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );

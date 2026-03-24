@@ -1,6 +1,8 @@
 <?php
 /**
  * Full-screen editor page for SocialFrame.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );
@@ -94,11 +96,11 @@ class EditorPage {
 			array_merge(
 				$theme->get_localize_data(),
 				[
-					'restUrl'   => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
-					'nonce'     => wp_create_nonce( 'wp_rest' ),
-					'designId'  => $design_id,
-					'adminUrl'  => esc_url( admin_url( 'admin.php?page=socialframe' ) ),
-					'formats'   => socialframe_get_formats(),
+					'restUrl'  => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
+					'nonce'    => wp_create_nonce( 'wp_rest' ),
+					'designId' => $design_id,
+					'adminUrl' => esc_url( admin_url( 'admin.php?page=socialframe' ) ),
+					'formats'  => socialframe_get_formats(),
 				]
 			)
 		);

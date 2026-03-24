@@ -1,6 +1,8 @@
 <?php
 /**
  * Custom post type registration for SocialFrame.
+ *
+ * @package SocialFrame
  */
 
 declare( strict_types=1 );
