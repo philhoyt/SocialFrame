@@ -215,51 +215,59 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		const shape  = canvas?.getActiveObject();
 		if ( ! canvas || ! shape ) return;
 
-		const img = await fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } );
+		const img  = await fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } );
+		const imgW = img.width;
+		const imgH = img.height;
 
-		const shapeLeft = shape.left ?? 0;
-		const shapeTop  = shape.top  ?? 0;
-		const shapeW    = shape.getScaledWidth();
-		const shapeH    = shape.getScaledHeight();
+		// Shape dimensions in local (unscaled) space — pattern is applied pre-scale.
+		const shapeW = shape.width;
+		const shapeH = shape.height;
 
-		const s = fitMode === 'contain'
-			? Math.min( shapeW / img.width, shapeH / img.height )
-			: fitMode === 'fill'
-				? null // handled below
-				: Math.max( shapeW / img.width, shapeH / img.height ); // cover / none
+		// Build a patternTransform that positions the image within the shape's
+		// center-origin local coordinate space (Fabric renders shapes centered at 0,0).
+		const patternTransform = shapeFitTransform( imgW, imgH, shapeW, shapeH, fitMode );
 
-		// Clone shape as absolutePositioned clipPath so the image is masked to the shape bounds.
-		const clipPath = await shape.clone();
-		clipPath.absolutePositioned = true;
+		const pattern = new fabric.Pattern( {
+			source:           img.getElement(),
+			repeat:           'no-repeat',
+			patternTransform,
+		} );
 
-		let scaleX, scaleY, left, top;
-		if ( fitMode === 'fill' ) {
-			scaleX = shapeW / img.width;
-			scaleY = shapeH / img.height;
-			left   = shapeLeft;
-			top    = shapeTop;
-		} else {
-			// cover, contain, none all use a uniform scale
-			const uniformScale = fitMode === 'none' ? 1 : s;
-			scaleX = uniformScale;
-			scaleY = uniformScale;
-			left   = shapeLeft + ( shapeW - img.width  * uniformScale ) / 2;
-			top    = shapeTop  + ( shapeH - img.height * uniformScale ) / 2;
-		}
-
-		img.set( { left, top, scaleX, scaleY, clipPath } );
-
-		canvas.remove( shape );
-		canvas.add( img );
-		canvas.setActiveObject( img );
+		const prevFill = shape.fill;
+		shape.set( 'fill', pattern );
 		canvas.renderAll();
 		dispatch.markDirty();
 
 		dispatch.pushHistory( {
 			label: 'Fill shape with image',
-			undo: () => { canvas.remove( img ); canvas.add( shape ); canvas.setActiveObject( shape ); canvas.renderAll(); dispatch.markDirty(); },
-			redo: () => { canvas.remove( shape ); canvas.add( img ); canvas.setActiveObject( img ); canvas.renderAll(); dispatch.markDirty(); },
+			undo: () => { shape.set( 'fill', prevFill ); canvas.renderAll(); dispatch.markDirty(); },
+			redo: () => { shape.set( 'fill', pattern ); canvas.renderAll(); dispatch.markDirty(); },
 		} );
+	}, [ dispatch ] );
+
+	const updateShapeImageFit = useCallback( ( fitMode ) => {
+		const canvas = fabricRef.current;
+		const shape  = canvas?.getActiveObject();
+		if ( ! canvas || ! shape || ! shape.fill?.patternTransform ) return;
+
+		const imgEl = shape.fill.source;
+		if ( ! imgEl ) return;
+
+		const imgW = imgEl.naturalWidth  || imgEl.width;
+		const imgH = imgEl.naturalHeight || imgEl.height;
+
+		// Replace the pattern entirely — mutating patternTransform in place does
+		// not invalidate Fabric's object cache, so the canvas wouldn't repaint.
+		const newPattern = new fabric.Pattern( {
+			source:           imgEl,
+			repeat:           'no-repeat',
+			patternTransform: shapeFitTransform( imgW, imgH, shape.width, shape.height, fitMode ),
+		} );
+
+		shape.set( 'fill', newPattern );
+		shape.dirty = true;
+		canvas.renderAll();
+		dispatch.markDirty();
 	}, [ dispatch ] );
 
 	// ── Canvas background image ────────────────────────────────────────────────
@@ -320,6 +328,7 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		updateSelected,
 		deleteSelected,
 		fillShapeWithImage,
+		updateShapeImageFit,
 		setBackgroundImage,
 		updateBackgroundImageFit,
 		clearBackgroundImage,
@@ -327,6 +336,40 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Compute the patternTransform matrix [a,b,c,d,e,f] that positions an image
+ * inside a shape's local coordinate space (center at 0,0).
+ *
+ * @param {number} imgW    Image natural width.
+ * @param {number} imgH    Image natural height.
+ * @param {number} shapeW  Shape unscaled width.
+ * @param {number} shapeH  Shape unscaled height.
+ * @param {string} fitMode 'cover'|'contain'|'fill'|'none'
+ * @returns {number[]} 6-element transform matrix.
+ */
+/**
+ * Fabric v6 pre-shifts the pattern context by (-width/2, -height/2) before
+ * applying patternTransform, so (0,0) in patternTransform space is the
+ * TOP-LEFT of the shape's bounding box (not the center).
+ * The shape spans (0,0) → (shapeW, shapeH) in that space.
+ */
+function shapeFitTransform( imgW, imgH, shapeW, shapeH, fitMode ) {
+	switch ( fitMode ) {
+		case 'cover': {
+			const s = Math.max( shapeW / imgW, shapeH / imgH );
+			return [ s, 0, 0, s, ( shapeW - imgW * s ) / 2, ( shapeH - imgH * s ) / 2 ];
+		}
+		case 'contain': {
+			const s = Math.min( shapeW / imgW, shapeH / imgH );
+			return [ s, 0, 0, s, ( shapeW - imgW * s ) / 2, ( shapeH - imgH * s ) / 2 ];
+		}
+		case 'fill':
+			return [ shapeW / imgW, 0, 0, shapeH / imgH, 0, 0 ];
+		default: // 'none' — natural size, centred within the shape
+			return [ 1, 0, 0, 1, ( shapeW - imgW ) / 2, ( shapeH - imgH ) / 2 ];
+	}
+}
 
 /**
  * Apply a CSS-style fit mode to a Fabric.Image for use as a canvas background.

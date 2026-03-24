@@ -136,7 +136,9 @@ export function extractProperties( obj, type ) {
 	// Shape.
 	return {
 		...base,
-		fill:        obj.fill ?? '#000000',
+		// Patterns (image fills) are not a string — return null so the color
+		// swatches don't incorrectly show a selected state.
+		fill:        typeof obj.fill === 'string' ? obj.fill : null,
 		stroke:      obj.stroke ?? '',
 		strokeWidth: obj.strokeWidth ?? 0,
 		rx:          obj.rx ?? 0,

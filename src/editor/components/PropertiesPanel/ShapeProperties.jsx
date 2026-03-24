@@ -116,7 +116,12 @@ export function ShapeProperties() {
 							<button
 								key={ value }
 								className={ `socialframe-props__toggle-btn${ fitMode === value ? ' socialframe-props__toggle-btn--active' : '' }` }
-								onClick={ () => setFitMode( value ) }
+								onClick={ () => {
+									setFitMode( value );
+									if ( props.fill === null ) {
+										fabric?.updateShapeImageFit( value );
+									}
+								} }
 							>
 								{ label }
 							</button>
