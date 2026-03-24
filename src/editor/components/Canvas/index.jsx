@@ -48,21 +48,33 @@ export function Canvas( { canvasRef } ) {
 
 	return (
 		<div className="socialframe-editor__canvas-area" ref={ areaRef }>
-			<div
-				ref={ wrapperRef }
-				className="socialframe-canvas-wrapper"
-				style={ {
-					width:           formatDef.width,
-					height:          formatDef.height,
-					transform:       `scale(${ scale })`,
-					transformOrigin: 'top left',
-					// Reserve the scaled footprint so the parent scrolls correctly.
-					marginLeft:      `max(0px, calc(50% - ${ scaledW / 2 }px))`,
-					marginTop:       `max(${ CANVAS_PADDING }px, calc(50% - ${ scaledH / 2 }px))`,
-					marginBottom:    CANVAS_PADDING,
-				} }
-			>
-				<canvas ref={ canvasRef } />
+			{ /*
+			 * Sizer: sized to the visual (scaled) dimensions so the flex container
+			 * centers it correctly. The canvas wrapper inside is positioned absolutely
+			 * at native Fabric resolution, scaled from the top-left to fill the sizer.
+			 */ }
+			<div style={ {
+				width:      scaledW,
+				height:     scaledH,
+				flexShrink: 0,
+				position:   'relative',
+				margin:     CANVAS_PADDING,
+			} }>
+				<div
+					ref={ wrapperRef }
+					className="socialframe-canvas-wrapper"
+					style={ {
+						width:           formatDef.width,
+						height:          formatDef.height,
+						transform:       `scale(${ scale })`,
+						transformOrigin: 'top left',
+						position:        'absolute',
+						top:             0,
+						left:            0,
+					} }
+				>
+					<canvas ref={ canvasRef } />
+				</div>
 			</div>
 		</div>
 	);

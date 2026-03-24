@@ -100,8 +100,19 @@ export function Header() {
 		}
 	};
 
+	const { adminUrl } = window.socialFrameConfig ?? {};
+
 	return (
 		<div className="socialframe-header">
+			<a
+				href={ adminUrl }
+				className="socialframe-header__back"
+				title={ __( 'All Designs', 'socialframe' ) }
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+					<path d="M15.6 7l-1.4-1.4L8 12l6.2 6.4 1.4-1.4L10.8 12z" fill="currentColor"/>
+				</svg>
+			</a>
 			<div className="socialframe-header__left">
 				<TextControl
 					value={ title }

@@ -18,6 +18,23 @@
 	gap: 8px;
 }
 
+.socialframe-header__back {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	color: #a0a0a0;
+	border-radius: 4px;
+	flex-shrink: 0;
+	text-decoration: none;
+}
+
+.socialframe-header__back:hover {
+	color: #fff;
+	background: rgba( 255, 255, 255, 0.08 );
+}
+
 .socialframe-header__left {
 	flex: 1;
 	min-width: 0;

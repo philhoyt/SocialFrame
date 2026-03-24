@@ -208,6 +208,106 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		} );
 	}, [ dispatch ] );
 
+	// ── Shape fill with image ─────────────────────────────────────────────────
+
+	const fillShapeWithImage = useCallback( async ( src, fitMode = 'cover' ) => {
+		const canvas = fabricRef.current;
+		const shape  = canvas?.getActiveObject();
+		if ( ! canvas || ! shape ) return;
+
+		const img = await fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } );
+
+		const shapeLeft = shape.left ?? 0;
+		const shapeTop  = shape.top  ?? 0;
+		const shapeW    = shape.getScaledWidth();
+		const shapeH    = shape.getScaledHeight();
+
+		const s = fitMode === 'contain'
+			? Math.min( shapeW / img.width, shapeH / img.height )
+			: fitMode === 'fill'
+				? null // handled below
+				: Math.max( shapeW / img.width, shapeH / img.height ); // cover / none
+
+		// Clone shape as absolutePositioned clipPath so the image is masked to the shape bounds.
+		const clipPath = await shape.clone();
+		clipPath.absolutePositioned = true;
+
+		let scaleX, scaleY, left, top;
+		if ( fitMode === 'fill' ) {
+			scaleX = shapeW / img.width;
+			scaleY = shapeH / img.height;
+			left   = shapeLeft;
+			top    = shapeTop;
+		} else {
+			// cover, contain, none all use a uniform scale
+			const uniformScale = fitMode === 'none' ? 1 : s;
+			scaleX = uniformScale;
+			scaleY = uniformScale;
+			left   = shapeLeft + ( shapeW - img.width  * uniformScale ) / 2;
+			top    = shapeTop  + ( shapeH - img.height * uniformScale ) / 2;
+		}
+
+		img.set( { left, top, scaleX, scaleY, clipPath } );
+
+		canvas.remove( shape );
+		canvas.add( img );
+		canvas.setActiveObject( img );
+		canvas.renderAll();
+		dispatch.markDirty();
+
+		dispatch.pushHistory( {
+			label: 'Fill shape with image',
+			undo: () => { canvas.remove( img ); canvas.add( shape ); canvas.setActiveObject( shape ); canvas.renderAll(); dispatch.markDirty(); },
+			redo: () => { canvas.remove( shape ); canvas.add( img ); canvas.setActiveObject( img ); canvas.renderAll(); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
+	// ── Canvas background image ────────────────────────────────────────────────
+
+	const setBackgroundImage = useCallback( async ( src, fitMode = 'cover' ) => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) return;
+
+		const prev = canvas.backgroundImage ?? null;
+		const img  = await fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } );
+
+		applyBgFit( img, canvas.width, canvas.height, fitMode );
+		canvas.backgroundImage = img;
+		canvas.renderAll();
+		dispatch.markDirty();
+
+		dispatch.pushHistory( {
+			label: 'Set background image',
+			undo: () => { canvas.backgroundImage = prev; canvas.renderAll(); dispatch.markDirty(); },
+			redo: () => { canvas.backgroundImage = img;  canvas.renderAll(); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
+	const updateBackgroundImageFit = useCallback( ( fitMode ) => {
+		const canvas = fabricRef.current;
+		const img    = canvas?.backgroundImage;
+		if ( ! canvas || ! img ) return;
+		applyBgFit( img, canvas.width, canvas.height, fitMode );
+		canvas.renderAll();
+		dispatch.markDirty();
+	}, [ dispatch ] );
+
+	const clearBackgroundImage = useCallback( () => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) return;
+
+		const prev = canvas.backgroundImage;
+		canvas.backgroundImage = null;
+		canvas.renderAll();
+		dispatch.markDirty();
+
+		dispatch.pushHistory( {
+			label: 'Remove background image',
+			undo: () => { canvas.backgroundImage = prev;  canvas.renderAll(); dispatch.markDirty(); },
+			redo: () => { canvas.backgroundImage = null; canvas.renderAll(); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
 	return {
 		getFabric,
 		getJSON,
@@ -219,10 +319,42 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		addImage,
 		updateSelected,
 		deleteSelected,
+		fillShapeWithImage,
+		setBackgroundImage,
+		updateBackgroundImageFit,
+		clearBackgroundImage,
 	};
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Apply a CSS-style fit mode to a Fabric.Image for use as a canvas background.
+ *
+ * @param {fabric.Image} img      The image to position/scale.
+ * @param {number}       canvasW  Canvas native width.
+ * @param {number}       canvasH  Canvas native height.
+ * @param {string}       fitMode  'cover'|'contain'|'fill'|'none'
+ */
+function applyBgFit( img, canvasW, canvasH, fitMode ) {
+	switch ( fitMode ) {
+		case 'cover': {
+			const s = Math.max( canvasW / img.width, canvasH / img.height );
+			img.set( { scaleX: s, scaleY: s, left: ( canvasW - img.width * s ) / 2, top: ( canvasH - img.height * s ) / 2 } );
+			break;
+		}
+		case 'contain': {
+			const s = Math.min( canvasW / img.width, canvasH / img.height );
+			img.set( { scaleX: s, scaleY: s, left: ( canvasW - img.width * s ) / 2, top: ( canvasH - img.height * s ) / 2 } );
+			break;
+		}
+		case 'fill':
+			img.set( { scaleX: canvasW / img.width, scaleY: canvasH / img.height, left: 0, top: 0 } );
+			break;
+		default: // 'none' — natural size, top-left
+			img.set( { scaleX: 1, scaleY: 1, left: 0, top: 0 } );
+	}
+}
 
 function syncSelection( obj, dispatch ) {
 	if ( ! obj ) return;

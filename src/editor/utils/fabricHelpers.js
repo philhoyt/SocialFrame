@@ -116,15 +116,16 @@ export function extractProperties( obj, type ) {
 	if ( type === 'text' ) {
 		return {
 			...base,
-			fontFamily:     obj.fontFamily ?? '',
-			fontSize:       obj.fontSize ?? 16,
-			fontWeight:     obj.fontWeight ?? 'normal',
-			fontStyle:      obj.fontStyle ?? 'normal',
-			underline:      obj.underline ?? false,
-			textAlign:      obj.textAlign ?? 'left',
-			fill:           obj.fill ?? '#000000',
-			charSpacing:    obj.charSpacing ?? 0,
-			lineHeight:     obj.lineHeight ?? 1.16,
+			fontFamily:       obj.fontFamily ?? '',
+			fontSize:         obj.fontSize ?? 16,
+			fontWeight:       obj.fontWeight ?? 'normal',
+			fontStyle:        obj.fontStyle ?? 'normal',
+			underline:        obj.underline ?? false,
+			textAlign:        obj.textAlign ?? 'left',
+			fill:             obj.fill ?? '#000000',
+			backgroundColor:  obj.backgroundColor ?? '',
+			charSpacing:      obj.charSpacing ?? 0,
+			lineHeight:       obj.lineHeight ?? 1.16,
 		};
 	}
 

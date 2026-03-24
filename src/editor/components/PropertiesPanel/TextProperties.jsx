@@ -101,6 +101,28 @@ export function TextProperties() {
 					</div>
 				</div>
 
+				<div className="socialframe-props__section">
+					<p className="socialframe-props__section-title">{ __( 'Background', 'socialframe' ) }</p>
+					<div className="socialframe-color-row">
+						<button
+							className={ `socialframe-color-swatch socialframe-color-swatch--none${ ! props.backgroundColor ? ' socialframe-color-swatch--active' : '' }` }
+							onClick={ () => update( { backgroundColor: '' }, 'Text background' ) }
+							title={ __( 'None', 'socialframe' ) }
+							aria-label={ __( 'None', 'socialframe' ) }
+						/>
+						{ ( themeColors ?? [] ).map( ( { color, name, slug } ) => (
+							<button
+								key={ slug }
+								className={ `socialframe-color-swatch${ props.backgroundColor === color ? ' socialframe-color-swatch--active' : '' }` }
+								style={ { background: color } }
+								onClick={ () => update( { backgroundColor: color }, 'Text background' ) }
+								title={ name }
+								aria-label={ name }
+							/>
+						) ) }
+					</div>
+				</div>
+
 				<RangeControl
 					label={ __( 'Letter Spacing', 'socialframe' ) }
 					value={ props.charSpacing ?? 0 }

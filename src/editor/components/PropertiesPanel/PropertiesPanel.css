@@ -64,6 +64,24 @@
 	border-color: #fff;
 }
 
+/* "None" swatch — transparent with a red diagonal slash */
+.socialframe-color-swatch--none {
+	background: #2c2c2c;
+	position: relative;
+	overflow: hidden;
+}
+
+.socialframe-color-swatch--none::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 130%;
+	height: 2px;
+	background: #e04040;
+	transform: translate( -50%, -50% ) rotate( -45deg );
+}
+
 .socialframe-props__row {
 	display: flex;
 	gap: 8px;

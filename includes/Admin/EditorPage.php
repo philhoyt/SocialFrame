@@ -105,6 +105,12 @@ class EditorPage {
 
 		// Full-screen: hide wp-admin chrome.
 		add_filter( 'admin_body_class', [ $this, 'add_fullscreen_class' ] );
+
+		// Remove the margin-top WordPress adds to html/body for the admin bar.
+		wp_add_inline_style(
+			'socialframe-editor',
+			'html, body { margin-top: 0 !important; padding-top: 0 !important; }'
+		);
 	}
 
 	/**

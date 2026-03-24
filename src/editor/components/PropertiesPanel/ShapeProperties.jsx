@@ -1,5 +1,6 @@
+import { useState } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
-import { RangeControl } from '@wordpress/components';
+import { RangeControl, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
@@ -7,11 +8,34 @@ import { useFabric } from '../../EditorApp';
 
 const { themeColors } = window.socialFrameConfig ?? {};
 
+const FIT_MODES = [
+	{ value: 'cover',   label: __( 'Cover',   'socialframe' ) },
+	{ value: 'contain', label: __( 'Contain', 'socialframe' ) },
+	{ value: 'fill',    label: __( 'Fill',    'socialframe' ) },
+	{ value: 'none',    label: __( 'None',    'socialframe' ) },
+];
+
 export function ShapeProperties() {
-	const props  = useSelect( ( select ) => select( STORE_KEY ).getSelectionProps() );
-	const fabric = useFabric();
+	const props   = useSelect( ( select ) => select( STORE_KEY ).getSelectionProps() );
+	const fabric  = useFabric();
+	const [ fitMode, setFitMode ] = useState( 'cover' );
 
 	const update = ( partial, label ) => fabric?.updateSelected( partial, label );
+
+	const handleFillWithImage = () => {
+		if ( ! window.wp?.media ) return;
+		const frame = window.wp.media( {
+			title:    __( 'Choose Image', 'socialframe' ),
+			button:   { text: __( 'Use Image', 'socialframe' ) },
+			multiple: false,
+			library:  { type: 'image' },
+		} );
+		frame.on( 'select', () => {
+			const attachment = frame.state().get( 'selection' ).first().toJSON();
+			fabric?.fillShapeWithImage( attachment.url, fitMode );
+		} );
+		frame.open();
+	};
 
 	return (
 		<div className="socialframe-props">
@@ -85,6 +109,27 @@ export function ShapeProperties() {
 					/>
 				) }
 			</div>
+			<div className="socialframe-props__section">
+					<p className="socialframe-props__section-title">{ __( 'Image Fill', 'socialframe' ) }</p>
+					<div className="socialframe-props__button-group" style={ { flexWrap: 'wrap', gap: 4, marginBottom: 8 } }>
+						{ FIT_MODES.map( ( { value, label } ) => (
+							<button
+								key={ value }
+								className={ `socialframe-props__toggle-btn${ fitMode === value ? ' socialframe-props__toggle-btn--active' : '' }` }
+								onClick={ () => setFitMode( value ) }
+							>
+								{ label }
+							</button>
+						) ) }
+					</div>
+					<Button
+						variant="secondary"
+						onClick={ handleFillWithImage }
+						style={ { width: '100%', justifyContent: 'center' } }
+					>
+						{ __( 'Fill with Image', 'socialframe' ) }
+					</Button>
+				</div>
 		</div>
 	);
 }
