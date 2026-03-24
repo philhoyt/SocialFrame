@@ -48,15 +48,21 @@ export function AdminApp() {
 		} ).then( loadItems );
 	}, [ loadItems ] );
 
-	const handleDelete = useCallback( ( [ item ] ) => {
+	const handleDelete = useCallback( ( items ) => {
+		const count = items.length;
+		const msg   = count === 1
+			? __( 'Delete this design? This cannot be undone.', 'socialframe' )
+			: `Delete ${ count } designs? This cannot be undone.`;
 		// eslint-disable-next-line no-alert
-		if ( ! window.confirm( __( 'Delete this design? This cannot be undone.', 'socialframe' ) ) ) {
+		if ( ! window.confirm( msg ) ) {
 			return;
 		}
-		apiFetch( {
-			path:   `socialframe/v1/designs/${ item.id }`,
-			method: 'DELETE',
-		} ).then( loadItems );
+		Promise.all(
+			items.map( ( item ) => apiFetch( {
+				path:   `socialframe/v1/designs/${ item.id }`,
+				method: 'DELETE',
+			} ) )
+		).then( loadItems );
 	}, [ loadItems ] );
 
 	const fields = [

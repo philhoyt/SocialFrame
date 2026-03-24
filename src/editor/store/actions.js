@@ -31,3 +31,5 @@ export const undoAction = () => ( { type: 'UNDO' } );
 export const redoAction = () => ( { type: 'REDO' } );
 
 export const setLayers = ( layers ) => ( { type: 'SET_LAYERS', layers } );
+
+export const setZoom = ( zoom ) => ( { type: 'SET_ZOOM', zoom } );

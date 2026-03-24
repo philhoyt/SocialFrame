@@ -54,9 +54,9 @@ export function LayersPanel() {
 		<div className="socialframe-panel">
 			<p className="socialframe-panel__title">{ __( 'Layers', 'socialframe' ) }</p>
 			<ul className="socialframe-layers__list">
-				{ layers.map( ( layer ) => (
+				{ layers.map( ( layer, index ) => (
 					<li
-						key={ layer.id }
+						key={ layer.id ?? index }
 						className={ `socialframe-layers__item${ selectedId === layer.id ? ' is-selected' : '' }` }
 						onClick={ () => fabric.selectById( layer.id ) }
 					>
@@ -64,7 +64,7 @@ export function LayersPanel() {
 							{ typeIcon( layer.type ) }
 						</span>
 
-						{ editingId === layer.id ? (
+						{ editingId !== null && editingId === layer.id ? (
 							<input
 								className="socialframe-layers__rename-input"
 								value={ editName }

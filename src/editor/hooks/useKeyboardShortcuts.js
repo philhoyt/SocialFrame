@@ -30,6 +30,27 @@ export function useKeyboardShortcuts( fabricApi, designId ) {
 				return;
 			}
 
+			// Zoom in: Ctrl/Cmd++ or Ctrl/Cmd+=
+			if ( mod && ( e.key === '+' || e.key === '=' ) ) {
+				e.preventDefault();
+				fabricApi?.zoomIn?.();
+				return;
+			}
+
+			// Zoom out: Ctrl/Cmd+-
+			if ( mod && e.key === '-' ) {
+				e.preventDefault();
+				fabricApi?.zoomOut?.();
+				return;
+			}
+
+			// Fit to screen: Ctrl/Cmd+0
+			if ( mod && e.key === '0' ) {
+				e.preventDefault();
+				fabricApi?.fitView?.();
+				return;
+			}
+
 			// Delete selected: Backspace / Delete (when not in a text field)
 			if ( ( e.key === 'Backspace' || e.key === 'Delete' ) ) {
 				const tag = document.activeElement?.tagName;

@@ -10,70 +10,170 @@ import { createShape, createText, getObjectType, extractProperties, genId, getDe
 /**
  * Initializes and manages the Fabric.js canvas instance.
  *
- * ARCHITECTURE RULE:
- *   Fabric owns canvas state. React (via the @wordpress/data store) owns UI state.
- *   Never put Fabric objects into React state. Never call setState from Fabric event handlers.
- *   The only data crossing Fabric → React: selection type, selected object properties, dirty flag.
- *   The only data crossing React → Fabric: object mutations, insertions, deletions, JSON load.
+ * ARCHITECTURE:
+ *   The Fabric canvas is sized to fill its container (the canvas-area div).
+ *   The artboard is represented as a non-selectable Fabric.Rect at (0,0) with
+ *   isArtboard: true.  Zoom and pan are applied via Fabric's viewport transform
+ *   so objects that overflow the artboard remain accessible.
  *
  * @param {React.RefObject} canvasRef Ref attached to the <canvas> element.
- * @param {Object} options
- * @param {string} options.format  Format key, e.g. 'instagram-post'.
- * @param {string} options.fabricJson Initial Fabric JSON to load (may be empty).
+ * @param {React.RefObject} areaRef   Ref attached to the container div.
+ * @param {Object}          options
+ * @param {string}          options.format     Format key, e.g. 'instagram-post'.
+ * @param {string}          options.fabricJson Initial JSON string (may be empty).
  * @returns {Object} Stable imperative API consumed via FabricContext.
  */
-export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
-	const fabricRef = useRef( null );
-	const snapRef   = useRef( { enabled: false, size: 20 } );
-	const dispatch  = useDispatch( STORE_KEY );
+export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
+	const fabricRef       = useRef( null );
+	const artboardWRef    = useRef( FORMATS[ format ]?.width  ?? 1080 );
+	const artboardHRef    = useRef( FORMATS[ format ]?.height ?? 1080 );
+	const artboardRectRef = useRef( null );
+	const fitToScreenRef  = useRef( null );
+	const snapRef         = useRef( { enabled: false, size: 20 } );
+	const spaceRef        = useRef( false );
+	const isPanningRef    = useRef( false );
+	const panStartRef     = useRef( { x: 0, y: 0 } );
+	const dispatch        = useDispatch( STORE_KEY );
 
 	// Initialize Fabric once on mount.
 	useEffect( () => {
-		if ( ! canvasRef.current ) return;
+		if ( ! canvasRef.current || ! areaRef.current ) return;
 
-		const { width, height } = FORMATS[ format ] ?? { width: 1080, height: 1080 };
+		const artW      = artboardWRef.current;
+		const artH      = artboardHRef.current;
+		const container = areaRef.current;
+		const initialW  = container.clientWidth  || 800;
+		const initialH  = container.clientHeight || 600;
 
 		const canvas = new fabric.Canvas( canvasRef.current, {
-			width,
-			height,
+			width:                  initialW,
+			height:                 initialH,
 			preserveObjectStacking: true,
-			selection: true,
-			backgroundColor: '#ffffff',
+			selection:              true,
+			backgroundColor:        null,
 		} );
 
 		fabricRef.current = canvas;
 
-		// Enable smart alignment guides (object-to-object + canvas edges).
+		// Position Fabric's wrapper at the top-left of the container.
+		canvas.wrapperEl.style.position = 'absolute';
+		canvas.wrapperEl.style.top      = '0';
+		canvas.wrapperEl.style.left     = '0';
+
+		// ── fitToScreen ───────────────────────────────────────────────────────
+		const fitToScreen = () => {
+			const vW   = canvas.width;
+			const vH   = canvas.height;
+			const zoom = Math.min( vW / artW, vH / artH ) * 0.9;
+			const panX = ( vW - artW * zoom ) / 2;
+			const panY = ( vH - artH * zoom ) / 2;
+			canvas.setViewportTransform( [ zoom, 0, 0, zoom, panX, panY ] );
+			dispatch.setZoom( Math.round( zoom * 100 ) );
+		};
+		fitToScreenRef.current = fitToScreen;
+
+		// ── Artboard setup helper ─────────────────────────────────────────────
+		const setupArtboard = ( artboardObj ) => {
+			artboardObj.set( {
+				selectable:  false,
+				evented:     false,
+				hoverCursor: 'default',
+				shadow:      new fabric.Shadow( {
+					color:   'rgba(0,0,0,0.5)',
+					blur:    24,
+					offsetX: 0,
+					offsetY: 4,
+				} ),
+			} );
+			artboardRectRef.current = artboardObj;
+			canvas.sendObjectToBack( artboardObj );
+		};
+
+		if ( fabricJson ) {
+			// ── Load existing JSON ─────────────────────────────────────────────
+			try {
+				canvas.loadFromJSON( fabricJson ).then( () => {
+					const existing = canvas.getObjects().find( ( o ) => o.isArtboard );
+					if ( existing ) {
+						// New format: artboard is embedded in the JSON.
+						setupArtboard( existing );
+					} else {
+						// Old format: convert canvas.backgroundColor + backgroundImage
+						// to an artboard rect.
+						let artFill = canvas.backgroundColor ?? '#ffffff';
+
+						if ( canvas.backgroundImage ) {
+							const bgImg = canvas.backgroundImage;
+							const pT    = shapeFitTransform(
+								bgImg.width, bgImg.height, artW, artH, 'cover'
+							);
+							artFill = new fabric.Pattern( {
+								source:           bgImg.getElement(),
+								repeat:           'no-repeat',
+								patternTransform: pT,
+							} );
+							canvas.backgroundImage = null;
+						}
+
+						const artboard = createArtboardRect( artW, artH, artFill );
+						canvas.add( artboard );
+						setupArtboard( artboard );
+					}
+
+					canvas.backgroundColor = null;
+					syncLayersToStore( canvas, dispatch );
+					canvas.renderAll();
+					fitToScreen();
+				} );
+			} catch ( e ) {
+				// eslint-disable-next-line no-console
+				console.warn( 'SocialFrame: could not load fabricJson, starting blank.', e );
+			}
+		} else {
+			// ── Fresh canvas — create artboard ────────────────────────────────
+			const artboard = createArtboardRect( artW, artH, '#ffffff' );
+			canvas.add( artboard );
+			setupArtboard( artboard );
+			fitToScreen();
+		}
+
+		// ── Enable smart alignment guides ─────────────────────────────────────
 		const cleanupGuides = initAligningGuidelines( canvas, {
 			color:  'rgba(0, 115, 170, 0.85)',
 			width:  1,
 			margin: 6,
 		} );
 
-		// Load existing JSON if present.
-		if ( fabricJson ) {
-			try {
-				canvas.loadFromJSON( fabricJson ).then( () => {
-					canvas.renderAll();
-					syncLayersToStore( canvas, dispatch );
-				} );
-			} catch ( e ) {
-				// eslint-disable-next-line no-console
-				console.warn( 'SocialFrame: could not load fabricJson, starting with blank canvas.', e );
+		// ── ResizeObserver — keep canvas filling the container ────────────────
+		const resizeObserver = new ResizeObserver( ( entries ) => {
+			for ( const entry of entries ) {
+				const { width, height } = entry.contentRect;
+				if ( ! width || ! height ) continue;
+				canvas.setDimensions( { width, height } );
+				fitToScreenRef.current?.();
 			}
-		}
+		} );
+		resizeObserver.observe( container );
 
-		// Bridge Fabric selection events → store.
+		// ── Selection bridge ──────────────────────────────────────────────────
 		canvas.on( 'selection:created', ( e ) => syncSelection( e.selected?.[ 0 ], dispatch ) );
 		canvas.on( 'selection:updated', ( e ) => syncSelection( e.selected?.[ 0 ], dispatch ) );
-		canvas.on( 'selection:cleared', ()   => dispatch.clearSelection() );
+		canvas.on( 'selection:cleared', ()    => dispatch.clearSelection() );
 
-		// Mark dirty and sync layers on any canvas mutation.
+		// Mark dirty and sync layers on mutations, skipping artboard events.
 		canvas.on( 'object:modified', () => dispatch.markDirty() );
-		canvas.on( 'object:added',    () => { dispatch.markDirty(); syncLayersToStore( canvas, dispatch ); } );
-		canvas.on( 'object:removed',  () => { dispatch.markDirty(); syncLayersToStore( canvas, dispatch ); } );
+		canvas.on( 'object:added',    ( e ) => {
+			if ( e.target?.isArtboard ) return;
+			dispatch.markDirty();
+			syncLayersToStore( canvas, dispatch );
+		} );
+		canvas.on( 'object:removed',  ( e ) => {
+			if ( e.target?.isArtboard ) return;
+			dispatch.markDirty();
+			syncLayersToStore( canvas, dispatch );
+		} );
 
-		// Snap to grid while dragging (when enabled).
+		// ── Snap to grid ──────────────────────────────────────────────────────
 		canvas.on( 'object:moving', ( e ) => {
 			if ( ! snapRef.current.enabled ) return;
 			const { size } = snapRef.current;
@@ -84,15 +184,12 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 			} );
 		} );
 
-		// Double-click on a textbox: shrink the bounding box to fit the current text
-		// (like Figma's "fit to content"), then enter editing mode.
+		// ── Double-click: fit textbox to content width ────────────────────────
 		canvas.on( 'mouse:dblclick', ( e ) => {
 			const obj = e.target;
 			if ( ! obj || obj.type !== 'textbox' ) return;
 
 			const prevWidth = obj.width;
-
-			// Unlock wrapping, measure the natural content width, then lock again.
 			obj.set( 'width', 9999 );
 			obj.initDimensions();
 			const naturalWidth = Math.max( Math.ceil( obj.calcTextWidth() ), 50 );
@@ -104,13 +201,13 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 				dispatch.markDirty();
 				dispatch.pushHistory( {
 					label: 'Fit text to content',
-					undo: () => { obj.set( 'width', prevWidth );     obj.initDimensions(); canvas.renderAll(); },
-					redo: () => { obj.set( 'width', naturalWidth );  obj.initDimensions(); canvas.renderAll(); },
+					undo: () => { obj.set( 'width', prevWidth );    obj.initDimensions(); canvas.renderAll(); },
+					redo: () => { obj.set( 'width', naturalWidth ); obj.initDimensions(); canvas.renderAll(); },
 				} );
 			}
 		} );
 
-		// Remove text objects that are empty when the user stops editing them.
+		// ── Auto-delete empty text objects ────────────────────────────────────
 		canvas.on( 'text:editing:exited', ( e ) => {
 			const obj = e.target;
 			if ( obj && obj.text.trim() === '' ) {
@@ -121,12 +218,120 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 			}
 		} );
 
-		return () => {
-			cleanupGuides();
-			canvas.dispose();
-			fabricRef.current = null;
+		// ── Ctrl/Cmd + scroll-wheel zoom ──────────────────────────────────────
+		const handleWheel = ( e ) => {
+			if ( ! e.ctrlKey && ! e.metaKey ) return;
+			e.preventDefault();
+			const zoom    = canvas.getZoom();
+			const newZoom = Math.max( 0.05, Math.min( 8, zoom * ( e.deltaY > 0 ? 0.9 : 1.1 ) ) );
+			canvas.zoomToPoint( new fabric.Point( e.offsetX, e.offsetY ), newZoom );
+			dispatch.setZoom( Math.round( newZoom * 100 ) );
 		};
-		// Run once — fabricJson is loaded via the loadFromJSON call below when it changes.
+		container.addEventListener( 'wheel', handleWheel, { passive: false } );
+
+		// ── Space + drag pan ──────────────────────────────────────────────────
+		// Discard active object on mouse-down when space is held so Fabric
+		// doesn't start an object drag instead of a pan.
+		canvas.on( 'mouse:down:before', () => {
+			if ( ! spaceRef.current ) return;
+			canvas.discardActiveObject();
+		} );
+
+		canvas.on( 'mouse:down', ( e ) => {
+			if ( ! spaceRef.current ) return;
+			isPanningRef.current = true;
+			panStartRef.current  = { x: e.e.clientX, y: e.e.clientY };
+			canvas.selection     = false;
+			canvas.setCursor( 'grabbing' );
+		} );
+
+		canvas.on( 'mouse:move', ( e ) => {
+			if ( ! isPanningRef.current ) return;
+			const dx = e.e.clientX - panStartRef.current.x;
+			const dy = e.e.clientY - panStartRef.current.y;
+			panStartRef.current = { x: e.e.clientX, y: e.e.clientY };
+			canvas.relativePan( new fabric.Point( dx, dy ) );
+		} );
+
+		canvas.on( 'mouse:up', () => {
+			if ( ! isPanningRef.current ) return;
+			isPanningRef.current = false;
+			canvas.selection     = true;
+			canvas.setCursor( spaceRef.current ? 'grab' : 'default' );
+		} );
+
+		const handleKeyDown = ( e ) => {
+			if ( e.code !== 'Space' ) return;
+			const tag = document.activeElement?.tagName;
+			if ( tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable ) return;
+			if ( fabricRef.current?._activeObject?.isEditing ) return;
+			e.preventDefault();
+			if ( ! spaceRef.current ) {
+				spaceRef.current     = true;
+				canvas.defaultCursor = 'grab';
+				canvas.hoverCursor   = 'grab';
+				canvas.setCursor( 'grab' );
+			}
+		};
+		const handleKeyUp = ( e ) => {
+			if ( e.code !== 'Space' ) return;
+			spaceRef.current     = false;
+			isPanningRef.current = false;
+			canvas.defaultCursor = 'default';
+			canvas.hoverCursor   = 'move';
+			canvas.selection     = true;
+			canvas.setCursor( 'default' );
+		};
+		document.addEventListener( 'keydown', handleKeyDown );
+		document.addEventListener( 'keyup',   handleKeyUp );
+
+		// ── Outside-artboard dim overlay ──────────────────────────────────────
+		// Drawn directly onto the canvas context after each render so that
+		// objects which overflow the artboard appear as visible but dimmed ghosts.
+		const drawOverlay = () => {
+			const ctx  = canvas.contextContainer;
+			const vt   = canvas.viewportTransform;
+			const zoom = vt[ 0 ];
+			const panX = vt[ 4 ];
+			const panY = vt[ 5 ];
+
+			const artL = panX;
+			const artT = panY;
+			const artR = panX + artW * zoom;
+			const artB = panY + artH * zoom;
+			const w    = canvas.width;
+			const h    = canvas.height;
+
+			ctx.save();
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+
+			// Top strip (above artboard).
+			if ( artT > 0 ) ctx.fillRect( 0, 0, w, artT );
+			// Bottom strip (below artboard).
+			if ( artB < h ) ctx.fillRect( 0, artB, w, h - artB );
+			// Left and right strips (beside the artboard, clamped to its height).
+			const midTop = Math.max( 0, artT );
+			const midBot = Math.min( h, artB );
+			const midH   = midBot - midTop;
+			if ( midH > 0 && artL > 0 ) ctx.fillRect( 0, midTop, artL, midH );
+			if ( midH > 0 && artR < w ) ctx.fillRect( artR, midTop, w - artR, midH );
+
+			ctx.restore();
+		};
+		canvas.on( 'after:render', drawOverlay );
+
+		return () => {
+			canvas.off( 'after:render', drawOverlay );
+			cleanupGuides();
+			resizeObserver.disconnect();
+			container.removeEventListener( 'wheel', handleWheel );
+			document.removeEventListener( 'keydown', handleKeyDown );
+			document.removeEventListener( 'keyup',   handleKeyUp );
+			canvas.dispose();
+			fabricRef.current       = null;
+			artboardRectRef.current = null;
+		};
+		// Run once — fabricJson is loaded inside the effect on first mount.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [] );
 
@@ -134,12 +339,44 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 
 	const getFabric = useCallback( () => fabricRef.current, [] );
 
+	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
-		return fabricRef.current?.toJSON( [ 'id' ] ) ?? null;
+		return fabricRef.current?.toJSON( [ 'id', 'isArtboard' ] ) ?? null;
 	}, [] );
 
+	/**
+	 * Export the artboard as a PNG data URL.
+	 * Temporarily resets the canvas to artboard dimensions + identity viewport
+	 * so the export is pixel-perfect regardless of current zoom/pan.
+	 */
 	const toDataURL = useCallback( () => {
-		return fabricRef.current?.toDataURL( { format: 'png', multiplier: 1 } ) ?? null;
+		const canvas   = fabricRef.current;
+		const artboard = artboardRectRef.current;
+		if ( ! canvas ) return null;
+
+		const artW    = artboardWRef.current;
+		const artH    = artboardHRef.current;
+		const prevVT  = [ ...canvas.viewportTransform ];
+		const prevW   = canvas.width;
+		const prevH   = canvas.height;
+
+		// Temporarily disable artboard shadow for a clean export.
+		const prevShadow = artboard?.shadow ?? null;
+		if ( artboard ) artboard.set( 'shadow', null );
+
+		canvas.setDimensions( { width: artW, height: artH } );
+		canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
+		canvas.renderAll();
+
+		const dataURL = canvas.toDataURL( { format: 'png', multiplier: 1 } );
+
+		// Restore viewport and shadow.
+		if ( artboard ) artboard.set( 'shadow', prevShadow );
+		canvas.setDimensions( { width: prevW, height: prevH } );
+		canvas.setViewportTransform( prevVT );
+		canvas.renderAll();
+
+		return dataURL;
 	}, [] );
 
 	const loadFromJSON = useCallback( ( json ) => {
@@ -148,17 +385,19 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		canvas.loadFromJSON( json ).then( () => canvas.renderAll() );
 	}, [] );
 
+	/** Set the artboard background color. */
 	const setBackground = useCallback( ( color ) => {
-		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
-		const prev = canvas.backgroundColor;
-		canvas.set( 'backgroundColor', color );
+		const canvas   = fabricRef.current;
+		const artboard = artboardRectRef.current;
+		if ( ! canvas || ! artboard ) return;
+		const prev = artboard.fill;
+		artboard.set( 'fill', color );
 		canvas.renderAll();
 		dispatch.markDirty();
 		dispatch.pushHistory( {
 			label: 'Background color',
-			undo: () => { canvas.set( 'backgroundColor', prev ); canvas.renderAll(); },
-			redo: () => { canvas.set( 'backgroundColor', color ); canvas.renderAll(); },
+			undo: () => { artboard.set( 'fill', prev );   artboard.dirty = true; canvas.renderAll(); },
+			redo: () => { artboard.set( 'fill', color );  canvas.renderAll(); },
 		} );
 	}, [ dispatch ] );
 
@@ -183,7 +422,6 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		canvas.add( text );
 		canvas.setActiveObject( text );
 		canvas.renderAll();
-		// Enter editing mode immediately and select all so the user can type right away.
 		text.enterEditing();
 		text.selectAll();
 		canvas.renderAll();
@@ -197,17 +435,18 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 	const addImage = useCallback( ( src, overrides = {} ) => {
 		const canvas = fabricRef.current;
 		if ( ! canvas ) return;
+		const artW = artboardWRef.current;
+		const artH = artboardHRef.current;
 
 		fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } ).then( ( img ) => {
-			// Scale down to fit the canvas while preserving aspect ratio.
-			const maxSize = Math.min( canvas.width, canvas.height ) * 0.6;
+			const maxSize = Math.min( artW, artH ) * 0.6;
 			if ( img.width > maxSize || img.height > maxSize ) {
 				const scale = maxSize / Math.max( img.width, img.height );
 				img.scale( scale );
 			}
 			img.set( {
-				left: canvas.width  / 2 - ( img.getScaledWidth()  / 2 ),
-				top:  canvas.height / 2 - ( img.getScaledHeight() / 2 ),
+				left: artW / 2 - img.getScaledWidth()  / 2,
+				top:  artH / 2 - img.getScaledHeight() / 2,
 				...overrides,
 			} );
 			canvas.add( img );
@@ -226,16 +465,13 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		const obj    = canvas?.getActiveObject();
 		if ( ! obj ) return;
 
-		// Capture previous values for undo.
 		const prevProps = {};
 		Object.keys( props ).forEach( ( k ) => { prevProps[ k ] = obj.get( k ); } );
 
-		// Apply new values.
 		obj.set( props );
 		if ( obj.type === 'i-text' || obj.type === 'textbox' ) obj.initDimensions();
 		canvas.requestRenderAll();
 
-		// Sync properties mirror in store.
 		dispatch.updateSelectionProperties( props );
 		dispatch.markDirty();
 
@@ -284,13 +520,7 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		const imgW = img.width;
 		const imgH = img.height;
 
-		// Shape dimensions in local (unscaled) space — pattern is applied pre-scale.
-		const shapeW = shape.width;
-		const shapeH = shape.height;
-
-		// Build a patternTransform that positions the image within the shape's
-		// center-origin local coordinate space (Fabric renders shapes centered at 0,0).
-		const patternTransform = shapeFitTransform( imgW, imgH, shapeW, shapeH, fitMode );
+		const patternTransform = shapeFitTransform( imgW, imgH, shape.width, shape.height, fitMode );
 
 		const pattern = new fabric.Pattern( {
 			source:           img.getElement(),
@@ -305,8 +535,8 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 
 		dispatch.pushHistory( {
 			label: 'Fill shape with image',
-			undo: () => { shape.set( 'fill', prevFill ); canvas.renderAll(); dispatch.markDirty(); },
-			redo: () => { shape.set( 'fill', pattern ); canvas.renderAll(); dispatch.markDirty(); },
+			undo: () => { shape.set( 'fill', prevFill ); shape.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
+			redo: () => { shape.set( 'fill', pattern );  shape.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
 		} );
 	}, [ dispatch ] );
 
@@ -321,8 +551,6 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		const imgW = imgEl.naturalWidth  || imgEl.width;
 		const imgH = imgEl.naturalHeight || imgEl.height;
 
-		// Replace the pattern entirely — mutating patternTransform in place does
-		// not invalidate Fabric's object cache, so the canvas wouldn't repaint.
 		const newPattern = new fabric.Pattern( {
 			source:           imgEl,
 			repeat:           'no-repeat',
@@ -335,65 +563,126 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		dispatch.markDirty();
 	}, [ dispatch ] );
 
-	// ── Canvas background image ────────────────────────────────────────────────
+	// ── Artboard background image (stored as Pattern fill on the artboard) ────
 
 	const setBackgroundImage = useCallback( async ( src, fitMode = 'cover' ) => {
-		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
+		const canvas   = fabricRef.current;
+		const artboard = artboardRectRef.current;
+		if ( ! canvas || ! artboard ) return;
 
-		const prev = canvas.backgroundImage ?? null;
+		const artW = artboardWRef.current;
+		const artH = artboardHRef.current;
+		const prev = artboard.fill;
 		const img  = await fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } );
 
-		applyBgFit( img, canvas.width, canvas.height, fitMode );
-		canvas.backgroundImage = img;
+		const pattern = new fabric.Pattern( {
+			source:           img.getElement(),
+			repeat:           'no-repeat',
+			patternTransform: shapeFitTransform( img.width, img.height, artW, artH, fitMode ),
+		} );
+
+		artboard.set( 'fill', pattern );
+		artboard.dirty = true;
 		canvas.renderAll();
 		dispatch.markDirty();
 
 		dispatch.pushHistory( {
 			label: 'Set background image',
-			undo: () => { canvas.backgroundImage = prev; canvas.renderAll(); dispatch.markDirty(); },
-			redo: () => { canvas.backgroundImage = img;  canvas.renderAll(); dispatch.markDirty(); },
+			undo: () => { artboard.set( 'fill', prev );    artboard.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
+			redo: () => { artboard.set( 'fill', pattern ); artboard.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
 		} );
 	}, [ dispatch ] );
 
 	const updateBackgroundImageFit = useCallback( ( fitMode ) => {
-		const canvas = fabricRef.current;
-		const img    = canvas?.backgroundImage;
-		if ( ! canvas || ! img ) return;
-		applyBgFit( img, canvas.width, canvas.height, fitMode );
+		const canvas   = fabricRef.current;
+		const artboard = artboardRectRef.current;
+		if ( ! canvas || ! artboard || ! artboard.fill?.source ) return;
+
+		const artW  = artboardWRef.current;
+		const artH  = artboardHRef.current;
+		const imgEl = artboard.fill.source;
+		const imgW  = imgEl.naturalWidth  || imgEl.width;
+		const imgH  = imgEl.naturalHeight || imgEl.height;
+
+		const newPattern = new fabric.Pattern( {
+			source:           imgEl,
+			repeat:           'no-repeat',
+			patternTransform: shapeFitTransform( imgW, imgH, artW, artH, fitMode ),
+		} );
+
+		artboard.set( 'fill', newPattern );
+		artboard.dirty = true;
 		canvas.renderAll();
 		dispatch.markDirty();
 	}, [ dispatch ] );
 
 	const clearBackgroundImage = useCallback( () => {
-		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
+		const canvas   = fabricRef.current;
+		const artboard = artboardRectRef.current;
+		if ( ! canvas || ! artboard ) return;
 
-		const prev = canvas.backgroundImage;
-		canvas.backgroundImage = null;
+		const prev = artboard.fill;
+		artboard.set( 'fill', '#ffffff' );
 		canvas.renderAll();
 		dispatch.markDirty();
 
 		dispatch.pushHistory( {
 			label: 'Remove background image',
-			undo: () => { canvas.backgroundImage = prev;  canvas.renderAll(); dispatch.markDirty(); },
-			redo: () => { canvas.backgroundImage = null; canvas.renderAll(); dispatch.markDirty(); },
+			undo: () => { artboard.set( 'fill', prev );      artboard.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
+			redo: () => { artboard.set( 'fill', '#ffffff' ); canvas.renderAll(); dispatch.markDirty(); },
 		} );
+	}, [ dispatch ] );
+
+	/**
+	 * Returns the src URL of the artboard background image, or null if the
+	 * artboard fill is a solid color.
+	 */
+	const getBackgroundImageSrc = useCallback( () => {
+		const artboard = artboardRectRef.current;
+		if ( ! artboard?.fill?.source ) return null;
+		return artboard.fill.source.src ?? null;
+	}, [] );
+
+	// ── Zoom / pan controls ───────────────────────────────────────────────────
+
+	/** Re-fit the artboard to fill ~90% of the viewport. */
+	const fitView = useCallback( () => {
+		fitToScreenRef.current?.();
+	}, [] );
+
+	/** Zoom in 25% toward the viewport center. */
+	const zoomIn = useCallback( () => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) return;
+		const center  = new fabric.Point( canvas.width / 2, canvas.height / 2 );
+		const newZoom = Math.min( canvas.getZoom() * 1.25, 8 );
+		canvas.zoomToPoint( center, newZoom );
+		dispatch.setZoom( Math.round( newZoom * 100 ) );
+	}, [ dispatch ] );
+
+	/** Zoom out 25% from the viewport center. */
+	const zoomOut = useCallback( () => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) return;
+		const center  = new fabric.Point( canvas.width / 2, canvas.height / 2 );
+		const newZoom = Math.max( canvas.getZoom() / 1.25, 0.05 );
+		canvas.zoomToPoint( center, newZoom );
+		dispatch.setZoom( Math.round( newZoom * 100 ) );
 	}, [ dispatch ] );
 
 	// ── Alignment ─────────────────────────────────────────────────────────────
 
+	/** Align the selected object relative to the artboard boundaries. */
 	const alignObject = useCallback( ( direction ) => {
 		const canvas = fabricRef.current;
 		const obj    = canvas?.getActiveObject();
 		if ( ! canvas || ! obj ) return;
 
-		// getBoundingRect accounts for rotation — gives the axis-aligned visual box.
 		const bbox    = obj.getBoundingRect();
 		const offsetL = obj.left - bbox.left;
 		const offsetT = obj.top  - bbox.top;
-		const canvasW = canvas.width;
-		const canvasH = canvas.height;
+		const artW    = artboardWRef.current;
+		const artH    = artboardHRef.current;
 		const prevLeft = obj.left;
 		const prevTop  = obj.top;
 
@@ -402,11 +691,11 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 
 		switch ( direction ) {
 			case 'left':    newLeft = offsetL; break;
-			case 'centerH': newLeft = ( canvasW - bbox.width )  / 2 + offsetL; break;
-			case 'right':   newLeft = canvasW - bbox.width  + offsetL; break;
+			case 'centerH': newLeft = ( artW - bbox.width )  / 2 + offsetL; break;
+			case 'right':   newLeft = artW - bbox.width  + offsetL; break;
 			case 'top':     newTop  = offsetT; break;
-			case 'centerV': newTop  = ( canvasH - bbox.height ) / 2 + offsetT; break;
-			case 'bottom':  newTop  = canvasH - bbox.height + offsetT; break;
+			case 'centerV': newTop  = ( artH - bbox.height ) / 2 + offsetT; break;
+			case 'bottom':  newTop  = artH - bbox.height + offsetT; break;
 		}
 
 		obj.set( { left: newLeft, top: newTop } );
@@ -444,21 +733,27 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		dispatch.pushHistory( {
 			label: 'Move layer up',
 			undo: () => { canvas.sendObjectBackwards( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-			redo: () => { canvas.bringObjectForward( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			redo: () => { canvas.bringObjectForward( obj );  canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
 		} );
 	}, [ dispatch ] );
 
 	const moveLayerDown = useCallback( ( id ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		const canvas  = fabricRef.current;
+		const obj     = canvas?.getObjects().find( ( o ) => o.id === id );
 		if ( ! canvas || ! obj ) return;
+
+		// Prevent sending below the artboard (always at the bottom of the stack).
+		const objects = canvas.getObjects();
+		const minIdx  = objects.findIndex( ( o ) => ! o.isArtboard );
+		if ( objects.indexOf( obj ) <= minIdx ) return;
+
 		canvas.sendObjectBackwards( obj );
 		canvas.renderAll();
 		syncLayersToStore( canvas, dispatch );
 		dispatch.markDirty();
 		dispatch.pushHistory( {
 			label: 'Move layer down',
-			undo: () => { canvas.bringObjectForward( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			undo: () => { canvas.bringObjectForward( obj );  canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
 			redo: () => { canvas.sendObjectBackwards( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
 		} );
 	}, [ dispatch ] );
@@ -530,8 +825,12 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		setBackgroundImage,
 		updateBackgroundImageFit,
 		clearBackgroundImage,
+		getBackgroundImageSrc,
 		alignObject,
 		setSnapToGrid,
+		fitView,
+		zoomIn,
+		zoomOut,
 		selectById,
 		moveLayerUp,
 		moveLayerDown,
@@ -544,8 +843,33 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
+ * Create the artboard sentinel rect.
+ *
+ * @param {number} artW   Artboard width in canvas pixels.
+ * @param {number} artH   Artboard height in canvas pixels.
+ * @param {*}      fill   Fabric fill value (color string or Pattern).
+ * @returns {fabric.Rect}
+ */
+function createArtboardRect( artW, artH, fill ) {
+	return new fabric.Rect( {
+		id:          'artboard',
+		isArtboard:  true,
+		width:       artW,
+		height:      artH,
+		fill,
+		selectable:  false,
+		evented:     false,
+		hoverCursor: 'default',
+	} );
+}
+
+/**
  * Compute the patternTransform matrix [a,b,c,d,e,f] that positions an image
- * inside a shape's local coordinate space (center at 0,0).
+ * inside a shape's local coordinate space.
+ *
+ * Fabric v6 pre-shifts the pattern context by (-width/2, -height/2) before
+ * applying patternTransform, so (0,0) in patternTransform space is the
+ * TOP-LEFT of the shape's bounding box.  The shape spans (0,0)→(shapeW,shapeH).
  *
  * @param {number} imgW    Image natural width.
  * @param {number} imgH    Image natural height.
@@ -553,12 +877,6 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
  * @param {number} shapeH  Shape unscaled height.
  * @param {string} fitMode 'cover'|'contain'|'fill'|'none'
  * @returns {number[]} 6-element transform matrix.
- */
-/**
- * Fabric v6 pre-shifts the pattern context by (-width/2, -height/2) before
- * applying patternTransform, so (0,0) in patternTransform space is the
- * TOP-LEFT of the shape's bounding box (not the center).
- * The shape spans (0,0) → (shapeW, shapeH) in that space.
  */
 function shapeFitTransform( imgW, imgH, shapeW, shapeH, fitMode ) {
 	switch ( fitMode ) {
@@ -578,33 +896,11 @@ function shapeFitTransform( imgW, imgH, shapeW, shapeH, fitMode ) {
 }
 
 /**
- * Apply a CSS-style fit mode to a Fabric.Image for use as a canvas background.
+ * Map a Fabric object type to a selection type string.
  *
- * @param {fabric.Image} img      The image to position/scale.
- * @param {number}       canvasW  Canvas native width.
- * @param {number}       canvasH  Canvas native height.
- * @param {string}       fitMode  'cover'|'contain'|'fill'|'none'
+ * @param {fabric.Object} obj
+ * @returns {'text'|'image'|'shape'|'none'}
  */
-function applyBgFit( img, canvasW, canvasH, fitMode ) {
-	switch ( fitMode ) {
-		case 'cover': {
-			const s = Math.max( canvasW / img.width, canvasH / img.height );
-			img.set( { scaleX: s, scaleY: s, left: ( canvasW - img.width * s ) / 2, top: ( canvasH - img.height * s ) / 2 } );
-			break;
-		}
-		case 'contain': {
-			const s = Math.min( canvasW / img.width, canvasH / img.height );
-			img.set( { scaleX: s, scaleY: s, left: ( canvasW - img.width * s ) / 2, top: ( canvasH - img.height * s ) / 2 } );
-			break;
-		}
-		case 'fill':
-			img.set( { scaleX: canvasW / img.width, scaleY: canvasH / img.height, left: 0, top: 0 } );
-			break;
-		default: // 'none' — natural size, top-left
-			img.set( { scaleX: 1, scaleY: 1, left: 0, top: 0 } );
-	}
-}
-
 function syncSelection( obj, dispatch ) {
 	if ( ! obj ) return;
 	const type       = getObjectType( obj );
@@ -618,16 +914,19 @@ function syncSelection( obj, dispatch ) {
 
 /**
  * Rebuild the layers list in the store from the current canvas objects.
- * Layers are returned bottom-to-top (index 0 = front) for display purposes.
+ * The artboard sentinel is excluded.  Layers are ordered front-to-back.
  *
  * @param {fabric.Canvas} canvas
- * @param {Object}        dispatch @wordpress/data dispatch object for STORE_KEY.
+ * @param {Object}        dispatch
  */
 function syncLayersToStore( canvas, dispatch ) {
-	const objects = canvas.getObjects();
-	// Reverse so the topmost layer is first in the list.
+	const objects = canvas.getObjects().filter( ( o ) => ! o.isArtboard );
+	// Ensure every object has a stable ID before syncing to the store.
+	objects.forEach( ( obj ) => {
+		if ( ! obj.id ) obj.id = genId();
+	} );
 	const layers = [ ...objects ].reverse().map( ( obj ) => ( {
-		id:   obj.id ?? null,
+		id:   obj.id,
 		name: obj.name || getDefaultLayerName( obj ),
 		type: getObjectType( obj ),
 	} ) );

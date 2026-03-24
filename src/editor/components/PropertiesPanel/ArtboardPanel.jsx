@@ -24,11 +24,10 @@ export function ArtboardPanel() {
 
 	// Initialise from the canvas when the panel first mounts (e.g. loading an existing design).
 	useEffect( () => {
-		const canvas = fabric?.getFabric?.();
-		if ( canvas?.backgroundImage ) {
+		const src = fabric?.getBackgroundImageSrc?.();
+		if ( src ) {
 			setHasBgImage( true );
-			const src = canvas.backgroundImage.getSrc?.();
-			if ( src ) setBgSrc( src );
+			setBgSrc( src );
 		}
 	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
 

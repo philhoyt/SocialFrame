@@ -75,10 +75,8 @@
 
 .socialframe-editor__canvas-area {
 	flex: 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	overflow: auto;
+	position: relative;
+	overflow: hidden;
 	background: #1a1a1a;
 	background-image: radial-gradient( circle, #333 1px, transparent 1px );
 	background-size: 20px 20px;
@@ -93,7 +91,10 @@
 	padding: 12px;
 }
 
-.socialframe-canvas-wrapper {
-	position: relative;
-	box-shadow: 0 4px 24px rgba( 0, 0, 0, 0.5 );
+/* Fabric wrapper fills the canvas area — sizing is controlled via setDimensions(). */
+.socialframe-canvas-wrapper,
+.canvas-container {
+	position: absolute !important;
+	top: 0 !important;
+	left: 0 !important;
 }

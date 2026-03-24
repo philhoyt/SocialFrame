@@ -72,8 +72,9 @@ export function EditorApp() {
 
 function EditorInner( { design } ) {
 	const canvasRef = useRef( null );
+	const areaRef   = useRef( null );
 
-	const fabricApi = useFabricCanvas( canvasRef, {
+	const fabricApi = useFabricCanvas( canvasRef, areaRef, {
 		format:     design.format,
 		fabricJson: design.fabricJson,
 	} );
@@ -87,7 +88,7 @@ function EditorInner( { design } ) {
 				<div className="socialframe-editor__body">
 					<IconNav />
 					<ContentPanel />
-					<Canvas canvasRef={ canvasRef } />
+					<Canvas canvasRef={ canvasRef } areaRef={ areaRef } />
 					<PropertiesPanel />
 				</div>
 			</div>

@@ -16,3 +16,4 @@ export const getUndoLabel        = ( state ) => state.undoStack[ state.undoIndex
 export const getRedoLabel        = ( state ) => state.undoStack[ state.undoIndex + 1 ]?.label ?? null;
 export const getLayers           = ( state ) => state.layers;
 export const getSelectedObjectId = ( state ) => state.selection.objectId;
+export const getZoom             = ( state ) => state.zoom;

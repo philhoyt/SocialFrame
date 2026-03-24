@@ -16,6 +16,7 @@ const DEFAULT_STATE = {
 	undoStack: [],
 	undoIndex: -1,
 	layers: [],
+	zoom:   100,
 };
 
 export function reducer( state = DEFAULT_STATE, action ) {
@@ -90,6 +91,9 @@ export function reducer( state = DEFAULT_STATE, action ) {
 
 		case 'SET_LAYERS':
 			return { ...state, layers: action.layers };
+
+		case 'SET_ZOOM':
+			return { ...state, zoom: action.zoom };
 
 		default:
 			return state;

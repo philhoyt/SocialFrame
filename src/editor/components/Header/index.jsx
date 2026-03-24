@@ -9,6 +9,7 @@ import { useFabric } from '../../EditorApp';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { exportDesign, saveAsTemplate } from '../../utils/exportHelpers';
 
+
 import './Header.css';
 
 export function Header() {
@@ -24,6 +25,7 @@ export function Header() {
 		undoLabel,
 		redoLabel,
 		designId,
+		zoom,
 	} = useSelect( ( select ) => {
 		const s = select( STORE_KEY );
 		return {
@@ -36,6 +38,7 @@ export function Header() {
 			undoLabel: s.getUndoLabel(),
 			redoLabel: s.getRedoLabel(),
 			designId:  s.getDesignId(),
+			zoom:      s.getZoom(),
 		};
 	} );
 
@@ -148,6 +151,34 @@ export function Header() {
 				>
 					{ __( 'Redo', 'socialframe' ) }
 				</Button>
+
+				<div className="socialframe-header__zoom">
+					<Button
+						variant="tertiary"
+						onClick={ () => fabric?.fitView?.() }
+						label={ __( 'Fit to screen (Ctrl+0)', 'socialframe' ) }
+						showTooltip
+					>
+						{ __( 'Fit', 'socialframe' ) }
+					</Button>
+					<Button
+						variant="tertiary"
+						onClick={ () => fabric?.zoomOut?.() }
+						label={ __( 'Zoom out (Ctrl+−)', 'socialframe' ) }
+						showTooltip
+					>
+						{ '−' }
+					</Button>
+					<span className="socialframe-header__zoom-pct">{ zoom }%</span>
+					<Button
+						variant="tertiary"
+						onClick={ () => fabric?.zoomIn?.() }
+						label={ __( 'Zoom in (Ctrl++)', 'socialframe' ) }
+						showTooltip
+					>
+						{ '+' }
+					</Button>
+				</div>
 			</div>
 
 			<div className="socialframe-header__right">
