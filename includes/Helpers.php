@@ -16,12 +16,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function socialframe_get_formats(): array {
 	return [
-		'instagram-post'  => [
+		'instagram-post'     => [
 			'label'  => 'Instagram Post',
 			'width'  => 1080,
 			'height' => 1080,
 		],
-		'instagram-story' => [
+		'instagram-portrait' => [
+			'label'  => 'Instagram Portrait',
+			'width'  => 1080,
+			'height' => 1350,
+		],
+		'instagram-story'    => [
 			'label'  => 'Instagram Story',
 			'width'  => 1080,
 			'height' => 1920,
