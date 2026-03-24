@@ -1,0 +1,24 @@
+.socialframe-icon-nav__btn {
+	width: 44px;
+	height: 44px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	color: #a0a0a0;
+	font-size: 18px;
+	transition: background 0.1s, color 0.1s;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+}
+
+.socialframe-icon-nav__btn:hover {
+	background: rgba( 255, 255, 255, 0.08 );
+	color: #fff;
+}
+
+.socialframe-icon-nav__btn.is-active {
+	background: rgba( 255, 255, 255, 0.15 );
+	color: #fff;
+}

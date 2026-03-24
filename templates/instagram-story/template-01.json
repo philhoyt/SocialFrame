@@ -1,0 +1,66 @@
+{
+	"version": "6.0.0",
+	"objects": [
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 0,
+			"top": 0,
+			"width": 1080,
+			"height": 1920,
+			"fill": "#0f3460",
+			"strokeWidth": 0,
+			"opacity": 1,
+			"selectable": false,
+			"evented": false,
+			"id": "bg-rect"
+		},
+		{
+			"type": "Circle",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 290,
+			"top": 400,
+			"radius": 250,
+			"fill": "#e94560",
+			"opacity": 0.15,
+			"strokeWidth": 0,
+			"id": "circle-deco"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 80,
+			"top": 800,
+			"width": 920,
+			"text": "Story\nHeadline",
+			"fontSize": 120,
+			"fontWeight": "bold",
+			"fontFamily": "sans-serif",
+			"fill": "#ffffff",
+			"textAlign": "left",
+			"lineHeight": 1.0,
+			"id": "headline"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 80,
+			"top": 1060,
+			"width": 920,
+			"text": "Swipe up to learn more",
+			"fontSize": 44,
+			"fontFamily": "sans-serif",
+			"fill": "#aaaaaa",
+			"id": "cta"
+		}
+	],
+	"background": "#0f3460"
+}

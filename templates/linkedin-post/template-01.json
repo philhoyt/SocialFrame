@@ -1,0 +1,63 @@
+{
+	"version": "6.0.0",
+	"objects": [
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 0,
+			"top": 0,
+			"width": 1200,
+			"height": 627,
+			"fill": "#f3f2ef",
+			"strokeWidth": 0,
+			"selectable": false,
+			"evented": false,
+			"id": "bg-rect"
+		},
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 0,
+			"top": 0,
+			"width": 1200,
+			"height": 8,
+			"fill": "#0a66c2",
+			"strokeWidth": 0,
+			"id": "top-bar"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 80,
+			"top": 180,
+			"width": 1040,
+			"text": "Professional Insight",
+			"fontSize": 80,
+			"fontWeight": "bold",
+			"fontFamily": "sans-serif",
+			"fill": "#1a1a1a",
+			"id": "title"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 80,
+			"top": 300,
+			"width": 1040,
+			"text": "Share your expertise and connect with your network.",
+			"fontSize": 36,
+			"fontFamily": "sans-serif",
+			"fill": "#555555",
+			"id": "subtitle"
+		}
+	],
+	"background": "#f3f2ef"
+}

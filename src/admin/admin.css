@@ -1,0 +1,72 @@
+@import '@wordpress/dataviews/build-style/style.css';
+
+/* SocialFrame Admin Management Screen */
+
+.socialframe-admin {
+	padding: 24px;
+	max-width: 1400px;
+}
+
+.socialframe-admin__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 24px;
+}
+
+.socialframe-admin__title {
+	font-size: 23px;
+	font-weight: 400;
+	margin: 0;
+	color: #1d2327;
+}
+
+.socialframe-admin__filter-tabs {
+	display: flex;
+	gap: 0;
+	margin-bottom: 16px;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.socialframe-admin__filter-tab {
+	padding: 8px 16px;
+	cursor: pointer;
+	border: none;
+	background: none;
+	font-size: 14px;
+	color: #50575e;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	transition: color 0.1s, border-color 0.1s;
+}
+
+.socialframe-admin__filter-tab:hover {
+	color: #1d2327;
+}
+
+.socialframe-admin__filter-tab--active {
+	color: #1d2327;
+	border-bottom-color: #1d2327;
+	font-weight: 600;
+}
+
+/* DataViews grid thumbnail */
+.socialframe-admin__thumbnail {
+	width: 100%;
+	aspect-ratio: 1;
+	object-fit: cover;
+	border-radius: 4px;
+	background: #f0f0f1;
+}
+
+.socialframe-admin__no-thumbnail {
+	width: 100%;
+	aspect-ratio: 1;
+	background: #f0f0f1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px;
+	color: #a7aaad;
+	font-size: 12px;
+}

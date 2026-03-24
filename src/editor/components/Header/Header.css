@@ -1,0 +1,67 @@
+.socialframe-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 12px;
+	height: 56px;
+	background: #2c2c2c;
+	border-bottom: 1px solid #3c3c3c;
+	flex-shrink: 0;
+	gap: 12px;
+}
+
+.socialframe-header__left,
+.socialframe-header__center,
+.socialframe-header__right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.socialframe-header__left {
+	flex: 1;
+	min-width: 0;
+}
+
+.socialframe-header__title .components-text-control__input {
+	background: transparent;
+	border: 1px solid transparent;
+	color: #fff;
+	font-size: 14px;
+	font-weight: 600;
+	padding: 4px 8px;
+	border-radius: 4px;
+	min-width: 120px;
+	max-width: 300px;
+}
+
+.socialframe-header__title .components-text-control__input:hover {
+	border-color: #555;
+}
+
+.socialframe-header__title .components-text-control__input:focus {
+	border-color: #0073aa;
+	box-shadow: 0 0 0 1px #0073aa;
+	outline: none;
+}
+
+.socialframe-header__format {
+	font-size: 11px;
+	color: #a0a0a0;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	white-space: nowrap;
+}
+
+.socialframe-header .components-button.is-tertiary {
+	color: #ccc;
+}
+
+.socialframe-header .components-button.is-tertiary:hover {
+	color: #fff;
+	background: rgba( 255, 255, 255, 0.08 );
+}
+
+.socialframe-header .components-button.is-tertiary:disabled {
+	color: #555;
+}

@@ -1,0 +1,63 @@
+{
+	"version": "6.0.0",
+	"objects": [
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 0,
+			"top": 0,
+			"width": 1200,
+			"height": 630,
+			"fill": "#ffffff",
+			"strokeWidth": 0,
+			"selectable": false,
+			"evented": false,
+			"id": "bg-rect"
+		},
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 0,
+			"top": 0,
+			"width": 400,
+			"height": 630,
+			"fill": "#3b5998",
+			"strokeWidth": 0,
+			"id": "sidebar"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 460,
+			"top": 200,
+			"width": 680,
+			"text": "Post Title",
+			"fontSize": 72,
+			"fontWeight": "bold",
+			"fontFamily": "sans-serif",
+			"fill": "#1a1a1a",
+			"id": "title"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 460,
+			"top": 300,
+			"width": 680,
+			"text": "Short description of your post content goes here.",
+			"fontSize": 32,
+			"fontFamily": "sans-serif",
+			"fill": "#555555",
+			"id": "description"
+		}
+	],
+	"background": "#ffffff"
+}

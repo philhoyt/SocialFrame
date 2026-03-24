@@ -1,0 +1,23 @@
+{
+	"name": "socialframe",
+	"version": "1.0.0",
+	"description": "Social media graphic editor inside wp-admin.",
+	"license": "GPL-2.0-or-later",
+	"private": true,
+	"scripts": {
+		"build": "wp-scripts build",
+		"start": "wp-scripts start",
+		"lint:js": "wp-scripts lint-js",
+		"lint:css": "wp-scripts lint-style",
+		"format": "wp-scripts format",
+		"packages-update": "wp-scripts packages-update",
+		"plugin-zip": "wp-scripts plugin-zip"
+	},
+	"dependencies": {
+		"fabric": "^6.0.0"
+	},
+	"devDependencies": {
+		"@wordpress/dataviews": "^13.1.0",
+		"@wordpress/scripts": "^30.0.0"
+	}
+}

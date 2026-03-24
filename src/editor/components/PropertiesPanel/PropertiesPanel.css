@@ -1,0 +1,102 @@
+.socialframe-editor__properties-panel {
+	width: 240px;
+	flex-shrink: 0;
+	background: #242424;
+	border-left: 1px solid #3c3c3c;
+	overflow-y: auto;
+}
+
+.socialframe-props {
+	padding: 12px;
+}
+
+.socialframe-props__section {
+	margin-bottom: 16px;
+}
+
+.socialframe-props__section-title {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #888;
+	margin: 0 0 8px;
+}
+
+.socialframe-props .components-base-control__label {
+	color: #aaa;
+	font-size: 11px;
+}
+
+.socialframe-props .components-text-control__input,
+.socialframe-props .components-select-control__input {
+	background: #2c2c2c;
+	border-color: #3c3c3c;
+	color: #fff;
+	font-size: 12px;
+}
+
+.socialframe-props .components-text-control__input:focus,
+.socialframe-props .components-select-control__input:focus {
+	border-color: #0073aa;
+	box-shadow: 0 0 0 1px #0073aa;
+}
+
+.socialframe-color-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 4px;
+}
+
+.socialframe-color-swatch {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	border: 2px solid transparent;
+	cursor: pointer;
+	padding: 0;
+	transition: border-color 0.1s;
+}
+
+.socialframe-color-swatch:hover,
+.socialframe-color-swatch--active {
+	border-color: #fff;
+}
+
+.socialframe-props__row {
+	display: flex;
+	gap: 8px;
+}
+
+.socialframe-props__row > * {
+	flex: 1;
+}
+
+.socialframe-props__button-group {
+	display: flex;
+	gap: 4px;
+}
+
+.socialframe-props__toggle-btn {
+	padding: 4px 8px;
+	border-radius: 4px;
+	border: 1px solid #3c3c3c;
+	background: #2c2c2c;
+	color: #aaa;
+	cursor: pointer;
+	font-size: 12px;
+	line-height: 1;
+	transition: background 0.1s;
+}
+
+.socialframe-props__toggle-btn:hover {
+	background: #383838;
+	color: #fff;
+}
+
+.socialframe-props__toggle-btn--active {
+	background: #0073aa;
+	border-color: #0073aa;
+	color: #fff;
+}

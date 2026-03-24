@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<ruleset name="SocialFrame">
+    <description>SocialFrame coding standards — WordPress rules with modern PHP allowances.</description>
+
+    <file>./includes</file>
+    <file>./socialframe.php</file>
+    <file>./uninstall.php</file>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <rule ref="WordPress">
+        <!-- Allow short array syntax. -->
+        <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+        <!-- Allow PSR-4 file naming. -->
+        <exclude name="WordPress.Files.FileName"/>
+        <!-- Allow declare(strict_types) after namespace. -->
+        <exclude name="PSR1.Files.SideEffects"/>
+    </rule>
+
+    <rule ref="WordPress-Core"/>
+    <rule ref="WordPress-Docs"/>
+
+    <!-- Minimum PHP version. -->
+    <config name="minimum_supported_wp_version" value="6.5"/>
+    <config name="testVersion" value="8.1-"/>
+</ruleset>

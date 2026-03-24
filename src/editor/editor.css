@@ -1,0 +1,98 @@
+/* SocialFrame Editor — full-screen shell styles */
+@import './components/Header/Header.css';
+@import './components/IconNav/IconNav.css';
+@import './components/ContentPanel/ContentPanel.css';
+@import './components/PropertiesPanel/PropertiesPanel.css';
+
+#socialframe-editor-root {
+	width: 100vw;
+	height: 100vh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	background: #1e1e1e;
+}
+
+/* Hide wp-admin chrome when editor is active */
+.socialframe-fullscreen #wpadminbar,
+.socialframe-fullscreen #adminmenuback,
+.socialframe-fullscreen #adminmenuwrap {
+	display: none !important;
+}
+
+.socialframe-fullscreen #wpcontent,
+.socialframe-fullscreen #wpbody,
+.socialframe-fullscreen #wpbody-content {
+	margin: 0 !important;
+	padding: 0 !important;
+	float: none !important;
+}
+
+.socialframe-fullscreen .wrap {
+	margin: 0;
+}
+
+/* Centered loading / error state */
+.socialframe-editor--center {
+	align-items: center;
+	justify-content: center;
+}
+
+/* Editor layout */
+.socialframe-editor {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+}
+
+.socialframe-editor__body {
+	display: flex;
+	flex: 1;
+	overflow: hidden;
+}
+
+.socialframe-editor__icon-nav {
+	width: 60px;
+	flex-shrink: 0;
+	background: #2c2c2c;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 8px 0;
+	gap: 4px;
+	border-right: 1px solid #3c3c3c;
+}
+
+.socialframe-editor__content-panel {
+	width: 260px;
+	flex-shrink: 0;
+	background: #242424;
+	border-right: 1px solid #3c3c3c;
+	overflow-y: auto;
+}
+
+.socialframe-editor__canvas-area {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: auto;
+	background: #1a1a1a;
+	background-image: radial-gradient( circle, #333 1px, transparent 1px );
+	background-size: 20px 20px;
+}
+
+.socialframe-editor__properties-panel {
+	width: 240px;
+	flex-shrink: 0;
+	background: #242424;
+	border-left: 1px solid #3c3c3c;
+	overflow-y: auto;
+	padding: 12px;
+}
+
+.socialframe-canvas-wrapper {
+	position: relative;
+	box-shadow: 0 4px 24px rgba( 0, 0, 0, 0.5 );
+}

@@ -1,0 +1,70 @@
+{
+	"version": "6.0.0",
+	"objects": [
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 0,
+			"top": 0,
+			"width": 1080,
+			"height": 1080,
+			"fill": "#1a1a2e",
+			"strokeWidth": 0,
+			"opacity": 1,
+			"selectable": false,
+			"evented": false,
+			"id": "bg-rect"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 80,
+			"top": 400,
+			"width": 920,
+			"text": "Your Headline Here",
+			"fontSize": 96,
+			"fontWeight": "bold",
+			"fontFamily": "sans-serif",
+			"fill": "#ffffff",
+			"textAlign": "left",
+			"lineHeight": 1.1,
+			"id": "headline"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 80,
+			"top": 560,
+			"width": 920,
+			"text": "Supporting message goes here",
+			"fontSize": 40,
+			"fontWeight": "normal",
+			"fontFamily": "sans-serif",
+			"fill": "#cccccc",
+			"textAlign": "left",
+			"id": "subtext"
+		},
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 80,
+			"top": 360,
+			"width": 120,
+			"height": 8,
+			"fill": "#e94560",
+			"strokeWidth": 0,
+			"rx": 4,
+			"ry": 4,
+			"id": "accent-line"
+		}
+	],
+	"background": "#1a1a2e"
+}

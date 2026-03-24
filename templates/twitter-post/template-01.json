@@ -1,0 +1,53 @@
+{
+	"version": "6.0.0",
+	"objects": [
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 0,
+			"top": 0,
+			"width": 1200,
+			"height": 675,
+			"fill": "#15202b",
+			"strokeWidth": 0,
+			"selectable": false,
+			"evented": false,
+			"id": "bg-rect"
+		},
+		{
+			"type": "IText",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 80,
+			"top": 220,
+			"width": 1040,
+			"text": "Your tweet-worthy\nheadline here",
+			"fontSize": 80,
+			"fontWeight": "bold",
+			"fontFamily": "sans-serif",
+			"fill": "#ffffff",
+			"textAlign": "center",
+			"lineHeight": 1.2,
+			"id": "headline"
+		},
+		{
+			"type": "Rect",
+			"version": "6.0.0",
+			"originX": "left",
+			"originY": "top",
+			"left": 540,
+			"top": 560,
+			"width": 120,
+			"height": 6,
+			"fill": "#1d9bf0",
+			"rx": 3,
+			"ry": 3,
+			"strokeWidth": 0,
+			"id": "accent"
+		}
+	],
+	"background": "#15202b"
+}

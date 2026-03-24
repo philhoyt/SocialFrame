@@ -1,0 +1,89 @@
+.socialframe-new {
+	min-height: 100vh;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 40px 20px;
+	background: #f0f0f1;
+}
+
+.socialframe-new__inner {
+	width: 100%;
+	max-width: 860px;
+}
+
+.socialframe-new__title {
+	font-size: 28px;
+	font-weight: 600;
+	color: #1d2327;
+	margin: 0 0 8px;
+}
+
+.socialframe-new__subtitle {
+	font-size: 14px;
+	color: #50575e;
+	margin: 0 0 28px;
+}
+
+.socialframe-new__grid {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 160px, 1fr ) );
+	gap: 16px;
+	margin-bottom: 32px;
+}
+
+.socialframe-new__format-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 20px 12px;
+	background: #fff;
+	border: 2px solid #c3c4c7;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: border-color 0.15s, box-shadow 0.15s;
+	text-align: center;
+}
+
+.socialframe-new__format-card:hover {
+	border-color: #0073aa;
+	box-shadow: 0 2px 8px rgba( 0, 115, 170, 0.15 );
+}
+
+.socialframe-new__format-card.is-selected {
+	border-color: #0073aa;
+	box-shadow: 0 0 0 1px #0073aa, 0 2px 8px rgba( 0, 115, 170, 0.2 );
+}
+
+.socialframe-new__format-preview {
+	margin-bottom: 4px;
+}
+
+.socialframe-new__format-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1.2;
+}
+
+.socialframe-new__format-dims {
+	font-size: 11px;
+	color: #8c8f94;
+}
+
+.socialframe-new__format-ratio {
+	font-size: 11px;
+	color: #a7aaad;
+}
+
+.socialframe-new__form {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	padding: 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	max-width: 440px;
+}
