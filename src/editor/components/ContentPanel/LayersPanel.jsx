@@ -1,4 +1,4 @@
-import { useState } from '@wordpress/element';
+import { useState, useRef } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
@@ -11,21 +11,34 @@ export function LayersPanel() {
 	const fabric          = useFabric();
 	const [ editingId, setEditingId ] = useState( null );
 	const [ editName, setEditName ]   = useState( '' );
+	const committingRef = useRef( false );
 
 	function startRename( layer ) {
 		setEditingId( layer.id );
 		setEditName( layer.name );
+		committingRef.current = false;
 	}
 
 	function commitRename( id ) {
+		if ( committingRef.current ) return;
+		committingRef.current = true;
 		const name = editName.trim();
 		if ( name ) fabric.renameById( id, name );
 		setEditingId( null );
 	}
 
 	function handleRenameKey( e, id ) {
-		if ( e.key === 'Enter' )  commitRename( id );
-		if ( e.key === 'Escape' ) setEditingId( null );
+		if ( e.key === 'Enter' || e.key === 'Escape' ) {
+			e.preventDefault();
+			e.stopPropagation();
+			committingRef.current = true;
+			if ( e.key === 'Enter' ) {
+				const name = editName.trim();
+				if ( name ) fabric.renameById( id, name );
+			}
+			setEditingId( null );
+			e.target.blur();
+		}
 	}
 
 	if ( ! layers || layers.length === 0 ) {

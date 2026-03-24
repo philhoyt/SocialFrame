@@ -82,22 +82,35 @@ export function createShape( type, overrides = {} ) {
 }
 
 /**
- * Create a Fabric IText object for a given text role.
+ * Default widths (in canvas pixels) for each text role.
+ * Textbox needs an explicit width so text wraps instead of running off-canvas.
+ */
+const TEXT_ROLE_WIDTHS = {
+	heading:    800,
+	subheading: 700,
+	body:       700,
+	caption:    500,
+};
+
+/**
+ * Create a Fabric Textbox for a given text role.
+ * Textbox (vs IText) enforces a width boundary and wraps text automatically.
  *
  * @param {'heading'|'subheading'|'body'|'caption'} role Text role.
  * @param {Object} overrides Additional Fabric options.
- * @returns {fabric.IText}
+ * @returns {fabric.Textbox}
  */
 export function createText( role, overrides = {} ) {
 	const defaults = TEXT_ROLE_DEFAULTS[ role ] ?? TEXT_ROLE_DEFAULTS.body;
 	const label    = role.charAt( 0 ).toUpperCase() + role.slice( 1 );
 
-	return new fabric.IText( label, {
-		id: genId(),
+	return new fabric.Textbox( label, {
+		id:         genId(),
 		fontFamily: defaultFont(),
-		fill: themeColors?.[ 0 ]?.color ?? '#000000',
-		left: 100,
-		top: 100,
+		fill:       themeColors?.[ 0 ]?.color ?? '#000000',
+		left:       100,
+		top:        100,
+		width:      TEXT_ROLE_WIDTHS[ role ] ?? 700,
 		...defaults,
 		...overrides,
 	} );

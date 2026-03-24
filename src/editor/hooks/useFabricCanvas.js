@@ -64,6 +64,17 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		canvas.on( 'object:added',    () => { dispatch.markDirty(); syncLayersToStore( canvas, dispatch ); } );
 		canvas.on( 'object:removed',  () => { dispatch.markDirty(); syncLayersToStore( canvas, dispatch ); } );
 
+		// Remove text objects that are empty when the user stops editing them.
+		canvas.on( 'text:editing:exited', ( e ) => {
+			const obj = e.target;
+			if ( obj && obj.text.trim() === '' ) {
+				canvas.remove( obj );
+				canvas.discardActiveObject();
+				canvas.renderAll();
+				dispatch.clearSelection();
+			}
+		} );
+
 		return () => {
 			canvas.dispose();
 			fabricRef.current = null;
@@ -125,6 +136,10 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 		canvas.add( text );
 		canvas.setActiveObject( text );
 		canvas.renderAll();
+		// Enter editing mode immediately and select all so the user can type right away.
+		text.enterEditing();
+		text.selectAll();
+		canvas.renderAll();
 		dispatch.pushHistory( {
 			label: `Add ${ role } text`,
 			undo: () => { canvas.remove( text ); canvas.discardActiveObject(); canvas.renderAll(); },
@@ -170,7 +185,7 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 
 		// Apply new values.
 		obj.set( props );
-		if ( obj.type === 'i-text' ) obj.initDimensions();
+		if ( obj.type === 'i-text' || obj.type === 'textbox' ) obj.initDimensions();
 		canvas.requestRenderAll();
 
 		// Sync properties mirror in store.
@@ -181,13 +196,13 @@ export function useFabricCanvas( canvasRef, { format, fabricJson } ) {
 			label,
 			undo: () => {
 				obj.set( prevProps );
-				if ( obj.type === 'i-text' ) obj.initDimensions();
+				if ( obj.type === 'i-text' || obj.type === 'textbox' ) obj.initDimensions();
 				canvas.requestRenderAll();
 				dispatch.updateSelectionProperties( prevProps );
 			},
 			redo: () => {
 				obj.set( props );
-				if ( obj.type === 'i-text' ) obj.initDimensions();
+				if ( obj.type === 'i-text' || obj.type === 'textbox' ) obj.initDimensions();
 				canvas.requestRenderAll();
 				dispatch.updateSelectionProperties( props );
 			},
