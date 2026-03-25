@@ -15,6 +15,15 @@
 		"packages-update": "wp-scripts packages-update",
 		"plugin-zip": "wp-scripts plugin-zip"
 	},
+	"files": [
+		"build",
+		"includes",
+		"templates",
+		"socialframe.php",
+		"uninstall.php",
+		"readme.txt",
+		"README.md"
+	],
 	"dependencies": {
 		"fabric": "^6.0.0",
 		"qrcode": "^1.5.4"
