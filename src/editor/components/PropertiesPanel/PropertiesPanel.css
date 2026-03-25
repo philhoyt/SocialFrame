@@ -226,6 +226,47 @@
 	text-align: center;
 }
 
+/* ── Linked num fields (W / H with aspect-ratio lock) ───────────────────────── */
+
+/* Spans both columns when placed inside .socialframe-num-grid */
+.socialframe-linked-numfields {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.socialframe-linked-numfields .socialframe-num-field {
+	flex: 1;
+	min-width: 0;
+}
+
+.socialframe-linked-numfields__btn {
+	flex-shrink: 0;
+	width: 20px;
+	height: 28px;   /* matches NumField height */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #1e1e1e;
+	border: 1px solid #383838;
+	border-radius: 3px;
+	color: #555;
+	cursor: pointer;
+	padding: 0;
+	transition: color 0.1s, border-color 0.1s;
+}
+
+.socialframe-linked-numfields__btn:hover {
+	color: #aaa;
+	border-color: #555;
+}
+
+.socialframe-linked-numfields__btn.is-linked {
+	color: #0073aa;
+	border-color: #0073aa;
+}
+
 /* ── Linked range controls ──────────────────────────────────────────────────── */
 
 /* Bar sits between the two RangeControls.

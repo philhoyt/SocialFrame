@@ -58,6 +58,7 @@ export function ShadowSection() {
 						onChange={ ( v ) => applyShadow( { blur: v } ) }
 					/>
 					<LinkedRangeControls
+						stateKey="shadow-offset"
 						aLabel={ __( 'Offset X', 'socialframe' ) }
 						aValue={ shadow.offsetX }
 						aMin={ -200 }

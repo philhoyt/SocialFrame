@@ -7,6 +7,7 @@ import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
 import { Accordion } from './Accordion';
 import { NumField } from './NumField';
+import { LinkedNumFields } from './LinkedNumFields';
 import { AlignmentSection } from './AlignmentSection';
 import { FlipSection } from './FlipSection';
 import { ShadowSection } from './ShadowSection';
@@ -48,8 +49,12 @@ export function ShapeProperties() {
 				<div className="socialframe-num-grid">
 					<NumField label="X" value={ Math.round( props.left   ?? 0 ) } onChange={ ( v ) => update( { left:   v }, 'Position X' ) } />
 					<NumField label="Y" value={ Math.round( props.top    ?? 0 ) } onChange={ ( v ) => update( { top:    v }, 'Position Y' ) } />
-					<NumField label="W" value={ Math.round( props.width  ?? 0 ) } onChange={ ( v ) => update( { width:  v }, 'Width' ) } />
-					<NumField label="H" value={ Math.round( props.height ?? 0 ) } onChange={ ( v ) => update( { height: v }, 'Height' ) } />
+					<LinkedNumFields
+						stateKey="wh"
+						aLabel="W" aValue={ Math.round( props.width  ?? 0 ) } aMin={ 1 } onChangeA={ ( v ) => update( { width:  v }, 'Width' ) }
+						bLabel="H" bValue={ Math.round( props.height ?? 0 ) } bMin={ 1 } onChangeB={ ( v ) => update( { height: v }, 'Height' ) }
+						onChangeBoth={ ( w, h ) => update( { width: w, height: h }, 'Size' ) }
+					/>
 					<NumField label="°" value={ Math.round( props.angle  ?? 0 ) } onChange={ ( v ) => update( { angle:   v }, 'Rotation' ) } />
 					<NumField label="%" value={ Math.round( ( props.opacity ?? 1 ) * 100 ) } min={ 0 } max={ 100 } onChange={ ( v ) => update( { opacity: v / 100 }, 'Opacity' ) } />
 				</div>

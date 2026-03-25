@@ -1,8 +1,11 @@
 import { useState } from '@wordpress/element';
-import { RangeControl, Tooltip } from '@wordpress/components';
+import { Tooltip } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+import { NumField } from './NumField';
+
 // Persists across selection changes (component unmount/remount).
+// Keyed so multiple independent LinkedNumFields instances stay independent.
 const _linked = {};
 function usePersistedLinked( key ) {
 	const [ linked, setLinkedState ] = useState( () => _linked[ key ] ?? false );
@@ -30,41 +33,33 @@ const IconUnlinked = () => (
 	</svg>
 );
 
-function clamp( v, min, max ) {
-	if ( min !== undefined && v < min ) return min;
-	if ( max !== undefined && v > max ) return max;
-	return v;
-}
-
 /**
- * Two RangeControls with an optional link toggle between them.
- * When linked, adjusting one value shifts the other by the same delta.
+ * Width + Height NumFields with an aspect-ratio lock toggle between them.
+ * Spans both columns when placed inside a .socialframe-num-grid.
  *
- * When linked, both values must be updated atomically to avoid stale-closure
- * issues in the parent. Provide `onChangeBoth(aVal, bVal)` for that case;
- * `onChangeA` / `onChangeB` are still called when unlinked.
+ * When linked, both values must be updated atomically. Provide
+ * `onChangeBoth(aVal, bVal)` for that; `onChangeA`/`onChangeB` handle
+ * independent changes when unlinked.
  *
  * @param {Object}   props
  * @param {string}   props.aLabel
  * @param {number}   props.aValue
  * @param {number}   [props.aMin]
- * @param {number}   [props.aMax]
  * @param {number}   [props.aStep=1]
- * @param {Function} props.onChangeA       Called when only A changes (unlinked).
+ * @param {Function} props.onChangeA
  * @param {string}   props.bLabel
  * @param {number}   props.bValue
  * @param {number}   [props.bMin]
- * @param {number}   [props.bMax]
  * @param {number}   [props.bStep=1]
- * @param {Function} props.onChangeB       Called when only B changes (unlinked).
- * @param {Function} props.onChangeBoth    Called with (aVal, bVal) when linked.
- * @param {string}   [props.stateKey]      Unique key so state persists across remounts.
- * @param {string}   [props.lockLabel]     Tooltip shown when unlinked.
- * @param {string}   [props.unlockLabel]   Tooltip shown when linked.
+ * @param {Function} props.onChangeB
+ * @param {Function} props.onChangeBoth   Called with (aVal, bVal) when linked.
+ * @param {string}   [props.stateKey]    Unique key so state persists across remounts.
+ * @param {string}   [props.lockLabel]
+ * @param {string}   [props.unlockLabel]
  */
-export function LinkedRangeControls( {
-	aLabel, aValue, aMin, aMax, aStep = 1, onChangeA,
-	bLabel, bValue, bMin, bMax, bStep = 1, onChangeB,
+export function LinkedNumFields( {
+	aLabel, aValue, aMin, aStep = 1, onChangeA,
+	bLabel, bValue, bMin, bStep = 1, onChangeB,
 	onChangeBoth,
 	stateKey    = 'default',
 	lockLabel   = __( 'Lock aspect ratio', 'socialframe' ),
@@ -73,8 +68,8 @@ export function LinkedRangeControls( {
 	const [ linked, setLinked ] = usePersistedLinked( stateKey );
 
 	function handleA( v ) {
-		if ( linked ) {
-			const newB = clamp( bValue + ( v - aValue ), bMin, bMax );
+		if ( linked && aValue > 0 ) {
+			const newB = Math.round( v * ( bValue / aValue ) );
 			onChangeBoth ? onChangeBoth( v, newB ) : ( onChangeA( v ), onChangeB( newB ) );
 		} else {
 			onChangeA( v );
@@ -82,8 +77,8 @@ export function LinkedRangeControls( {
 	}
 
 	function handleB( v ) {
-		if ( linked ) {
-			const newA = clamp( aValue + ( v - bValue ), aMin, aMax );
+		if ( linked && bValue > 0 ) {
+			const newA = Math.round( v * ( aValue / bValue ) );
 			onChangeBoth ? onChangeBoth( newA, v ) : ( onChangeA( newA ), onChangeB( v ) );
 		} else {
 			onChangeB( v );
@@ -91,35 +86,31 @@ export function LinkedRangeControls( {
 	}
 
 	return (
-		<div className={ `socialframe-linked-controls${ linked ? ' is-linked' : '' }` }>
-			<RangeControl
+		<div className={ `socialframe-linked-numfields${ linked ? ' is-linked' : '' }` }>
+			<NumField
 				label={ aLabel }
 				value={ aValue }
 				min={ aMin }
-				max={ aMax }
 				step={ aStep }
 				onChange={ handleA }
 			/>
-			<div className="socialframe-linked-controls__bar">
-				<Tooltip text={ linked ? unlockLabel : lockLabel }>
-					<button
-						className={ `socialframe-linked-controls__btn${ linked ? ' is-linked' : '' }` }
-						onClick={ () => setLinked( ! linked ) }
-						aria-label={ linked ? unlockLabel : lockLabel }
-						aria-pressed={ linked }
-					>
-						{ linked ? <IconLinked /> : <IconUnlinked /> }
-					</button>
-				</Tooltip>
-			</div>
-			<RangeControl
+			<Tooltip text={ linked ? unlockLabel : lockLabel }>
+				<button
+					className={ `socialframe-linked-numfields__btn${ linked ? ' is-linked' : '' }` }
+					onClick={ () => setLinked( ! linked ) }
+					aria-label={ linked ? unlockLabel : lockLabel }
+					aria-pressed={ linked }
+				>
+					{ linked ? <IconLinked /> : <IconUnlinked /> }
+				</button>
+			</Tooltip>
+			<NumField
+				label={ bLabel }
 				value={ bValue }
 				min={ bMin }
-				max={ bMax }
 				step={ bStep }
 				onChange={ handleB }
 			/>
-			<div className="socialframe-linked-controls__b-label">{ bLabel }</div>
 		</div>
 	);
 }
