@@ -231,7 +231,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			const prevWidth = obj.width;
 			obj.set( 'width', 9999 );
 			obj.initDimensions();
-			const naturalWidth = Math.max( Math.ceil( obj.calcTextWidth() ), 50 );
+			// Add 2px buffer: calcTextWidth and the per-word wrapping logic use
+			// independent measurements that can differ by a sub-pixel, causing
+			// the last word to wrap even at the exact ceil'd width.
+			const naturalWidth = Math.max( Math.ceil( obj.calcTextWidth() ) + 2, 50 );
 			obj.set( 'width', naturalWidth );
 			obj.initDimensions();
 			canvas.renderAll();
