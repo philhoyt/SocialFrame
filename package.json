@@ -16,7 +16,8 @@
 		"plugin-zip": "wp-scripts plugin-zip"
 	},
 	"dependencies": {
-		"fabric": "^6.0.0"
+		"fabric": "^6.0.0",
+		"qrcode": "^1.5.4"
 	},
 	"devDependencies": {
 		"@wordpress/dataviews": "^13.1.0",

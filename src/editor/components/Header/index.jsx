@@ -1,3 +1,4 @@
+import { useState } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { Button, TextControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
@@ -7,13 +8,15 @@ import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { exportDesign, saveAsTemplate } from '../../utils/exportHelpers';
-
+import { ShareModal } from './ShareModal';
 
 import './Header.css';
 
 export function Header() {
 	const dispatch                                    = useDispatch( STORE_KEY );
 	const { createSuccessNotice, createErrorNotice } = useDispatch( 'core/notices' );
+
+	const [ shareUrl, setShareUrl ] = useState( null );
 
 	const {
 		title,
@@ -69,15 +72,7 @@ export function Header() {
 		dispatch.setSaving( true );
 		try {
 			const result = await exportDesign( fabric.toDataURL, designId, apiFetch );
-			createSuccessNotice(
-				__( 'Design exported successfully.', 'socialframe' ),
-				{
-					actions: [
-						{ label: __( 'Download', 'socialframe' ), url: result.url },
-						{ label: __( 'View in Library', 'socialframe' ), url: result.libraryUrl },
-					],
-				}
-			);
+			setShareUrl( result.url );
 		} catch ( e ) {
 			createErrorNotice( __( 'Export failed. Please try again.', 'socialframe' ) );
 		} finally {
@@ -203,10 +198,18 @@ export function Header() {
 					variant="primary"
 					onClick={ handleExport }
 					disabled={ isSaving }
+					isBusy={ isSaving }
 				>
 					{ __( 'Export PNG', 'socialframe' ) }
 				</Button>
 			</div>
+
+			{ shareUrl && (
+				<ShareModal
+					url={ shareUrl }
+					onClose={ () => setShareUrl( null ) }
+				/>
+			) }
 		</div>
 	);
 }
