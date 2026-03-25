@@ -126,6 +126,7 @@ class DesignsController extends AbstractController {
 				'post_type'      => 'socialframe_graphic',
 				'posts_per_page' => 100,
 				'post_status'    => 'publish',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				'meta_query'     => [
 					[
 						'key'   => 'socialframe_type',

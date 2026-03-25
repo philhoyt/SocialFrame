@@ -13,7 +13,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-$sf_posts = get_posts(
+$socialframe_posts = get_posts(
 	[
 		'post_type'      => 'socialframe_graphic',
 		'posts_per_page' => -1,
@@ -22,8 +22,8 @@ $sf_posts = get_posts(
 	]
 );
 
-foreach ( $sf_posts as $sf_post_id ) {
-	wp_delete_post( (int) $sf_post_id, true );
+foreach ( $socialframe_posts as $socialframe_post_id ) {
+	wp_delete_post( (int) $socialframe_post_id, true );
 }
 
 // Remove any lingering options if added in the future.

@@ -121,7 +121,7 @@ class PostImportController extends AbstractController {
 		$raw_content = $post->post_content;
 		$content     = '';
 		if ( $raw_content ) {
-			$filtered = apply_filters( 'the_content', $raw_content ); // @phpstan-ignore-line
+			$filtered = apply_filters( 'the_content', $raw_content ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter
 			$content  = wp_strip_all_tags( $filtered );
 			$content  = html_entity_decode( $content, ENT_QUOTES, 'UTF-8' );
 			$content  = preg_replace( '/\n{3,}/', "\n\n", trim( $content ) ) ?? $content;
