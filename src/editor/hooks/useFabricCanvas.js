@@ -515,7 +515,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
-		return fabricRef.current?.toJSON( [ 'id', 'isArtboard' ] ) ?? null;
+		return fabricRef.current?.toJSON( [ 'id', 'isArtboard', 'sfShapeType' ] ) ?? null;
 	}, [] );
 
 	/**
