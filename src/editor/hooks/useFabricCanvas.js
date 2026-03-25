@@ -766,12 +766,14 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		}
 
 		obj.set( { left: newLeft, top: newTop } );
+		obj.setCoords();
 		canvas.renderAll();
+		syncSelection( obj, dispatch );
 		dispatch.markDirty();
 		dispatch.pushHistory( {
 			label: `Align ${ direction }`,
-			undo: () => { obj.set( { left: prevLeft, top: prevTop } ); canvas.renderAll(); },
-			redo: () => { obj.set( { left: newLeft,  top: newTop  } ); canvas.renderAll(); },
+			undo: () => { obj.set( { left: prevLeft, top: prevTop } ); obj.setCoords(); canvas.renderAll(); },
+			redo: () => { obj.set( { left: newLeft,  top: newTop  } ); obj.setCoords(); canvas.renderAll(); },
 		} );
 	}, [ dispatch ] );
 
