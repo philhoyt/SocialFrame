@@ -7,11 +7,12 @@
 
 declare( strict_types=1 );
 
+namespace SocialFrame\Meta;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-namespace SocialFrame\Meta;
 
 /**
  * Registers post meta for the socialframe_graphic post type.

@@ -7,11 +7,12 @@
 
 declare( strict_types=1 );
 
+namespace SocialFrame\CPT;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-namespace SocialFrame\CPT;
 
 /**
  * Registers the socialframe_graphic custom post type.

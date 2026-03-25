@@ -7,11 +7,12 @@
 
 declare( strict_types=1 );
 
+namespace SocialFrame\REST;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-namespace SocialFrame\REST;
 
 use WP_REST_Response;
 use WP_Error;

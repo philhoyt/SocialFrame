@@ -7,11 +7,12 @@
 
 declare( strict_types=1 );
 
+namespace SocialFrame\Admin;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-namespace SocialFrame\Admin;
 
 /**
  * Registers the hidden full-screen editor page and enqueues its assets.
