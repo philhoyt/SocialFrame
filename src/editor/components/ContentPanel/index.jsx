@@ -6,6 +6,7 @@ import { ElementsPanel } from './ElementsPanel';
 import { TextPanel } from './TextPanel';
 import { MediaPanel } from './MediaPanel';
 import { LayersPanel } from './LayersPanel';
+import { PostsPanel } from './PostsPanel';
 
 import './ContentPanel.css';
 
@@ -14,6 +15,7 @@ const PANEL_MAP = {
 	elements:  ElementsPanel,
 	text:      TextPanel,
 	media:     MediaPanel,
+	posts:     PostsPanel,
 	layers:    LayersPanel,
 };
 

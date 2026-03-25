@@ -38,6 +38,15 @@ const IconMedia = () => (
 	</svg>
 );
 
+const IconPosts = () => (
+	<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true">
+		<rect x="2" y="1" width="14" height="16" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+		<rect x="5" y="5" width="8" height="1.5" rx="0.75"/>
+		<rect x="5" y="8" width="8" height="1.5" rx="0.75"/>
+		<rect x="5" y="11" width="5" height="1.5" rx="0.75"/>
+	</svg>
+);
+
 const IconLayers = () => (
 	<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true">
 		<path d="M9 1.5 17 6l-8 4.5L1 6z"/>
@@ -51,6 +60,7 @@ const PANELS = [
 	{ id: 'text',      icon: <IconText />,      label: __( 'Text',      'socialframe' ) },
 	{ id: 'elements',  icon: <IconElements />,  label: __( 'Elements',  'socialframe' ) },
 	{ id: 'media',     icon: <IconMedia />,     label: __( 'Media',     'socialframe' ) },
+	{ id: 'posts',     icon: <IconPosts />,     label: __( 'Import Post', 'socialframe' ) },
 	{ id: 'layers',    icon: <IconLayers />,    label: __( 'Layers',    'socialframe' ) },
 ];
 

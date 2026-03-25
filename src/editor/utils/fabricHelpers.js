@@ -111,8 +111,9 @@ const TEXT_ROLE_LABELS = {
 };
 
 export function createText( role, overrides = {} ) {
-	const defaults = TEXT_ROLE_DEFAULTS[ role ] ?? TEXT_ROLE_DEFAULTS.medium;
-	const label    = TEXT_ROLE_LABELS[ role ] ?? 'Text';
+	const defaults                    = TEXT_ROLE_DEFAULTS[ role ] ?? TEXT_ROLE_DEFAULTS.medium;
+	const { text: content, ...rest }  = overrides;
+	const label                       = content ?? TEXT_ROLE_LABELS[ role ] ?? 'Text';
 
 	return new fabric.Textbox( label, {
 		id:         genId(),
@@ -122,7 +123,7 @@ export function createText( role, overrides = {} ) {
 		top:        100,
 		width:      TEXT_ROLE_WIDTHS[ role ] ?? 700,
 		...defaults,
-		...overrides,
+		...rest,
 	} );
 }
 
