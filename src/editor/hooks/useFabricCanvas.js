@@ -249,10 +249,65 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		canvas.on( 'object:rotating', syncActive );
 		canvas.on( 'object:resizing', syncActive );
 
-		// Mark dirty and sync layers on mutations, skipping artboard events.
-		canvas.on( 'object:modified', () => {
+		// Mark dirty, sync selection, and push a history entry for every
+		// direct canvas transform (drag, resize, rotate).
+		canvas.on( 'object:modified', ( e ) => {
 			dispatch.markDirty();
 			syncActive();
+
+			const obj = e.target;
+			if ( ! obj || isArtboardObject( obj ) ) {
+				return;
+			}
+
+			const original = e.transform?.original;
+			if ( ! original ) {
+				return;
+			}
+
+			const KEYS = [
+				'left',
+				'top',
+				'scaleX',
+				'scaleY',
+				'angle',
+				'flipX',
+				'flipY',
+				'skewX',
+				'skewY',
+			];
+			const before = Object.fromEntries(
+				KEYS.map( ( k ) => [ k, original[ k ] ] )
+			);
+			const after = Object.fromEntries(
+				KEYS.map( ( k ) => [ k, obj[ k ] ] )
+			);
+
+			const action = e.transform?.action ?? '';
+			const label =
+				action === 'drag'
+					? 'Move'
+					: action === 'rotate'
+					? 'Rotate'
+					: action.startsWith( 'scale' )
+					? 'Resize'
+					: 'Transform';
+
+			dispatch.pushHistory( {
+				label,
+				undo: () => {
+					obj.set( before );
+					obj.setCoords();
+					canvas.requestRenderAll();
+					dispatch.markDirty();
+				},
+				redo: () => {
+					obj.set( after );
+					obj.setCoords();
+					canvas.requestRenderAll();
+					dispatch.markDirty();
+				},
+			} );
 		} );
 		canvas.on( 'object:added', ( e ) => {
 			if ( isArtboardObject( e.target ) ) {
@@ -1375,6 +1430,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			if ( ! canvas || ! obj ) {
 				return;
 			}
+			const prevLocked = ! obj.selectable;
 			obj.set( { selectable: ! locked, evented: ! locked } );
 			if ( locked ) {
 				canvas.discardActiveObject();
@@ -1382,6 +1438,28 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			canvas.renderAll();
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: locked ? 'Lock layer' : 'Unlock layer',
+				undo: () => {
+					obj.set( {
+						selectable: ! prevLocked,
+						evented: ! prevLocked,
+					} );
+					syncLayersToStore( canvas, dispatch );
+					canvas.renderAll();
+				},
+				redo: () => {
+					obj.set( {
+						selectable: ! locked,
+						evented: ! locked,
+					} );
+					if ( locked ) {
+						canvas.discardActiveObject();
+					}
+					syncLayersToStore( canvas, dispatch );
+					canvas.renderAll();
+				},
+			} );
 		},
 		[ dispatch ]
 	);
@@ -1393,13 +1471,56 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			if ( ! canvas || ! obj ) {
 				return;
 			}
+			const prevVisible = obj.visible ?? true;
 			obj.set( 'visible', visible );
 			canvas.renderAll();
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: visible ? 'Show layer' : 'Hide layer',
+				undo: () => {
+					obj.set( 'visible', prevVisible );
+					syncLayersToStore( canvas, dispatch );
+					canvas.renderAll();
+				},
+				redo: () => {
+					obj.set( 'visible', visible );
+					syncLayersToStore( canvas, dispatch );
+					canvas.renderAll();
+				},
+			} );
 		},
 		[ dispatch ]
 	);
+
+	const replaceImage = useCallback( async ( url ) => {
+		const canvas = fabricRef.current;
+		const obj = canvas?.getActiveObject();
+		if ( ! canvas || ! obj || obj.type !== 'image' ) {
+			return;
+		}
+		const prevElement = obj.getElement();
+		const newImg = await fabric.Image.fromURL( url, {
+			crossOrigin: 'anonymous',
+		} );
+		const newElement = newImg.getElement();
+		obj.setElement( newElement );
+		canvas.renderAll();
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Replace image',
+			undo: () => {
+				obj.setElement( prevElement );
+				canvas.renderAll();
+				dispatch.markDirty();
+			},
+			redo: () => {
+				obj.setElement( newElement );
+				canvas.renderAll();
+				dispatch.markDirty();
+			},
+		} );
+	}, [ dispatch ] );
 
 	return {
 		getFabric,
@@ -1412,6 +1533,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		addImage,
 		updateSelected,
 		deleteSelected,
+		replaceImage,
 		fillShapeWithImage,
 		updateShapeImageFit,
 		setBackgroundImage,

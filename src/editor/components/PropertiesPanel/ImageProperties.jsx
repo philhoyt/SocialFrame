@@ -38,20 +38,7 @@ export function ImageProperties() {
 				.get( 'selection' )
 				.first()
 				.toJSON();
-			const canvas = fabric?.getFabric();
-			const obj = canvas?.getActiveObject();
-			if ( ! obj || obj.type !== 'image' ) {
-				return;
-			}
-
-			const { fabric: fabricLib } = require( 'fabric' );
-			fabricLib.Image.fromURL( attachment.url, {
-				crossOrigin: 'anonymous',
-			} ).then( ( newImg ) => {
-				obj.setElement( newImg.getElement() );
-				canvas.renderAll();
-				fabric.markDirty?.();
-			} );
+			fabric.replaceImage( attachment.url );
 		} );
 
 		frame.open();
