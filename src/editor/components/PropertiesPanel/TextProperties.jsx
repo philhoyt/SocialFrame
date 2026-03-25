@@ -72,13 +72,37 @@ export function TextProperties() {
 
 				<div className="socialframe-props__subsection-label">{ __( 'Alignment', 'socialframe' ) }</div>
 				<div className="socialframe-props__button-group">
-					{ [ 'left', 'center', 'right' ].map( ( align ) => (
+					{ [
+						{ value: 'left', label: __( 'Align left', 'socialframe' ), icon: (
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+								<rect x="1" y="2" width="14" height="2" rx="1"/>
+								<rect x="1" y="7" width="9" height="2" rx="1"/>
+								<rect x="1" y="12" width="11" height="2" rx="1"/>
+							</svg>
+						) },
+						{ value: 'center', label: __( 'Align center', 'socialframe' ), icon: (
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+								<rect x="1" y="2" width="14" height="2" rx="1"/>
+								<rect x="3.5" y="7" width="9" height="2" rx="1"/>
+								<rect x="2.5" y="12" width="11" height="2" rx="1"/>
+							</svg>
+						) },
+						{ value: 'right', label: __( 'Align right', 'socialframe' ), icon: (
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+								<rect x="1" y="2" width="14" height="2" rx="1"/>
+								<rect x="6" y="7" width="9" height="2" rx="1"/>
+								<rect x="4" y="12" width="11" height="2" rx="1"/>
+							</svg>
+						) },
+					].map( ( { value, label, icon } ) => (
 						<button
-							key={ align }
-							className={ `socialframe-props__toggle-btn${ props.textAlign === align ? ' socialframe-props__toggle-btn--active' : '' }` }
-							onClick={ () => update( { textAlign: align }, `Align ${ align }` ) }
+							key={ value }
+							className={ `socialframe-props__toggle-btn${ props.textAlign === value ? ' socialframe-props__toggle-btn--active' : '' }` }
+							title={ label }
+							aria-label={ label }
+							onClick={ () => update( { textAlign: value }, label ) }
 						>
-							{ align[ 0 ].toUpperCase() }
+							{ icon }
 						</button>
 					) ) }
 				</div>
