@@ -199,8 +199,18 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		canvas.on( 'selection:updated', ( e ) => syncSelection( e.selected?.[ 0 ], dispatch ) );
 		canvas.on( 'selection:cleared', ()    => dispatch.clearSelection() );
 
+		// Sync selection props live during transform so the panel updates in real time.
+		const syncActive = () => {
+			const active = canvas.getActiveObject();
+			if ( active ) syncSelection( active, dispatch );
+		};
+		canvas.on( 'object:moving',   syncActive );
+		canvas.on( 'object:scaling',  syncActive );
+		canvas.on( 'object:rotating', syncActive );
+		canvas.on( 'object:resizing', syncActive );
+
 		// Mark dirty and sync layers on mutations, skipping artboard events.
-		canvas.on( 'object:modified', () => dispatch.markDirty() );
+		canvas.on( 'object:modified', () => { dispatch.markDirty(); syncActive(); } );
 		canvas.on( 'object:added',    ( e ) => {
 			if ( isArtboardObject( e.target ) ) return;
 			dispatch.markDirty();
@@ -231,10 +241,14 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			const prevWidth = obj.width;
 			obj.set( 'width', 9999 );
 			obj.initDimensions();
-			// Add 2px buffer: calcTextWidth and the per-word wrapping logic use
-			// independent measurements that can differ by a sub-pixel, causing
-			// the last word to wrap even at the exact ceil'd width.
-			const naturalWidth = Math.max( Math.ceil( obj.calcTextWidth() ) + 2, 50 );
+			// Use _measureLine (same path as the word-wrap logic) so measurements
+			// are consistent and the last word never wraps at the fitted width.
+			let maxLineWidth = 0;
+			for ( let i = 0; i < obj._textLines.length; i++ ) {
+				const measured = obj._measureLine( i );
+				if ( measured.width > maxLineWidth ) maxLineWidth = measured.width;
+			}
+			const naturalWidth = Math.max( Math.ceil( maxLineWidth ) + 2, 50 );
 			obj.set( 'width', naturalWidth );
 			obj.initDimensions();
 			canvas.renderAll();
