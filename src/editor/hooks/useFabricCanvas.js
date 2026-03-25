@@ -35,6 +35,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 	const artboardWRef = useRef( FORMATS[ format ]?.width ?? 1080 );
 	const artboardHRef = useRef( FORMATS[ format ]?.height ?? 1080 );
 	const artboardRectRef = useRef( null );
+	const setupArtboardRef = useRef( null );
 	const fitToScreenRef = useRef( null );
 	const snapRef = useRef( { enabled: false, size: 20 } );
 	const spaceRef = useRef( false );
@@ -73,9 +74,13 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		const fitToScreen = () => {
 			const vW = canvas.width;
 			const vH = canvas.height;
-			const zoom = Math.min( vW / artW, vH / artH ) * 0.9;
-			const panX = ( vW - artW * zoom ) / 2;
-			const panY = ( vH - artH * zoom ) / 2;
+			// Read from refs so this works correctly after a template load changes
+			// the artboard dimensions.
+			const w = artboardWRef.current;
+			const h = artboardHRef.current;
+			const zoom = Math.min( vW / w, vH / h ) * 0.9;
+			const panX = ( vW - w * zoom ) / 2;
+			const panY = ( vH - h * zoom ) / 2;
 			canvas.setViewportTransform( [ zoom, 0, 0, zoom, panX, panY ] );
 			dispatch.setZoom( Math.round( zoom * 100 ) );
 		};
@@ -83,6 +88,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 		// ── Artboard setup helper ─────────────────────────────────────────────
 		const setupArtboard = ( artboardObj ) => {
+			// Store in ref so loadFromJSON can call it after template loads.
 			// Re-stamp isArtboard so it survives future in-memory cycles even if
 			// Fabric v6 didn't restore the custom property from JSON on load.
 			artboardObj.isArtboard = true;
@@ -100,6 +106,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			artboardRectRef.current = artboardObj;
 			canvas.sendObjectToBack( artboardObj );
 		};
+		setupArtboardRef.current = setupArtboard;
 
 		if ( fabricJson ) {
 			// ── Load existing JSON ─────────────────────────────────────────────
@@ -461,10 +468,15 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			const panX = vt[ 4 ];
 			const panY = vt[ 5 ];
 
+			// Read from refs so the overlay updates when a template changes the
+			// artboard dimensions.
+			const overlayW = artboardWRef.current;
+			const overlayH = artboardHRef.current;
+
 			const artL = panX;
 			const artT = panY;
-			const artR = panX + artW * zoom;
-			const artB = panY + artH * zoom;
+			const artR = panX + overlayW * zoom;
+			const artB = panY + overlayH * zoom;
 			const w = canvas.width;
 			const h = canvas.height;
 
@@ -542,6 +554,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			artboard.set( 'shadow', null );
 		}
 
+		// Deselect any active object so transform handles don't appear in the export.
+		const prevActive = canvas.getActiveObject();
+		canvas.discardActiveObject();
+
 		canvas.setDimensions( { width: artW, height: artH } );
 		canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
 		canvas.renderAll();
@@ -550,12 +566,15 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		// an offscreen canvas internally whose context is null after setDimensions().
 		const dataURL = canvas.lowerCanvasEl.toDataURL( 'image/png' );
 
-		// Restore viewport and shadow.
+		// Restore viewport, shadow, and selection.
 		if ( artboard ) {
 			artboard.set( 'shadow', prevShadow );
 		}
 		canvas.setDimensions( { width: prevW, height: prevH } );
 		canvas.setViewportTransform( prevVT );
+		if ( prevActive ) {
+			canvas.setActiveObject( prevActive );
+		}
 		canvas.renderAll();
 
 		return dataURL;
@@ -566,8 +585,45 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		if ( ! canvas ) {
 			return;
 		}
-		canvas.loadFromJSON( json ).then( () => canvas.renderAll() );
-	}, [] );
+		const artW = artboardWRef.current;
+		const artH = artboardHRef.current;
+		// Clear existing objects and background before loading the template so
+		// old content doesn't bleed through (Fabric v6 does not auto-clear).
+		canvas.clear();
+		canvas.backgroundColor = null;
+		canvas.loadFromJSON( json ).then( () => {
+			// Fabric applies the JSON's "background" property to canvas.backgroundColor
+			// during loadFromJSON. Clear it — the artboard rect owns the background.
+			canvas.backgroundColor = null;
+
+			// Re-detect and re-apply artboard setup so the artboardRectRef stays
+			// accurate after a template is loaded onto an existing canvas.
+			const allObjects = canvas.getObjects();
+			const artboard =
+				allObjects.find( ( o ) => isArtboardObject( o ) ) ??
+				allObjects.find(
+					( o ) =>
+						o.type === 'rect' &&
+						Math.abs( o.left ?? 0 ) < 1 &&
+						Math.abs( o.top ?? 0 ) < 1 &&
+						Math.round( o.width ?? 0 ) === artW &&
+						Math.round( o.height ?? 0 ) === artH
+				);
+			if ( artboard ) {
+				// If the template uses different dimensions, update the refs so
+				// all subsequent operations (export, alignment, overlay) use the
+				// correct artboard size.
+				const newW = Math.round( artboard.width ?? artW );
+				const newH = Math.round( artboard.height ?? artH );
+				artboardWRef.current = newW;
+				artboardHRef.current = newH;
+				setupArtboardRef.current?.( artboard );
+				fitToScreenRef.current?.();
+			}
+			syncLayersToStore( canvas, dispatch );
+			canvas.renderAll();
+		} );
+	}, [ dispatch ] );
 
 	/** Set the artboard background color. */
 	const setBackground = useCallback(

@@ -14,10 +14,11 @@
 			"strokeWidth": 0,
 			"selectable": false,
 			"evented": false,
-			"id": "bg-rect"
+			"id": "artboard",
+			"isArtboard": true
 		},
 		{
-			"type": "IText",
+			"type": "Textbox",
 			"version": "6.0.0",
 			"originX": "left",
 			"originY": "top",
