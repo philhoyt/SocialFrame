@@ -3,8 +3,8 @@ import { Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { useFabric } from '../../EditorApp';
-
-const { themeColors } = window.socialFrameConfig ?? {};
+import { Accordion } from './Accordion';
+import { ColorRow } from './ColorRow';
 
 const FIT_MODES = [
 	{ value: 'cover',   label: __( 'Cover',   'socialframe' ) },
@@ -16,47 +16,52 @@ const FIT_MODES = [
 export function ArtboardPanel() {
 	const fabric = useFabric();
 
+	const [ bgColor,     setBgColor     ] = useState( null );
 	const [ fitMode,     setFitMode     ] = useState( 'cover' );
 	const [ hasBgImage,  setHasBgImage  ] = useState( false );
-	const [ bgSrc,       setBgSrc       ] = useState( '' );
 	const [ snapEnabled, setSnapEnabled ] = useState( false );
 	const [ gridSize,    setGridSize    ] = useState( 20 );
 
-	// Initialise from the canvas when the panel first mounts (e.g. loading an existing design).
+	// Read current canvas state on mount so UI reflects reality after remounts.
 	useEffect( () => {
+		const artboard = fabric?.getFabric?.()?.getObjects().find( ( o ) => o.isArtboard );
+		if ( artboard && typeof artboard.fill === 'string' ) {
+			setBgColor( artboard.fill );
+		}
 		const src = fabric?.getBackgroundImageSrc?.();
-		if ( src ) {
-			setHasBgImage( true );
-			setBgSrc( src );
+		if ( src ) setHasBgImage( true );
+
+		const snap = fabric?.getSnapToGrid?.();
+		if ( snap ) {
+			setSnapEnabled( snap.enabled );
+			setGridSize( snap.size );
 		}
 	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
 
+	const handleSetBackground = ( color ) => {
+		fabric?.setBackground( color );
+		setBgColor( color );
+	};
+
 	const openImagePicker = () => {
 		if ( ! window.wp?.media ) return;
-
 		const frame = window.wp.media( {
 			title:    __( 'Choose Background Image', 'socialframe' ),
 			button:   { text: __( 'Set Background', 'socialframe' ) },
 			multiple: false,
 			library:  { type: 'image' },
 		} );
-
 		frame.on( 'select', () => {
 			const attachment = frame.state().get( 'selection' ).first().toJSON();
 			fabric?.setBackgroundImage( attachment.url, fitMode );
-			setBgSrc( attachment.url );
 			setHasBgImage( true );
 		} );
-
 		frame.open();
 	};
 
 	const handleFitModeChange = ( newMode ) => {
 		setFitMode( newMode );
-		// Re-apply immediately if a background image is already set.
-		if ( hasBgImage ) {
-			fabric?.updateBackgroundImageFit( newMode );
-		}
+		if ( hasBgImage ) fabric?.updateBackgroundImageFit( newMode );
 	};
 
 	const handleSnapToggle = () => {
@@ -67,46 +72,27 @@ export function ArtboardPanel() {
 
 	const handleGridSizeChange = ( size ) => {
 		setGridSize( size );
-		if ( snapEnabled ) {
-			fabric?.setSnapToGrid( true, size );
-		}
+		if ( snapEnabled ) fabric?.setSnapToGrid( true, size );
 	};
 
 	const handleRemoveBgImage = () => {
 		fabric?.clearBackgroundImage();
 		setHasBgImage( false );
-		setBgSrc( '' );
 	};
 
 	return (
 		<div className="socialframe-props">
-			<div className="socialframe-props__section">
-				<p className="socialframe-props__section-title">{ __( 'Artboard', 'socialframe' ) }</p>
 
-				<label className="socialframe-props__section-title">
-					{ __( 'Background Color', 'socialframe' ) }
-				</label>
-				<div className="socialframe-color-row">
-					{ ( themeColors ?? [] ).map( ( { color, name, slug } ) => (
-						<button
-							key={ slug }
-							className="socialframe-color-swatch"
-							style={ { background: color } }
-							onClick={ () => fabric?.setBackground( color ) }
-							title={ name }
-							aria-label={ name }
-						/>
-					) ) }
-				</div>
-			</div>
+			<Accordion title={ __( 'Fill', 'socialframe' ) }>
+				<ColorRow
+					value={ bgColor }
+					onChange={ handleSetBackground }
+				/>
+			</Accordion>
 
-			<div className="socialframe-props__section">
-				<p className="socialframe-props__section-title">{ __( 'Background Image', 'socialframe' ) }</p>
-
-				<p className="socialframe-props__section-title" style={ { marginBottom: 6 } }>
-					{ __( 'Fit', 'socialframe' ) }
-				</p>
-				<div className="socialframe-props__button-group" style={ { flexWrap: 'wrap', gap: 4, marginBottom: 10 } }>
+			<Accordion title={ __( 'Background Image', 'socialframe' ) } defaultOpen={ false }>
+				<div className="socialframe-props__subsection-label">{ __( 'Fit', 'socialframe' ) }</div>
+				<div className="socialframe-props__button-group" style={ { flexWrap: 'wrap', marginBottom: 10 } }>
 					{ FIT_MODES.map( ( { value, label } ) => (
 						<button
 							key={ value }
@@ -117,17 +103,13 @@ export function ArtboardPanel() {
 						</button>
 					) ) }
 				</div>
-
 				<Button
 					variant="secondary"
 					onClick={ openImagePicker }
 					style={ { width: '100%', justifyContent: 'center' } }
 				>
-					{ hasBgImage
-						? __( 'Change Image', 'socialframe' )
-						: __( 'Set Image', 'socialframe' ) }
+					{ hasBgImage ? __( 'Change Image', 'socialframe' ) : __( 'Set Image', 'socialframe' ) }
 				</Button>
-
 				{ hasBgImage && (
 					<Button
 						variant="tertiary"
@@ -138,20 +120,16 @@ export function ArtboardPanel() {
 						{ __( 'Remove Image', 'socialframe' ) }
 					</Button>
 				) }
-			</div>
+			</Accordion>
 
-			<div className="socialframe-props__section">
-				<p className="socialframe-props__section-title">{ __( 'Grid', 'socialframe' ) }</p>
+			<Accordion title={ __( 'Grid', 'socialframe' ) } defaultOpen={ false }>
 				<button
 					className={ `socialframe-props__toggle-btn${ snapEnabled ? ' socialframe-props__toggle-btn--active' : '' }` }
 					style={ { width: '100%' } }
 					onClick={ handleSnapToggle }
 				>
-					{ snapEnabled
-						? __( 'Snap to Grid: On', 'socialframe' )
-						: __( 'Snap to Grid: Off', 'socialframe' ) }
+					{ snapEnabled ? __( 'Snap to Grid: On', 'socialframe' ) : __( 'Snap to Grid: Off', 'socialframe' ) }
 				</button>
-
 				{ snapEnabled && (
 					<div className="socialframe-props__button-group" style={ { marginTop: 8 } }>
 						{ [ 10, 20, 40 ].map( ( size ) => (
@@ -166,7 +144,8 @@ export function ArtboardPanel() {
 						) ) }
 					</div>
 				) }
-			</div>
+			</Accordion>
+
 		</div>
 	);
 }

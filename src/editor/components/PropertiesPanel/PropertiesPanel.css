@@ -1,61 +1,154 @@
 .socialframe-editor__properties-panel {
 	width: 240px;
 	flex-shrink: 0;
-	background: #242424;
-	border-left: 1px solid #3c3c3c;
+	background: #1e1e1e;
+	border-left: 1px solid #333;
 	overflow-y: auto;
 }
 
 .socialframe-props {
-	padding: 12px;
+	padding: 0;
 }
 
-.socialframe-props__section {
-	margin-bottom: 16px;
+/* ── Accordion ──────────────────────────────────────────────────────────────── */
+
+.socialframe-accordion {
+	border-bottom: 1px solid #2e2e2e;
 }
 
-.socialframe-props__section-title {
+.socialframe-accordion__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 9px 12px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: #ccc;
+	text-align: left;
+	gap: 8px;
+	transition: background 0.1s;
+}
+
+.socialframe-accordion__header:hover {
+	background: rgba( 255, 255, 255, 0.04 );
+}
+
+.socialframe-accordion__title {
 	font-size: 11px;
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
-	color: #888;
-	margin: 0 0 8px;
+	color: #999;
+	flex: 1;
 }
 
-.socialframe-props .components-base-control__label {
-	color: #aaa;
-	font-size: 11px;
+.socialframe-accordion__chevron {
+	flex-shrink: 0;
+	color: #555;
+	display: flex;
+	align-items: center;
+	transition: transform 0.15s;
 }
 
-.socialframe-props .components-text-control__input,
-.socialframe-props .components-select-control__input {
-	background: #2c2c2c;
-	border-color: #3c3c3c;
-	color: #fff;
-	font-size: 12px;
+.socialframe-accordion.is-open .socialframe-accordion__chevron {
+	transform: rotate( 0deg );
 }
 
-.socialframe-props .components-text-control__input:focus,
-.socialframe-props .components-select-control__input:focus {
+.socialframe-accordion:not(.is-open) .socialframe-accordion__chevron {
+	transform: rotate( -90deg );
+}
+
+.socialframe-accordion__body {
+	padding: 4px 12px 14px;
+}
+
+/* ── Subsection label (inside accordion body) ────────────────────────────────── */
+
+.socialframe-props__subsection-label {
+	font-size: 10px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #666;
+	margin: 0 0 6px;
+}
+
+/* ── NumField — compact labeled number input ─────────────────────────────────── */
+
+.socialframe-num-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+
+.socialframe-num-field {
+	display: flex;
+	align-items: center;
+	background: #2a2a2a;
+	border: 1px solid #383838;
+	border-radius: 4px;
+	overflow: hidden;
+	height: 28px;
+	transition: border-color 0.1s;
+}
+
+.socialframe-num-field:focus-within {
 	border-color: #0073aa;
-	box-shadow: 0 0 0 1px #0073aa;
 }
+
+.socialframe-num-field__label {
+	flex-shrink: 0;
+	padding: 0 5px 0 7px;
+	font-size: 10px;
+	font-weight: 500;
+	color: #666;
+	user-select: none;
+	min-width: 20px;
+	text-align: center;
+}
+
+.socialframe-num-field__input {
+	flex: 1;
+	min-width: 0;
+	background: transparent;
+	border: none;
+	outline: none;
+	color: #e0e0e0;
+	font-size: 12px;
+	padding: 0 6px 0 2px;
+	height: 100%;
+	-moz-appearance: textfield;
+}
+
+.socialframe-num-field__input::-webkit-outer-spin-button,
+.socialframe-num-field__input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.socialframe-num-field__input[readonly] {
+	color: #555;
+	cursor: default;
+}
+
+/* ── Color swatches ─────────────────────────────────────────────────────────── */
 
 .socialframe-color-row {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
-	margin-top: 4px;
 }
 
 .socialframe-color-swatch {
-	width: 28px;
-	height: 28px;
+	width: 26px;
+	height: 26px;
 	border-radius: 50%;
 	border: 2px solid transparent;
 	cursor: pointer;
 	padding: 0;
+	flex-shrink: 0;
 	transition: border-color 0.1s;
 }
 
@@ -66,7 +159,7 @@
 
 /* "None" swatch — transparent with a red diagonal slash */
 .socialframe-color-swatch--none {
-	background: #2c2c2c;
+	background: #2a2a2a;
 	position: relative;
 	overflow: hidden;
 }
@@ -82,14 +175,14 @@
 	transform: translate( -50%, -50% ) rotate( -45deg );
 }
 
-.socialframe-props__row {
+/* Color picker button — round swatch that opens a Dropdown */
+.socialframe-color-picker-btn {
 	display: flex;
-	gap: 8px;
+	align-items: center;
+	justify-content: center;
 }
 
-.socialframe-props__row > * {
-	flex: 1;
-}
+/* ── Toggle buttons ─────────────────────────────────────────────────────────── */
 
 .socialframe-props__button-group {
 	display: flex;
@@ -99,13 +192,13 @@
 .socialframe-props__toggle-btn {
 	padding: 4px 8px;
 	border-radius: 4px;
-	border: 1px solid #3c3c3c;
-	background: #2c2c2c;
+	border: 1px solid #383838;
+	background: #2a2a2a;
 	color: #aaa;
 	cursor: pointer;
 	font-size: 12px;
 	line-height: 1;
-	transition: background 0.1s;
+	transition: background 0.1s, color 0.1s;
 }
 
 .socialframe-props__toggle-btn:hover {
@@ -119,6 +212,8 @@
 	color: #fff;
 }
 
+/* ── Alignment grid ─────────────────────────────────────────────────────────── */
+
 .socialframe-props__align-grid {
 	display: grid;
 	grid-template-columns: repeat( 3, 1fr );
@@ -129,4 +224,59 @@
 	font-size: 16px;
 	padding: 6px 4px;
 	text-align: center;
+}
+
+/* ── WordPress component overrides ─────────────────────────────────────────── */
+
+.socialframe-accordion__body .components-base-control__label {
+	color: #888;
+	font-size: 11px;
+}
+
+.socialframe-accordion__body .components-text-control__input,
+.socialframe-accordion__body .components-select-control__input {
+	background: #2a2a2a;
+	border-color: #383838;
+	color: #e0e0e0;
+	font-size: 12px;
+}
+
+.socialframe-accordion__body .components-text-control__input:focus,
+.socialframe-accordion__body .components-select-control__input:focus {
+	border-color: #0073aa;
+	box-shadow: 0 0 0 1px #0073aa;
+}
+
+.socialframe-accordion__body .components-range-control__wrapper {
+	margin-top: 4px;
+}
+
+.socialframe-accordion__body .components-range-control__number {
+	background: #2a2a2a;
+	border-color: #383838;
+	color: #e0e0e0;
+}
+
+/* ── Legacy section fallback (for ArtboardPanel) ────────────────────────────── */
+
+.socialframe-props__section {
+	margin-bottom: 16px;
+}
+
+.socialframe-props__section-title {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #888;
+	margin: 0 0 8px;
+}
+
+.socialframe-props__row {
+	display: flex;
+	gap: 8px;
+}
+
+.socialframe-props__row > * {
+	flex: 1;
 }

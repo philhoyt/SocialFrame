@@ -1,10 +1,14 @@
 import { useSelect } from '@wordpress/data';
-import { TextControl, RangeControl, Button } from '@wordpress/components';
+import { Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
+import { Accordion } from './Accordion';
+import { NumField } from './NumField';
 import { AlignmentSection } from './AlignmentSection';
+import { FlipSection } from './FlipSection';
+import { ShadowSection } from './ShadowSection';
 
 export function ImageProperties() {
 	const props  = useSelect( ( select ) => select( STORE_KEY ).getSelectionProps() );
@@ -41,56 +45,37 @@ export function ImageProperties() {
 
 	return (
 		<div className="socialframe-props">
-			<div className="socialframe-props__section">
-				<p className="socialframe-props__section-title">{ __( 'Image', 'socialframe' ) }</p>
 
-				<div className="socialframe-props__row">
-					<TextControl
-						label={ __( 'X', 'socialframe' ) }
-						type="number"
-						value={ Math.round( props.left ?? 0 ) }
-						onChange={ ( v ) => update( { left: Number( v ) }, 'Position X' ) }
-					/>
-					<TextControl
-						label={ __( 'Y', 'socialframe' ) }
-						type="number"
-						value={ Math.round( props.top ?? 0 ) }
-						onChange={ ( v ) => update( { top: Number( v ) }, 'Position Y' ) }
-					/>
+			{ /* ── Position ─────────────────────────────────────────────────── */ }
+			<Accordion title={ __( 'Position', 'socialframe' ) }>
+				<div className="socialframe-num-grid">
+					<NumField label="X" value={ Math.round( props.left   ?? 0 ) } onChange={ ( v ) => update( { left: v }, 'Position X' ) } />
+					<NumField label="Y" value={ Math.round( props.top    ?? 0 ) } onChange={ ( v ) => update( { top:  v }, 'Position Y' ) } />
+					<NumField label="W" value={ props.width  ?? 0 } onChange={ ( v ) => update( { scaleX: v / ( props.naturalWidth  ?? 100 ) }, 'Width' ) } />
+					<NumField label="H" value={ props.height ?? 0 } onChange={ ( v ) => update( { scaleY: v / ( props.naturalHeight ?? 100 ) }, 'Height' ) } />
+					<NumField label="°" value={ Math.round( props.angle  ?? 0 ) } onChange={ ( v ) => update( { angle: v }, 'Rotation' ) } />
+					<NumField label="%" value={ Math.round( ( props.opacity ?? 1 ) * 100 ) } min={ 0 } max={ 100 } onChange={ ( v ) => update( { opacity: v / 100 }, 'Opacity' ) } />
 				</div>
-
-				<div className="socialframe-props__row">
-					<TextControl
-						label={ __( 'W', 'socialframe' ) }
-						type="number"
-						value={ props.width ?? 0 }
-						onChange={ ( v ) => update( { scaleX: Number( v ) / ( props.naturalWidth ?? 100 ) }, 'Width' ) }
-					/>
-					<TextControl
-						label={ __( 'H', 'socialframe' ) }
-						type="number"
-						value={ props.height ?? 0 }
-						onChange={ ( v ) => update( { scaleY: Number( v ) / ( props.naturalHeight ?? 100 ) }, 'Height' ) }
-					/>
-				</div>
-
-				<RangeControl
-					label={ __( 'Opacity', 'socialframe' ) }
-					value={ Math.round( ( props.opacity ?? 1 ) * 100 ) }
-					min={ 0 }
-					max={ 100 }
-					onChange={ ( v ) => update( { opacity: v / 100 }, 'Opacity' ) }
-				/>
-
 				<Button
 					variant="secondary"
 					onClick={ handleReplaceImage }
-					style={ { width: '100%', justifyContent: 'center', marginTop: 8 } }
+					style={ { width: '100%', justifyContent: 'center', marginTop: 10 } }
 				>
 					{ __( 'Replace Image', 'socialframe' ) }
 				</Button>
-			</div>
-		<AlignmentSection />
+			</Accordion>
+
+			{ /* ── Layout ───────────────────────────────────────────────────── */ }
+			<Accordion title={ __( 'Layout', 'socialframe' ) } defaultOpen={ false }>
+				<FlipSection />
+				<AlignmentSection />
+			</Accordion>
+
+			{ /* ── Effects ──────────────────────────────────────────────────── */ }
+			<Accordion title={ __( 'Effects', 'socialframe' ) } defaultOpen={ false }>
+				<ShadowSection />
+			</Accordion>
+
 		</div>
 	);
 }

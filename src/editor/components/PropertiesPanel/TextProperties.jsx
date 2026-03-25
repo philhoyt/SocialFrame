@@ -4,9 +4,14 @@ import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
+import { Accordion } from './Accordion';
+import { NumField } from './NumField';
 import { AlignmentSection } from './AlignmentSection';
+import { FlipSection } from './FlipSection';
+import { ShadowSection } from './ShadowSection';
+import { ColorRow } from './ColorRow';
 
-const { themeColors, themeFonts } = window.socialFrameConfig ?? {};
+const { themeFonts } = window.socialFrameConfig ?? {};
 
 export function TextProperties() {
 	const props  = useSelect( ( select ) => select( STORE_KEY ).getSelectionProps() );
@@ -21,9 +26,19 @@ export function TextProperties() {
 
 	return (
 		<div className="socialframe-props">
-			<div className="socialframe-props__section">
-				<p className="socialframe-props__section-title">{ __( 'Text', 'socialframe' ) }</p>
 
+			<Accordion title={ __( 'Position', 'socialframe' ) }>
+				<div className="socialframe-num-grid">
+					<NumField label="X" value={ Math.round( props.left   ?? 0 ) } onChange={ ( v ) => update( { left:  v }, 'Position X' ) } />
+					<NumField label="Y" value={ Math.round( props.top    ?? 0 ) } onChange={ ( v ) => update( { top:   v }, 'Position Y' ) } />
+					<NumField label="W" value={ Math.round( props.width  ?? 0 ) } onChange={ ( v ) => update( { width: v }, 'Width' ) } />
+					<NumField label="H" value={ Math.round( props.height ?? 0 ) } readOnly />
+					<NumField label="°" value={ Math.round( props.angle  ?? 0 ) } onChange={ ( v ) => update( { angle:   v }, 'Rotation' ) } />
+					<NumField label="%" value={ Math.round( ( props.opacity ?? 1 ) * 100 ) } min={ 0 } max={ 100 } onChange={ ( v ) => update( { opacity: v / 100 }, 'Opacity' ) } />
+				</div>
+			</Accordion>
+
+			<Accordion title={ __( 'Typography', 'socialframe' ) }>
 				{ fontOptions.length > 0 && (
 					<SelectControl
 						label={ __( 'Font', 'socialframe' ) }
@@ -33,123 +48,68 @@ export function TextProperties() {
 					/>
 				) }
 
-				<RangeControl
-					label={ __( 'Size', 'socialframe' ) }
-					value={ props.fontSize ?? 16 }
-					min={ 8 }
-					max={ 300 }
-					onChange={ ( v ) => update( { fontSize: v }, 'Font size' ) }
-				/>
+				<div className="socialframe-num-grid" style={ { marginBottom: 12 } }>
+					<NumField label="Size" value={ props.fontSize ?? 16 }          min={ 8 } max={ 300 } onChange={ ( v ) => update( { fontSize:    v },      'Font size' ) } />
+					<NumField label="LH"   value={ props.lineHeight  ?? 1.16 }     step={ 0.01 } min={ 0.5 } max={ 4 } onChange={ ( v ) => update( { lineHeight:  v },      'Line height' ) } />
+					<NumField label="LS"   value={ props.charSpacing ?? 0 }        min={ -200 } max={ 800 } onChange={ ( v ) => update( { charSpacing: v },      'Letter spacing' ) } />
+				</div>
 
-				<div className="socialframe-props__section">
-					<p className="socialframe-props__section-title">{ __( 'Style', 'socialframe' ) }</p>
-					<div className="socialframe-props__button-group">
+				<div className="socialframe-props__subsection-label">{ __( 'Style', 'socialframe' ) }</div>
+				<div className="socialframe-props__button-group" style={ { marginBottom: 10 } }>
+					<button
+						className={ `socialframe-props__toggle-btn${ props.fontWeight === 'bold' ? ' socialframe-props__toggle-btn--active' : '' }` }
+						onClick={ () => update( { fontWeight: props.fontWeight === 'bold' ? 'normal' : 'bold' }, 'Bold' ) }
+					><strong>B</strong></button>
+					<button
+						className={ `socialframe-props__toggle-btn${ props.fontStyle === 'italic' ? ' socialframe-props__toggle-btn--active' : '' }` }
+						onClick={ () => update( { fontStyle: props.fontStyle === 'italic' ? 'normal' : 'italic' }, 'Italic' ) }
+					><em>I</em></button>
+					<button
+						className={ `socialframe-props__toggle-btn${ props.underline ? ' socialframe-props__toggle-btn--active' : '' }` }
+						onClick={ () => update( { underline: ! props.underline }, 'Underline' ) }
+					><u>U</u></button>
+				</div>
+
+				<div className="socialframe-props__subsection-label">{ __( 'Alignment', 'socialframe' ) }</div>
+				<div className="socialframe-props__button-group">
+					{ [ 'left', 'center', 'right' ].map( ( align ) => (
 						<button
-							className={ `socialframe-props__toggle-btn${ props.fontWeight === 'bold' ? ' socialframe-props__toggle-btn--active' : '' }` }
-							onClick={ () => update(
-								{ fontWeight: props.fontWeight === 'bold' ? 'normal' : 'bold' },
-								'Bold text'
-							) }
+							key={ align }
+							className={ `socialframe-props__toggle-btn${ props.textAlign === align ? ' socialframe-props__toggle-btn--active' : '' }` }
+							onClick={ () => update( { textAlign: align }, `Align ${ align }` ) }
 						>
-							<strong>B</strong>
+							{ align[ 0 ].toUpperCase() }
 						</button>
-						<button
-							className={ `socialframe-props__toggle-btn${ props.fontStyle === 'italic' ? ' socialframe-props__toggle-btn--active' : '' }` }
-							onClick={ () => update(
-								{ fontStyle: props.fontStyle === 'italic' ? 'normal' : 'italic' },
-								'Italic text'
-							) }
-						>
-							<em>I</em>
-						</button>
-						<button
-							className={ `socialframe-props__toggle-btn${ props.underline ? ' socialframe-props__toggle-btn--active' : '' }` }
-							onClick={ () => update( { underline: ! props.underline }, 'Underline text' ) }
-						>
-							<u>U</u>
-						</button>
-					</div>
+					) ) }
 				</div>
+			</Accordion>
 
-				<div className="socialframe-props__section">
-					<p className="socialframe-props__section-title">{ __( 'Alignment', 'socialframe' ) }</p>
-					<div className="socialframe-props__button-group">
-						{ [ 'left', 'center', 'right' ].map( ( align ) => (
-							<button
-								key={ align }
-								className={ `socialframe-props__toggle-btn${ props.textAlign === align ? ' socialframe-props__toggle-btn--active' : '' }` }
-								onClick={ () => update( { textAlign: align }, `Align ${ align }` ) }
-							>
-								{ align[0].toUpperCase() }
-							</button>
-						) ) }
-					</div>
-				</div>
-
-				<div className="socialframe-props__section">
-					<p className="socialframe-props__section-title">{ __( 'Color', 'socialframe' ) }</p>
-					<div className="socialframe-color-row">
-						{ ( themeColors ?? [] ).map( ( { color, name, slug } ) => (
-							<button
-								key={ slug }
-								className={ `socialframe-color-swatch${ props.fill === color ? ' socialframe-color-swatch--active' : '' }` }
-								style={ { background: color } }
-								onClick={ () => update( { fill: color }, 'Text color' ) }
-								title={ name }
-								aria-label={ name }
-							/>
-						) ) }
-					</div>
-				</div>
-
-				<div className="socialframe-props__section">
-					<p className="socialframe-props__section-title">{ __( 'Background', 'socialframe' ) }</p>
-					<div className="socialframe-color-row">
-						<button
-							className={ `socialframe-color-swatch socialframe-color-swatch--none${ ! props.backgroundColor ? ' socialframe-color-swatch--active' : '' }` }
-							onClick={ () => update( { backgroundColor: '' }, 'Text background' ) }
-							title={ __( 'None', 'socialframe' ) }
-							aria-label={ __( 'None', 'socialframe' ) }
-						/>
-						{ ( themeColors ?? [] ).map( ( { color, name, slug } ) => (
-							<button
-								key={ slug }
-								className={ `socialframe-color-swatch${ props.backgroundColor === color ? ' socialframe-color-swatch--active' : '' }` }
-								style={ { background: color } }
-								onClick={ () => update( { backgroundColor: color }, 'Text background' ) }
-								title={ name }
-								aria-label={ name }
-							/>
-						) ) }
-					</div>
-				</div>
-
-				<RangeControl
-					label={ __( 'Letter Spacing', 'socialframe' ) }
-					value={ props.charSpacing ?? 0 }
-					min={ -200 }
-					max={ 800 }
-					onChange={ ( v ) => update( { charSpacing: v }, 'Letter spacing' ) }
+			<Accordion title={ __( 'Fill', 'socialframe' ) }>
+				<ColorRow
+					value={ typeof props.fill === 'string' ? props.fill : null }
+					onChange={ ( hex ) => update( { fill: hex }, 'Text color' ) }
 				/>
+			</Accordion>
 
-				<RangeControl
-					label={ __( 'Line Height', 'socialframe' ) }
-					value={ props.lineHeight ?? 1.16 }
-					min={ 0.5 }
-					max={ 4 }
-					step={ 0.01 }
-					onChange={ ( v ) => update( { lineHeight: v }, 'Line height' ) }
+			<Accordion title={ __( 'Background', 'socialframe' ) } defaultOpen={ false }>
+				<ColorRow
+					value={ props.backgroundColor || null }
+					onChange={ ( hex ) => update( { backgroundColor: hex }, 'Text background' ) }
+					showNone
+					noneValue=""
+					noneLabel={ __( 'No background', 'socialframe' ) }
 				/>
+			</Accordion>
 
-				<RangeControl
-					label={ __( 'Opacity', 'socialframe' ) }
-					value={ Math.round( ( props.opacity ?? 1 ) * 100 ) }
-					min={ 0 }
-					max={ 100 }
-					onChange={ ( v ) => update( { opacity: v / 100 }, 'Opacity' ) }
-				/>
-			</div>
-		<AlignmentSection />
+			<Accordion title={ __( 'Layout', 'socialframe' ) } defaultOpen={ false }>
+				<FlipSection />
+				<AlignmentSection />
+			</Accordion>
+
+			<Accordion title={ __( 'Effects', 'socialframe' ) } defaultOpen={ false }>
+				<ShadowSection />
+			</Accordion>
+
 		</div>
 	);
 }

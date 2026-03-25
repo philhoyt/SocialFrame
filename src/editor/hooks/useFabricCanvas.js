@@ -74,6 +74,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 		// ── Artboard setup helper ─────────────────────────────────────────────
 		const setupArtboard = ( artboardObj ) => {
+			// Re-stamp isArtboard so it survives future in-memory cycles even if
+			// Fabric v6 didn't restore the custom property from JSON on load.
+			artboardObj.isArtboard = true;
 			artboardObj.set( {
 				selectable:  false,
 				evented:     false,
@@ -93,13 +96,49 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			// ── Load existing JSON ─────────────────────────────────────────────
 			try {
 				canvas.loadFromJSON( fabricJson ).then( () => {
-					const existing = canvas.getObjects().find( ( o ) => o.isArtboard );
-					if ( existing ) {
-						// New format: artboard is embedded in the JSON.
-						setupArtboard( existing );
+					// Fabric v6 does not reliably restore custom properties (id,
+					// isArtboard) after loadFromJSON, so we use three layers of
+					// detection in order of specificity:
+					//   1. isArtboard flag (set in-memory, may not survive JSON)
+					//   2. id === 'artboard' (serialised custom prop, may not survive)
+					//   3. Geometry: a rect at (0,0) whose dimensions match the format
+					const allObjects = canvas.getObjects();
+
+					const findArtboard = () =>
+						allObjects.find( ( o ) => isArtboardObject( o ) ) ??
+						allObjects.find( ( o ) =>
+							o.type === 'rect' &&
+							Math.abs( o.left ?? 0 ) < 1 &&
+							Math.abs( o.top  ?? 0 ) < 1 &&
+							Math.round( o.width  ?? 0 ) === artW &&
+							Math.round( o.height ?? 0 ) === artH
+						);
+
+					// Remove every artboard candidate first, keeping the best one.
+					// This cleans up duplicate rects that may have been created by
+					// previous broken loads (one from JSON + one from the else-branch).
+					const candidates = allObjects.filter( ( o ) =>
+						isArtboardObject( o ) || (
+							o.type === 'rect' &&
+							Math.abs( o.left ?? 0 ) < 1 &&
+							Math.abs( o.top  ?? 0 ) < 1 &&
+							Math.round( o.width  ?? 0 ) === artW &&
+							Math.round( o.height ?? 0 ) === artH
+						)
+					);
+
+					// Keep the first candidate (prefer one with known markers).
+					const best = candidates.find( ( o ) => isArtboardObject( o ) ) ?? candidates[ 0 ];
+
+					// Remove any extra duplicates silently (don't fire object:removed listener).
+					candidates.forEach( ( o ) => {
+						if ( o !== best ) canvas.remove( o );
+					} );
+
+					if ( best ) {
+						setupArtboard( best );
 					} else {
-						// Old format: convert canvas.backgroundColor + backgroundImage
-						// to an artboard rect.
+						// Truly blank / old-format canvas — migrate backgroundColor.
 						let artFill = canvas.backgroundColor ?? '#ffffff';
 
 						if ( canvas.backgroundImage ) {
@@ -163,12 +202,12 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		// Mark dirty and sync layers on mutations, skipping artboard events.
 		canvas.on( 'object:modified', () => dispatch.markDirty() );
 		canvas.on( 'object:added',    ( e ) => {
-			if ( e.target?.isArtboard ) return;
+			if ( isArtboardObject( e.target ) ) return;
 			dispatch.markDirty();
 			syncLayersToStore( canvas, dispatch );
 		} );
 		canvas.on( 'object:removed',  ( e ) => {
-			if ( e.target?.isArtboard ) return;
+			if ( isArtboardObject( e.target ) ) return;
 			dispatch.markDirty();
 			syncLayersToStore( canvas, dispatch );
 		} );
@@ -712,6 +751,8 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		snapRef.current = { enabled, size };
 	}, [] );
 
+	const getSnapToGrid = useCallback( () => ( { ...snapRef.current } ), [] );
+
 	// ── Layer management ──────────────────────────────────────────────────────
 
 	const selectById = useCallback( ( id ) => {
@@ -744,7 +785,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 		// Prevent sending below the artboard (always at the bottom of the stack).
 		const objects = canvas.getObjects();
-		const minIdx  = objects.findIndex( ( o ) => ! o.isArtboard );
+		const minIdx  = objects.findIndex( ( o ) => ! isArtboardObject( o ) );
 		if ( objects.indexOf( obj ) <= minIdx ) return;
 
 		canvas.sendObjectBackwards( obj );
@@ -809,6 +850,47 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		} );
 	}, [ dispatch ] );
 
+	/** Duplicate the currently active object, offset by 20px. */
+	const duplicateSelected = useCallback( async () => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getActiveObject();
+		if ( ! canvas || ! obj ) return;
+		const clone = await obj.clone();
+		clone.set( { id: genId(), left: ( obj.left ?? 0 ) + 20, top: ( obj.top ?? 0 ) + 20 } );
+		if ( obj.name ) clone.name = obj.name;
+		canvas.add( clone );
+		canvas.setActiveObject( clone );
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Duplicate',
+			undo: () => { canvas.remove( clone ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			redo: () => { canvas.add( clone ); canvas.setActiveObject( clone ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+		} );
+	}, [ dispatch ] );
+
+	const setLayerLocked = useCallback( ( id, locked ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) return;
+		obj.set( { selectable: ! locked, evented: ! locked } );
+		if ( locked ) canvas.discardActiveObject();
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+	}, [ dispatch ] );
+
+	const setLayerVisible = useCallback( ( id, visible ) => {
+		const canvas = fabricRef.current;
+		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) return;
+		obj.set( 'visible', visible );
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+	}, [ dispatch ] );
+
 	return {
 		getFabric,
 		getJSON,
@@ -828,6 +910,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		getBackgroundImageSrc,
 		alignObject,
 		setSnapToGrid,
+		getSnapToGrid,
 		fitView,
 		zoomIn,
 		zoomOut,
@@ -837,6 +920,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		duplicateById,
 		deleteById,
 		renameById,
+		duplicateSelected,
+		setLayerLocked,
+		setLayerVisible,
 	};
 }
 
@@ -919,16 +1005,22 @@ function syncSelection( obj, dispatch ) {
  * @param {fabric.Canvas} canvas
  * @param {Object}        dispatch
  */
+function isArtboardObject( o ) {
+	return o.isArtboard || o.id === 'artboard';
+}
+
 function syncLayersToStore( canvas, dispatch ) {
-	const objects = canvas.getObjects().filter( ( o ) => ! o.isArtboard );
+	const objects = canvas.getObjects().filter( ( o ) => ! isArtboardObject( o ) );
 	// Ensure every object has a stable ID before syncing to the store.
 	objects.forEach( ( obj ) => {
 		if ( ! obj.id ) obj.id = genId();
 	} );
 	const layers = [ ...objects ].reverse().map( ( obj ) => ( {
-		id:   obj.id,
-		name: obj.name || getDefaultLayerName( obj ),
-		type: getObjectType( obj ),
+		id:      obj.id,
+		name:    obj.name || getDefaultLayerName( obj ),
+		type:    getObjectType( obj ),
+		locked:  ! ( obj.selectable ?? true ),
+		visible: obj.visible ?? true,
 	} ) );
 	dispatch.setLayers( layers );
 }

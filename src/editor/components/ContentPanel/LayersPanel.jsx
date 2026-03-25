@@ -57,7 +57,7 @@ export function LayersPanel() {
 				{ layers.map( ( layer, index ) => (
 					<li
 						key={ layer.id ?? index }
-						className={ `socialframe-layers__item${ selectedId === layer.id ? ' is-selected' : '' }` }
+						className={ `socialframe-layers__item${ selectedId === layer.id ? ' is-selected' : '' }${ layer.locked ? ' is-locked' : '' }${ ! layer.visible ? ' is-hidden' : '' }` }
 						onClick={ () => fabric.selectById( layer.id ) }
 					>
 						<span className="socialframe-layers__type-icon" aria-hidden="true">
@@ -83,6 +83,19 @@ export function LayersPanel() {
 								{ layer.name }
 							</span>
 						) }
+
+						<span className="socialframe-layers__state-btns" onClick={ ( e ) => e.stopPropagation() }>
+							<button
+								className={ `socialframe-layers__state-btn${ layer.locked ? ' is-active' : '' }` }
+								title={ layer.locked ? __( 'Unlock', 'socialframe' ) : __( 'Lock', 'socialframe' ) }
+								onClick={ () => fabric.setLayerLocked( layer.id, ! layer.locked ) }
+							>{ layer.locked ? '🔒' : '🔓' }</button>
+							<button
+								className={ `socialframe-layers__state-btn${ ! layer.visible ? ' is-active' : '' }` }
+								title={ layer.visible ? __( 'Hide', 'socialframe' ) : __( 'Show', 'socialframe' ) }
+								onClick={ () => fabric.setLayerVisible( layer.id, ! layer.visible ) }
+							>{ layer.visible ? '👁' : '🚫' }</button>
+						</span>
 
 						<span className="socialframe-layers__actions" onClick={ ( e ) => e.stopPropagation() }>
 							<button

@@ -107,7 +107,7 @@ export function createText( role, overrides = {} ) {
 	return new fabric.Textbox( label, {
 		id:         genId(),
 		fontFamily: defaultFont(),
-		fill:       themeColors?.[ 0 ]?.color ?? '#000000',
+		fill:       '#000000',
 		left:       100,
 		top:        100,
 		width:      TEXT_ROLE_WIDTHS[ role ] ?? 700,
@@ -144,6 +144,14 @@ export function extractProperties( obj, type ) {
 		height:  obj.getScaledHeight ? Math.round( obj.getScaledHeight() ) : ( obj.height ?? 0 ),
 		opacity: obj.opacity ?? 1,
 		angle:   obj.angle ?? 0,
+		flipX:   obj.flipX  ?? false,
+		flipY:   obj.flipY  ?? false,
+		shadow:  obj.shadow ? {
+			blur:    obj.shadow.blur    ?? 0,
+			offsetX: obj.shadow.offsetX ?? 0,
+			offsetY: obj.shadow.offsetY ?? 0,
+			color:   obj.shadow.color   ?? 'rgba(0,0,0,0.3)',
+		} : null,
 	};
 
 	if ( type === 'text' ) {

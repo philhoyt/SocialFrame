@@ -225,3 +225,36 @@
 	background: #7a2222;
 	color: #fff;
 }
+
+.socialframe-layers__state-btns {
+	display: flex;
+	gap: 2px;
+	flex-shrink: 0;
+}
+
+.socialframe-layers__state-btn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 11px;
+	padding: 2px 3px;
+	border-radius: 3px;
+	line-height: 1;
+	opacity: 0.4;
+	transition: opacity 0.1s, background 0.1s;
+}
+
+.socialframe-layers__state-btn:hover,
+.socialframe-layers__state-btn.is-active {
+	opacity: 1;
+	background: rgba( 255, 255, 255, 0.08 );
+}
+
+.socialframe-layers__item.is-hidden .socialframe-layers__name,
+.socialframe-layers__item.is-hidden .socialframe-layers__type-icon {
+	opacity: 0.35;
+}
+
+.socialframe-layers__item.is-locked .socialframe-layers__name {
+	color: #888;
+}

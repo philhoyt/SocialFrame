@@ -51,6 +51,13 @@ export function useKeyboardShortcuts( fabricApi, designId ) {
 				return;
 			}
 
+			// Duplicate selected: Ctrl/Cmd+D
+			if ( mod && e.key === 'd' ) {
+				e.preventDefault();
+				fabricApi?.duplicateSelected?.();
+				return;
+			}
+
 			// Delete selected: Backspace / Delete (when not in a text field)
 			if ( ( e.key === 'Backspace' || e.key === 'Delete' ) ) {
 				const tag = document.activeElement?.tagName;
