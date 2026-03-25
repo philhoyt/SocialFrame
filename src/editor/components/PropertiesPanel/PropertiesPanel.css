@@ -226,6 +226,70 @@
 	text-align: center;
 }
 
+/* ── Linked range controls ──────────────────────────────────────────────────── */
+
+/* Bar sits between the two RangeControls.
+   A thin vertical line runs its full height; the button floats on top of it. */
+.socialframe-linked-controls__bar {
+	position: relative;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	height: 28px;
+}
+
+/* Connector line — vertically centred on the button (button is 20px wide,
+   margin-right: 4px, so centre = 4 + 10 = 14px from the right edge). */
+.socialframe-linked-controls__bar::before {
+	content: '';
+	position: absolute;
+	right: 14px;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: #2e2e2e;
+	transition: background 0.15s;
+}
+
+.socialframe-linked-controls.is-linked .socialframe-linked-controls__bar::before {
+	background: #005a87;
+}
+
+.socialframe-linked-controls__btn {
+	position: relative;
+	z-index: 1;           /* sits on top of the connector line */
+	margin-right: 4px;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #1e1e1e;  /* same as panel bg so it "cuts" the line cleanly */
+	border: 1px solid #383838;
+	border-radius: 3px;
+	color: #555;
+	cursor: pointer;
+	padding: 0;
+	transition: color 0.1s, border-color 0.1s, background 0.1s;
+}
+
+.socialframe-linked-controls__btn:hover {
+	color: #aaa;
+	border-color: #555;
+}
+
+.socialframe-linked-controls__btn.is-linked {
+	color: #0073aa;
+	border-color: #0073aa;
+	background: #1e1e1e;
+}
+
+.socialframe-linked-controls__b-label {
+	font-size: 11px;
+	color: #888;
+	margin-top: 2px;
+}
+
 /* ── WordPress component overrides ─────────────────────────────────────────── */
 
 .socialframe-accordion__body .components-base-control__label {

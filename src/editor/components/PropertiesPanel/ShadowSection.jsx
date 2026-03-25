@@ -5,7 +5,8 @@ import * as fabric from 'fabric';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
-import { ColorPickerButton } from './ColorPickerButton';
+import { ColorRow } from './ColorRow';
+import { LinkedRangeControls } from './LinkedRangeControls';
 
 const DEFAULT_SHADOW = { blur: 10, offsetX: 4, offsetY: 4, color: 'rgba(0,0,0,0.5)' };
 
@@ -42,34 +43,34 @@ export function ShadowSection() {
 					<div className="socialframe-props__subsection-label" style={ { marginTop: 4 } }>
 						{ __( 'Color', 'socialframe' ) }
 					</div>
-					<div className="socialframe-color-row" style={ { marginBottom: 12 } }>
-						<ColorPickerButton
-							color={ shadow.color || null }
-							onChange={ ( hex ) => applyShadow( { color: hex } ) }
-							label={ __( 'Shadow color', 'socialframe' ) }
-						/>
-					</div>
+					<ColorRow
+						value={ shadow.color || null }
+						onChange={ ( hex ) => applyShadow( { color: hex } ) }
+						pickerLabel={ __( 'Shadow color', 'socialframe' ) }
+					/>
 
 					<RangeControl
 						label={ __( 'Blur', 'socialframe' ) }
 						value={ shadow.blur }
 						min={ 0 }
-						max={ 50 }
+						max={ 100 }
+						step={ 2 }
 						onChange={ ( v ) => applyShadow( { blur: v } ) }
 					/>
-					<RangeControl
-						label={ __( 'Offset X', 'socialframe' ) }
-						value={ shadow.offsetX }
-						min={ -50 }
-						max={ 50 }
-						onChange={ ( v ) => applyShadow( { offsetX: v } ) }
-					/>
-					<RangeControl
-						label={ __( 'Offset Y', 'socialframe' ) }
-						value={ shadow.offsetY }
-						min={ -50 }
-						max={ 50 }
-						onChange={ ( v ) => applyShadow( { offsetY: v } ) }
+					<LinkedRangeControls
+						aLabel={ __( 'Offset X', 'socialframe' ) }
+						aValue={ shadow.offsetX }
+						aMin={ -200 }
+						aMax={ 200 }
+						aStep={ 2 }
+						onChangeA={ ( v ) => applyShadow( { offsetX: v } ) }
+						bLabel={ __( 'Offset Y', 'socialframe' ) }
+						bValue={ shadow.offsetY }
+						bMin={ -200 }
+						bMax={ 200 }
+						bStep={ 2 }
+						onChangeB={ ( v ) => applyShadow( { offsetY: v } ) }
+						onChangeBoth={ ( x, y ) => applyShadow( { offsetX: x, offsetY: y } ) }
 					/>
 				</>
 			) }
