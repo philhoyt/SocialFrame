@@ -455,7 +455,7 @@
 .socialframe-layers__state-btn:hover,
 .socialframe-layers__state-btn.is-active {
 	opacity: 1;
-	background: rgba( 255, 255, 255, 0.08 );
+	background: rgba(255, 255, 255, 0.08);
 }
 
 .socialframe-layers__item.is-hidden .socialframe-layers__name,

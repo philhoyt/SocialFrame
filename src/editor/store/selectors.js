@@ -1,19 +1,22 @@
-export const getActivePanel      = ( state ) => state.activePanel;
-export const getDesignId         = ( state ) => state.designId;
-export const getDesignTitle      = ( state ) => state.designTitle;
-export const getFormat           = ( state ) => state.format;
-export const getSelection        = ( state ) => state.selection;
-export const getSelectionType    = ( state ) => state.selection.type;
-export const getSelectionProps   = ( state ) => state.selection.properties;
-export const isDirty             = ( state ) => state.isDirty;
-export const isSaving            = ( state ) => state.isSaving;
-export const getLastSaved        = ( state ) => state.lastSaved;
-export const getUndoStack        = ( state ) => state.undoStack;
-export const getUndoIndex        = ( state ) => state.undoIndex;
-export const canUndo             = ( state ) => state.undoIndex >= 0;
-export const canRedo             = ( state ) => state.undoIndex < state.undoStack.length - 1;
-export const getUndoLabel        = ( state ) => state.undoStack[ state.undoIndex ]?.label ?? null;
-export const getRedoLabel        = ( state ) => state.undoStack[ state.undoIndex + 1 ]?.label ?? null;
-export const getLayers           = ( state ) => state.layers;
+export const getActivePanel = ( state ) => state.activePanel;
+export const getDesignId = ( state ) => state.designId;
+export const getDesignTitle = ( state ) => state.designTitle;
+export const getFormat = ( state ) => state.format;
+export const getSelection = ( state ) => state.selection;
+export const getSelectionType = ( state ) => state.selection.type;
+export const getSelectionProps = ( state ) => state.selection.properties;
+export const isDirty = ( state ) => state.isDirty;
+export const isSaving = ( state ) => state.isSaving;
+export const getLastSaved = ( state ) => state.lastSaved;
+export const getUndoStack = ( state ) => state.undoStack;
+export const getUndoIndex = ( state ) => state.undoIndex;
+export const canUndo = ( state ) => state.undoIndex >= 0;
+export const canRedo = ( state ) =>
+	state.undoIndex < state.undoStack.length - 1;
+export const getUndoLabel = ( state ) =>
+	state.undoStack[ state.undoIndex ]?.label ?? null;
+export const getRedoLabel = ( state ) =>
+	state.undoStack[ state.undoIndex + 1 ]?.label ?? null;
+export const getLayers = ( state ) => state.layers;
 export const getSelectedObjectId = ( state ) => state.selection.objectId;
-export const getZoom             = ( state ) => state.zoom;
+export const getZoom = ( state ) => state.zoom;

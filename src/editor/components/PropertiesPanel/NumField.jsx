@@ -9,15 +9,23 @@ import { useRef, useEffect } from '@wordpress/element';
  * - Press Enter while typing → commits and blurs.
  *
  * @param {Object}   props
- * @param {string}   props.label     Short label shown before the input (e.g. "X", "W", "°").
+ * @param {string}   props.label            Short label shown before the input (e.g. "X", "W", "°").
  * @param {number}   props.value
- * @param {Function} props.onChange  Called with the new numeric value.
+ * @param {Function} props.onChange         Called with the new numeric value.
  * @param {boolean}  [props.readOnly=false]
  * @param {number}   [props.step=1]
  * @param {number}   [props.min]
  * @param {number}   [props.max]
  */
-export function NumField( { label, value, onChange, readOnly = false, step = 1, min, max } ) {
+export function NumField( {
+	label,
+	value,
+	onChange,
+	readOnly = false,
+	step = 1,
+	min,
+	max,
+} ) {
 	const inputRef = useRef( null );
 
 	// Always-current prop values for use inside the stable document handlers.
@@ -33,11 +41,17 @@ export function NumField( { label, value, onChange, readOnly = false, step = 1, 
 	if ( ! stable.current ) {
 		const onMove = ( e ) => {
 			const d = dragRef.current;
-			if ( ! d ) return;
+			if ( ! d ) {
+				return;
+			}
 
 			const dx = e.clientX - d.startX;
-			if ( Math.abs( dx ) > 2 ) d.moved = true;
-			if ( ! d.moved ) return;
+			if ( Math.abs( dx ) > 2 ) {
+				d.moved = true;
+			}
+			if ( ! d.moved ) {
+				return;
+			}
 
 			const { onChange, step, min, max } = liveRef.current;
 
@@ -45,8 +59,12 @@ export function NumField( { label, value, onChange, readOnly = false, step = 1, 
 			// don't jump by huge amounts per pixel.
 			const sensitivity = step < 1 ? 0.1 : 1;
 			let v = d.startValue + dx * sensitivity;
-			if ( min !== undefined ) v = Math.max( min, v );
-			if ( max !== undefined ) v = Math.min( max, v );
+			if ( min !== undefined ) {
+				v = Math.max( min, v );
+			}
+			if ( max !== undefined ) {
+				v = Math.min( max, v );
+			}
 
 			// Snap to nearest step, strip floating-point noise.
 			const snapped = Math.round( v / step ) * step;
@@ -55,8 +73,8 @@ export function NumField( { label, value, onChange, readOnly = false, step = 1, 
 
 		const onUp = () => {
 			document.removeEventListener( 'mousemove', onMove );
-			document.removeEventListener( 'mouseup',   onUp );
-			document.body.style.cursor     = '';
+			document.removeEventListener( 'mouseup', onUp );
+			document.body.style.cursor = '';
 			document.body.style.userSelect = '';
 
 			if ( ! dragRef.current?.moved ) {
@@ -70,27 +88,32 @@ export function NumField( { label, value, onChange, readOnly = false, step = 1, 
 	}
 
 	// Remove listeners if the component unmounts mid-drag.
-	useEffect( () => () => {
-		document.removeEventListener( 'mousemove', stable.current.onMove );
-		document.removeEventListener( 'mouseup',   stable.current.onUp );
-		document.body.style.cursor     = '';
-		document.body.style.userSelect = '';
-	}, [] );
+	useEffect(
+		() => () => {
+			document.removeEventListener( 'mousemove', stable.current.onMove );
+			document.removeEventListener( 'mouseup', stable.current.onUp );
+			document.body.style.cursor = '';
+			document.body.style.userSelect = '';
+		},
+		[]
+	);
 
 	function onMouseDown( e ) {
-		if ( readOnly || e.button !== 0 ) return;
+		if ( readOnly || e.button !== 0 ) {
+			return;
+		}
 		// Prevent the label from auto-focusing the input; we handle focus
 		// ourselves in onUp (select on tap, nothing on drag).
 		e.preventDefault();
 		dragRef.current = {
-			startX:     e.clientX,
+			startX: e.clientX,
 			startValue: liveRef.current.value,
-			moved:      false,
+			moved: false,
 		};
-		document.body.style.cursor     = 'ew-resize';
+		document.body.style.cursor = 'ew-resize';
 		document.body.style.userSelect = 'none';
 		document.addEventListener( 'mousemove', stable.current.onMove );
-		document.addEventListener( 'mouseup',   stable.current.onUp );
+		document.addEventListener( 'mouseup', stable.current.onUp );
 	}
 
 	function onKeyDown( e ) {
@@ -102,7 +125,9 @@ export function NumField( { label, value, onChange, readOnly = false, step = 1, 
 
 	function onInputChange( e ) {
 		const n = parseFloat( e.target.value );
-		if ( ! isNaN( n ) ) onChange( n );
+		if ( ! isNaN( n ) ) {
+			onChange( n );
+		}
 	}
 
 	return (

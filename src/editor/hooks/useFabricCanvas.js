@@ -5,7 +5,14 @@ import { initAligningGuidelines } from 'fabric/extensions';
 
 import { STORE_KEY } from '../store';
 import { FORMATS } from '../utils/formats';
-import { createShape, createText, getObjectType, extractProperties, genId, getDefaultLayerName } from '../utils/fabricHelpers';
+import {
+	createShape,
+	createText,
+	getObjectType,
+	extractProperties,
+	genId,
+	getDefaultLayerName,
+} from '../utils/fabricHelpers';
 
 /**
  * Initializes and manages the Fabric.js canvas instance.
@@ -16,54 +23,56 @@ import { createShape, createText, getObjectType, extractProperties, genId, getDe
  *   isArtboard: true.  Zoom and pan are applied via Fabric's viewport transform
  *   so objects that overflow the artboard remain accessible.
  *
- * @param {React.RefObject} canvasRef Ref attached to the <canvas> element.
- * @param {React.RefObject} areaRef   Ref attached to the container div.
+ * @param {React.RefObject} canvasRef          Ref attached to the <canvas> element.
+ * @param {React.RefObject} areaRef            Ref attached to the container div.
  * @param {Object}          options
  * @param {string}          options.format     Format key, e.g. 'instagram-post'.
  * @param {string}          options.fabricJson Initial JSON string (may be empty).
- * @returns {Object} Stable imperative API consumed via FabricContext.
+ * @return {Object} Stable imperative API consumed via FabricContext.
  */
 export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
-	const fabricRef       = useRef( null );
-	const artboardWRef    = useRef( FORMATS[ format ]?.width  ?? 1080 );
-	const artboardHRef    = useRef( FORMATS[ format ]?.height ?? 1080 );
+	const fabricRef = useRef( null );
+	const artboardWRef = useRef( FORMATS[ format ]?.width ?? 1080 );
+	const artboardHRef = useRef( FORMATS[ format ]?.height ?? 1080 );
 	const artboardRectRef = useRef( null );
-	const fitToScreenRef  = useRef( null );
-	const snapRef         = useRef( { enabled: false, size: 20 } );
-	const spaceRef        = useRef( false );
-	const isPanningRef    = useRef( false );
-	const panStartRef     = useRef( { x: 0, y: 0 } );
-	const dispatch        = useDispatch( STORE_KEY );
+	const fitToScreenRef = useRef( null );
+	const snapRef = useRef( { enabled: false, size: 20 } );
+	const spaceRef = useRef( false );
+	const isPanningRef = useRef( false );
+	const panStartRef = useRef( { x: 0, y: 0 } );
+	const dispatch = useDispatch( STORE_KEY );
 
 	// Initialize Fabric once on mount.
 	useEffect( () => {
-		if ( ! canvasRef.current || ! areaRef.current ) return;
+		if ( ! canvasRef.current || ! areaRef.current ) {
+			return;
+		}
 
-		const artW      = artboardWRef.current;
-		const artH      = artboardHRef.current;
+		const artW = artboardWRef.current;
+		const artH = artboardHRef.current;
 		const container = areaRef.current;
-		const initialW  = container.clientWidth  || 800;
-		const initialH  = container.clientHeight || 600;
+		const initialW = container.clientWidth || 800;
+		const initialH = container.clientHeight || 600;
 
 		const canvas = new fabric.Canvas( canvasRef.current, {
-			width:                  initialW,
-			height:                 initialH,
+			width: initialW,
+			height: initialH,
 			preserveObjectStacking: true,
-			selection:              true,
-			backgroundColor:        null,
+			selection: true,
+			backgroundColor: null,
 		} );
 
 		fabricRef.current = canvas;
 
 		// Position Fabric's wrapper at the top-left of the container.
 		canvas.wrapperEl.style.position = 'absolute';
-		canvas.wrapperEl.style.top      = '0';
-		canvas.wrapperEl.style.left     = '0';
+		canvas.wrapperEl.style.top = '0';
+		canvas.wrapperEl.style.left = '0';
 
 		// ── fitToScreen ───────────────────────────────────────────────────────
 		const fitToScreen = () => {
-			const vW   = canvas.width;
-			const vH   = canvas.height;
+			const vW = canvas.width;
+			const vH = canvas.height;
 			const zoom = Math.min( vW / artW, vH / artH ) * 0.9;
 			const panX = ( vW - artW * zoom ) / 2;
 			const panY = ( vH - artH * zoom ) / 2;
@@ -78,12 +87,12 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			// Fabric v6 didn't restore the custom property from JSON on load.
 			artboardObj.isArtboard = true;
 			artboardObj.set( {
-				selectable:  false,
-				evented:     false,
+				selectable: false,
+				evented: false,
 				hoverCursor: 'default',
-				shadow:      new fabric.Shadow( {
-					color:   'rgba(0,0,0,0.5)',
-					blur:    24,
+				shadow: new fabric.Shadow( {
+					color: 'rgba(0,0,0,0.5)',
+					blur: 24,
 					offsetX: 0,
 					offsetY: 4,
 				} ),
@@ -106,33 +115,38 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 					const findArtboard = () =>
 						allObjects.find( ( o ) => isArtboardObject( o ) ) ??
-						allObjects.find( ( o ) =>
-							o.type === 'rect' &&
-							Math.abs( o.left ?? 0 ) < 1 &&
-							Math.abs( o.top  ?? 0 ) < 1 &&
-							Math.round( o.width  ?? 0 ) === artW &&
-							Math.round( o.height ?? 0 ) === artH
+						allObjects.find(
+							( o ) =>
+								o.type === 'rect' &&
+								Math.abs( o.left ?? 0 ) < 1 &&
+								Math.abs( o.top ?? 0 ) < 1 &&
+								Math.round( o.width ?? 0 ) === artW &&
+								Math.round( o.height ?? 0 ) === artH
 						);
 
 					// Remove every artboard candidate first, keeping the best one.
 					// This cleans up duplicate rects that may have been created by
 					// previous broken loads (one from JSON + one from the else-branch).
-					const candidates = allObjects.filter( ( o ) =>
-						isArtboardObject( o ) || (
-							o.type === 'rect' &&
-							Math.abs( o.left ?? 0 ) < 1 &&
-							Math.abs( o.top  ?? 0 ) < 1 &&
-							Math.round( o.width  ?? 0 ) === artW &&
-							Math.round( o.height ?? 0 ) === artH
-						)
+					const candidates = allObjects.filter(
+						( o ) =>
+							isArtboardObject( o ) ||
+							( o.type === 'rect' &&
+								Math.abs( o.left ?? 0 ) < 1 &&
+								Math.abs( o.top ?? 0 ) < 1 &&
+								Math.round( o.width ?? 0 ) === artW &&
+								Math.round( o.height ?? 0 ) === artH )
 					);
 
 					// Keep the first candidate (prefer one with known markers).
-					const best = candidates.find( ( o ) => isArtboardObject( o ) ) ?? candidates[ 0 ];
+					const best =
+						candidates.find( ( o ) => isArtboardObject( o ) ) ??
+						candidates[ 0 ];
 
 					// Remove any extra duplicates silently (don't fire object:removed listener).
 					candidates.forEach( ( o ) => {
-						if ( o !== best ) canvas.remove( o );
+						if ( o !== best ) {
+							canvas.remove( o );
+						}
 					} );
 
 					if ( best ) {
@@ -143,18 +157,26 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 						if ( canvas.backgroundImage ) {
 							const bgImg = canvas.backgroundImage;
-							const pT    = shapeFitTransform(
-								bgImg.width, bgImg.height, artW, artH, 'cover'
+							const pT = shapeFitTransform(
+								bgImg.width,
+								bgImg.height,
+								artW,
+								artH,
+								'cover'
 							);
 							artFill = new fabric.Pattern( {
-								source:           bgImg.getElement(),
-								repeat:           'no-repeat',
+								source: bgImg.getElement(),
+								repeat: 'no-repeat',
 								patternTransform: pT,
 							} );
 							canvas.backgroundImage = null;
 						}
 
-						const artboard = createArtboardRect( artW, artH, artFill );
+						const artboard = createArtboardRect(
+							artW,
+							artH,
+							artFill
+						);
 						canvas.add( artboard );
 						setupArtboard( artboard );
 					}
@@ -166,7 +188,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 				} );
 			} catch ( e ) {
 				// eslint-disable-next-line no-console
-				console.warn( 'SocialFrame: could not load fabricJson, starting blank.', e );
+				console.warn(
+					'SocialFrame: could not load fabricJson, starting blank.',
+					e
+				);
 			}
 		} else {
 			// ── Fresh canvas — create artboard ────────────────────────────────
@@ -178,8 +203,8 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 		// ── Enable smart alignment guides ─────────────────────────────────────
 		const cleanupGuides = initAligningGuidelines( canvas, {
-			color:  'rgba(0, 115, 170, 0.85)',
-			width:  1,
+			color: 'rgba(0, 115, 170, 0.85)',
+			width: 1,
 			margin: 6,
 		} );
 
@@ -187,7 +212,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		const resizeObserver = new ResizeObserver( ( entries ) => {
 			for ( const entry of entries ) {
 				const { width, height } = entry.contentRect;
-				if ( ! width || ! height ) continue;
+				if ( ! width || ! height ) {
+					continue;
+				}
 				canvas.setDimensions( { width, height } );
 				fitToScreenRef.current?.();
 			}
@@ -195,56 +222,79 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		resizeObserver.observe( container );
 
 		// ── Selection bridge ──────────────────────────────────────────────────
-		canvas.on( 'selection:created', ( e ) => syncSelection( e.selected?.[ 0 ], dispatch ) );
-		canvas.on( 'selection:updated', ( e ) => syncSelection( e.selected?.[ 0 ], dispatch ) );
-		canvas.on( 'selection:cleared', ()    => dispatch.clearSelection() );
+		canvas.on( 'selection:created', ( e ) =>
+			syncSelection( e.selected?.[ 0 ], dispatch )
+		);
+		canvas.on( 'selection:updated', ( e ) =>
+			syncSelection( e.selected?.[ 0 ], dispatch )
+		);
+		canvas.on( 'selection:cleared', () => dispatch.clearSelection() );
 
 		// Sync selection props live during transform so the panel updates in real time.
 		const syncActive = () => {
 			const active = canvas.getActiveObject();
-			if ( active ) syncSelection( active, dispatch );
+			if ( active ) {
+				syncSelection( active, dispatch );
+			}
 		};
-		canvas.on( 'object:moving',   syncActive );
-		canvas.on( 'object:scaling',  syncActive );
+		canvas.on( 'object:moving', syncActive );
+		canvas.on( 'object:scaling', syncActive );
 		canvas.on( 'object:rotating', syncActive );
 		canvas.on( 'object:resizing', syncActive );
 
 		// Mark dirty and sync layers on mutations, skipping artboard events.
-		canvas.on( 'object:modified', () => { dispatch.markDirty(); syncActive(); } );
-		canvas.on( 'object:added',    ( e ) => {
-			if ( isArtboardObject( e.target ) ) return;
+		canvas.on( 'object:modified', () => {
+			dispatch.markDirty();
+			syncActive();
+		} );
+		canvas.on( 'object:added', ( e ) => {
+			if ( isArtboardObject( e.target ) ) {
+				return;
+			}
 			dispatch.markDirty();
 			syncLayersToStore( canvas, dispatch );
 		} );
-		canvas.on( 'object:removed',  ( e ) => {
-			if ( isArtboardObject( e.target ) ) return;
+		canvas.on( 'object:removed', ( e ) => {
+			if ( isArtboardObject( e.target ) ) {
+				return;
+			}
 			dispatch.markDirty();
 			syncLayersToStore( canvas, dispatch );
 		} );
 
 		// ── Snap to grid ──────────────────────────────────────────────────────
 		canvas.on( 'object:moving', ( e ) => {
-			if ( ! snapRef.current.enabled ) return;
+			if ( ! snapRef.current.enabled ) {
+				return;
+			}
 			const { size } = snapRef.current;
 			const obj = e.target;
 			obj.set( {
 				left: Math.round( obj.left / size ) * size,
-				top:  Math.round( obj.top  / size ) * size,
+				top: Math.round( obj.top / size ) * size,
 			} );
 		} );
 
 		// ── Double-click on mr handle: fit textbox to content width ─────────
 		canvas.on( 'mouse:dblclick', ( e ) => {
 			const obj = e.target;
-			if ( ! obj || obj.type !== 'textbox' ) return;
+			if ( ! obj || obj.type !== 'textbox' ) {
+				return;
+			}
 
 			// Only trigger when the double-click lands on the middle-right (mr)
 			// transform handle. oCoords and absolutePointer are both in scene
 			// (canvas) coordinates so the distance check is straightforward.
 			// oCoords are in viewport space (canvas element px); e.pointer matches.
-			const mr  = obj.oCoords?.mr;
+			const mr = obj.oCoords?.mr;
 			const ptr = e.pointer;
-			if ( ! mr || ! ptr || Math.hypot( ptr.x - mr.x, ptr.y - mr.y ) > 12 ) return;
+			if (
+				! mr ||
+				! ptr ||
+				Math.hypot( ptr.x - mr.x, ptr.y - mr.y ) > 12
+			) {
+				return;
+			}
 
 			const prevWidth = obj.width;
 			obj.set( 'width', 9999 );
@@ -255,7 +305,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			let maxLineWidth = 0;
 			for ( let i = 0; i < obj._textLines.length; i++ ) {
 				const measured = obj._measureLine( i );
-				if ( measured.width > maxLineWidth ) maxLineWidth = measured.width;
+				if ( measured.width > maxLineWidth ) {
+					maxLineWidth = measured.width;
+				}
 			}
 
 			// Start at ceil of measured width then nudge up 1px at a time until
@@ -264,7 +316,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			let naturalWidth = Math.max( Math.ceil( maxLineWidth ), 50 );
 			obj.set( 'width', naturalWidth );
 			obj.initDimensions();
-			while ( obj._textLines.length > targetLineCount && naturalWidth < 9999 ) {
+			while (
+				obj._textLines.length > targetLineCount &&
+				naturalWidth < 9999
+			) {
 				naturalWidth += 1;
 				obj.set( 'width', naturalWidth );
 				obj.initDimensions();
@@ -276,8 +331,16 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 				dispatch.markDirty();
 				dispatch.pushHistory( {
 					label: 'Fit text to content',
-					undo: () => { obj.set( 'width', prevWidth );    obj.initDimensions(); canvas.renderAll(); },
-					redo: () => { obj.set( 'width', naturalWidth ); obj.initDimensions(); canvas.renderAll(); },
+					undo: () => {
+						obj.set( 'width', prevWidth );
+						obj.initDimensions();
+						canvas.renderAll();
+					},
+					redo: () => {
+						obj.set( 'width', naturalWidth );
+						obj.initDimensions();
+						canvas.renderAll();
+					},
 				} );
 			}
 		} );
@@ -295,11 +358,19 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 		// ── Ctrl/Cmd + scroll-wheel zoom ──────────────────────────────────────
 		const handleWheel = ( e ) => {
-			if ( ! e.ctrlKey && ! e.metaKey ) return;
+			if ( ! e.ctrlKey && ! e.metaKey ) {
+				return;
+			}
 			e.preventDefault();
-			const zoom    = canvas.getZoom();
-			const newZoom = Math.max( 0.05, Math.min( 8, zoom * ( e.deltaY > 0 ? 0.9 : 1.1 ) ) );
-			canvas.zoomToPoint( new fabric.Point( e.offsetX, e.offsetY ), newZoom );
+			const zoom = canvas.getZoom();
+			const newZoom = Math.max(
+				0.05,
+				Math.min( 8, zoom * ( e.deltaY > 0 ? 0.9 : 1.1 ) )
+			);
+			canvas.zoomToPoint(
+				new fabric.Point( e.offsetX, e.offsetY ),
+				newZoom
+			);
 			dispatch.setZoom( Math.round( newZoom * 100 ) );
 		};
 		container.addEventListener( 'wheel', handleWheel, { passive: false } );
@@ -308,20 +379,26 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		// Discard active object on mouse-down when space is held so Fabric
 		// doesn't start an object drag instead of a pan.
 		canvas.on( 'mouse:down:before', () => {
-			if ( ! spaceRef.current ) return;
+			if ( ! spaceRef.current ) {
+				return;
+			}
 			canvas.discardActiveObject();
 		} );
 
 		canvas.on( 'mouse:down', ( e ) => {
-			if ( ! spaceRef.current ) return;
+			if ( ! spaceRef.current ) {
+				return;
+			}
 			isPanningRef.current = true;
-			panStartRef.current  = { x: e.e.clientX, y: e.e.clientY };
-			canvas.selection     = false;
+			panStartRef.current = { x: e.e.clientX, y: e.e.clientY };
+			canvas.selection = false;
 			canvas.setCursor( 'grabbing' );
 		} );
 
 		canvas.on( 'mouse:move', ( e ) => {
-			if ( ! isPanningRef.current ) return;
+			if ( ! isPanningRef.current ) {
+				return;
+			}
 			const dx = e.e.clientX - panStartRef.current.x;
 			const dy = e.e.clientY - panStartRef.current.y;
 			panStartRef.current = { x: e.e.clientX, y: e.e.clientY };
@@ -329,43 +406,57 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		} );
 
 		canvas.on( 'mouse:up', () => {
-			if ( ! isPanningRef.current ) return;
+			if ( ! isPanningRef.current ) {
+				return;
+			}
 			isPanningRef.current = false;
-			canvas.selection     = true;
+			canvas.selection = true;
 			canvas.setCursor( spaceRef.current ? 'grab' : 'default' );
 		} );
 
 		const handleKeyDown = ( e ) => {
-			if ( e.code !== 'Space' ) return;
+			if ( e.code !== 'Space' ) {
+				return;
+			}
 			const tag = document.activeElement?.tagName;
-			if ( tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable ) return;
-			if ( fabricRef.current?._activeObject?.isEditing ) return;
+			if (
+				tag === 'INPUT' ||
+				tag === 'TEXTAREA' ||
+				document.activeElement?.isContentEditable
+			) {
+				return;
+			}
+			if ( fabricRef.current?._activeObject?.isEditing ) {
+				return;
+			}
 			e.preventDefault();
 			if ( ! spaceRef.current ) {
-				spaceRef.current     = true;
+				spaceRef.current = true;
 				canvas.defaultCursor = 'grab';
-				canvas.hoverCursor   = 'grab';
+				canvas.hoverCursor = 'grab';
 				canvas.setCursor( 'grab' );
 			}
 		};
 		const handleKeyUp = ( e ) => {
-			if ( e.code !== 'Space' ) return;
-			spaceRef.current     = false;
+			if ( e.code !== 'Space' ) {
+				return;
+			}
+			spaceRef.current = false;
 			isPanningRef.current = false;
 			canvas.defaultCursor = 'default';
-			canvas.hoverCursor   = 'move';
-			canvas.selection     = true;
+			canvas.hoverCursor = 'move';
+			canvas.selection = true;
 			canvas.setCursor( 'default' );
 		};
 		document.addEventListener( 'keydown', handleKeyDown );
-		document.addEventListener( 'keyup',   handleKeyUp );
+		document.addEventListener( 'keyup', handleKeyUp );
 
 		// ── Outside-artboard dim overlay ──────────────────────────────────────
 		// Drawn directly onto the canvas context after each render so that
 		// objects which overflow the artboard appear as visible but dimmed ghosts.
 		const drawOverlay = () => {
-			const ctx  = canvas.contextContainer;
-			const vt   = canvas.viewportTransform;
+			const ctx = canvas.contextContainer;
+			const vt = canvas.viewportTransform;
 			const zoom = vt[ 0 ];
 			const panX = vt[ 4 ];
 			const panY = vt[ 5 ];
@@ -374,22 +465,30 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			const artT = panY;
 			const artR = panX + artW * zoom;
 			const artB = panY + artH * zoom;
-			const w    = canvas.width;
-			const h    = canvas.height;
+			const w = canvas.width;
+			const h = canvas.height;
 
 			ctx.save();
 			ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
 
 			// Top strip (above artboard).
-			if ( artT > 0 ) ctx.fillRect( 0, 0, w, artT );
+			if ( artT > 0 ) {
+				ctx.fillRect( 0, 0, w, artT );
+			}
 			// Bottom strip (below artboard).
-			if ( artB < h ) ctx.fillRect( 0, artB, w, h - artB );
+			if ( artB < h ) {
+				ctx.fillRect( 0, artB, w, h - artB );
+			}
 			// Left and right strips (beside the artboard, clamped to its height).
 			const midTop = Math.max( 0, artT );
 			const midBot = Math.min( h, artB );
-			const midH   = midBot - midTop;
-			if ( midH > 0 && artL > 0 ) ctx.fillRect( 0, midTop, artL, midH );
-			if ( midH > 0 && artR < w ) ctx.fillRect( artR, midTop, w - artR, midH );
+			const midH = midBot - midTop;
+			if ( midH > 0 && artL > 0 ) {
+				ctx.fillRect( 0, midTop, artL, midH );
+			}
+			if ( midH > 0 && artR < w ) {
+				ctx.fillRect( artR, midTop, w - artR, midH );
+			}
 
 			ctx.restore();
 		};
@@ -401,9 +500,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			resizeObserver.disconnect();
 			container.removeEventListener( 'wheel', handleWheel );
 			document.removeEventListener( 'keydown', handleKeyDown );
-			document.removeEventListener( 'keyup',   handleKeyUp );
+			document.removeEventListener( 'keyup', handleKeyUp );
 			canvas.dispose();
-			fabricRef.current       = null;
+			fabricRef.current = null;
 			artboardRectRef.current = null;
 		};
 		// Run once — fabricJson is loaded inside the effect on first mount.
@@ -425,19 +524,23 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 	 * so the export is pixel-perfect regardless of current zoom/pan.
 	 */
 	const toDataURL = useCallback( () => {
-		const canvas   = fabricRef.current;
+		const canvas = fabricRef.current;
 		const artboard = artboardRectRef.current;
-		if ( ! canvas ) return null;
+		if ( ! canvas ) {
+			return null;
+		}
 
-		const artW    = artboardWRef.current;
-		const artH    = artboardHRef.current;
-		const prevVT  = [ ...canvas.viewportTransform ];
-		const prevW   = canvas.width;
-		const prevH   = canvas.height;
+		const artW = artboardWRef.current;
+		const artH = artboardHRef.current;
+		const prevVT = [ ...canvas.viewportTransform ];
+		const prevW = canvas.width;
+		const prevH = canvas.height;
 
 		// Temporarily disable artboard shadow for a clean export.
 		const prevShadow = artboard?.shadow ?? null;
-		if ( artboard ) artboard.set( 'shadow', null );
+		if ( artboard ) {
+			artboard.set( 'shadow', null );
+		}
 
 		canvas.setDimensions( { width: artW, height: artH } );
 		canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
@@ -448,7 +551,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		const dataURL = canvas.lowerCanvasEl.toDataURL( 'image/png' );
 
 		// Restore viewport and shadow.
-		if ( artboard ) artboard.set( 'shadow', prevShadow );
+		if ( artboard ) {
+			artboard.set( 'shadow', prevShadow );
+		}
 		canvas.setDimensions( { width: prevW, height: prevH } );
 		canvas.setViewportTransform( prevVT );
 		canvas.renderAll();
@@ -458,121 +563,192 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	const loadFromJSON = useCallback( ( json ) => {
 		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
+		if ( ! canvas ) {
+			return;
+		}
 		canvas.loadFromJSON( json ).then( () => canvas.renderAll() );
 	}, [] );
 
 	/** Set the artboard background color. */
-	const setBackground = useCallback( ( color ) => {
-		const canvas   = fabricRef.current;
-		const artboard = artboardRectRef.current;
-		if ( ! canvas || ! artboard ) return;
-		const prev = artboard.fill;
-		artboard.set( 'fill', color );
-		canvas.renderAll();
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: 'Background color',
-			undo: () => { artboard.set( 'fill', prev );   artboard.dirty = true; canvas.renderAll(); },
-			redo: () => { artboard.set( 'fill', color );  canvas.renderAll(); },
-		} );
-	}, [ dispatch ] );
-
-	const addShape = useCallback( ( type, overrides = {} ) => {
-		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
-		const shape = createShape( type, overrides );
-		canvas.add( shape );
-		canvas.setActiveObject( shape );
-		canvas.renderAll();
-		dispatch.pushHistory( {
-			label: `Add ${ type }`,
-			undo: () => { canvas.remove( shape ); canvas.discardActiveObject(); canvas.renderAll(); },
-			redo: () => { canvas.add( shape ); canvas.setActiveObject( shape ); canvas.renderAll(); },
-		} );
-	}, [ dispatch ] );
-
-	const addText = useCallback( ( role, overrides = {} ) => {
-		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
-		const text = createText( role, overrides );
-		canvas.add( text );
-		canvas.setActiveObject( text );
-		canvas.renderAll();
-		text.enterEditing();
-		text.selectAll();
-		canvas.renderAll();
-		dispatch.pushHistory( {
-			label: `Add ${ role } text`,
-			undo: () => { canvas.remove( text ); canvas.discardActiveObject(); canvas.renderAll(); },
-			redo: () => { canvas.add( text ); canvas.setActiveObject( text ); canvas.renderAll(); },
-		} );
-	}, [ dispatch ] );
-
-	const addImage = useCallback( ( src, overrides = {} ) => {
-		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
-		const artW = artboardWRef.current;
-		const artH = artboardHRef.current;
-
-		fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } ).then( ( img ) => {
-			const maxSize = Math.min( artW, artH ) * 0.6;
-			if ( img.width > maxSize || img.height > maxSize ) {
-				const scale = maxSize / Math.max( img.width, img.height );
-				img.scale( scale );
+	const setBackground = useCallback(
+		( color ) => {
+			const canvas = fabricRef.current;
+			const artboard = artboardRectRef.current;
+			if ( ! canvas || ! artboard ) {
+				return;
 			}
-			img.set( {
-				left: artW / 2 - img.getScaledWidth()  / 2,
-				top:  artH / 2 - img.getScaledHeight() / 2,
-				...overrides,
+			const prev = artboard.fill;
+			artboard.set( 'fill', color );
+			canvas.renderAll();
+			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: 'Background color',
+				undo: () => {
+					artboard.set( 'fill', prev );
+					artboard.dirty = true;
+					canvas.renderAll();
+				},
+				redo: () => {
+					artboard.set( 'fill', color );
+					canvas.renderAll();
+				},
 			} );
-			canvas.add( img );
-			canvas.setActiveObject( img );
+		},
+		[ dispatch ]
+	);
+
+	const addShape = useCallback(
+		( type, overrides = {} ) => {
+			const canvas = fabricRef.current;
+			if ( ! canvas ) {
+				return;
+			}
+			const shape = createShape( type, overrides );
+			canvas.add( shape );
+			canvas.setActiveObject( shape );
 			canvas.renderAll();
 			dispatch.pushHistory( {
-				label: 'Add image',
-				undo: () => { canvas.remove( img ); canvas.discardActiveObject(); canvas.renderAll(); },
-				redo: () => { canvas.add( img ); canvas.setActiveObject( img ); canvas.renderAll(); },
+				label: `Add ${ type }`,
+				undo: () => {
+					canvas.remove( shape );
+					canvas.discardActiveObject();
+					canvas.renderAll();
+				},
+				redo: () => {
+					canvas.add( shape );
+					canvas.setActiveObject( shape );
+					canvas.renderAll();
+				},
 			} );
-		} );
-	}, [ dispatch ] );
+		},
+		[ dispatch ]
+	);
 
-	const updateSelected = useCallback( ( props, label = 'Update' ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getActiveObject();
-		if ( ! obj ) return;
+	const addText = useCallback(
+		( role, overrides = {} ) => {
+			const canvas = fabricRef.current;
+			if ( ! canvas ) {
+				return;
+			}
+			const text = createText( role, overrides );
+			canvas.add( text );
+			canvas.setActiveObject( text );
+			canvas.renderAll();
+			text.enterEditing();
+			text.selectAll();
+			canvas.renderAll();
+			dispatch.pushHistory( {
+				label: `Add ${ role } text`,
+				undo: () => {
+					canvas.remove( text );
+					canvas.discardActiveObject();
+					canvas.renderAll();
+				},
+				redo: () => {
+					canvas.add( text );
+					canvas.setActiveObject( text );
+					canvas.renderAll();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
-		const prevProps = {};
-		Object.keys( props ).forEach( ( k ) => { prevProps[ k ] = obj.get( k ); } );
+	const addImage = useCallback(
+		( src, overrides = {} ) => {
+			const canvas = fabricRef.current;
+			if ( ! canvas ) {
+				return;
+			}
+			const artW = artboardWRef.current;
+			const artH = artboardHRef.current;
 
-		obj.set( props );
-		if ( obj.type === 'i-text' || obj.type === 'textbox' ) obj.initDimensions();
-		canvas.requestRenderAll();
+			fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } ).then(
+				( img ) => {
+					const maxSize = Math.min( artW, artH ) * 0.6;
+					if ( img.width > maxSize || img.height > maxSize ) {
+						const scale =
+							maxSize / Math.max( img.width, img.height );
+						img.scale( scale );
+					}
+					img.set( {
+						left: artW / 2 - img.getScaledWidth() / 2,
+						top: artH / 2 - img.getScaledHeight() / 2,
+						...overrides,
+					} );
+					canvas.add( img );
+					canvas.setActiveObject( img );
+					canvas.renderAll();
+					dispatch.pushHistory( {
+						label: 'Add image',
+						undo: () => {
+							canvas.remove( img );
+							canvas.discardActiveObject();
+							canvas.renderAll();
+						},
+						redo: () => {
+							canvas.add( img );
+							canvas.setActiveObject( img );
+							canvas.renderAll();
+						},
+					} );
+				}
+			);
+		},
+		[ dispatch ]
+	);
 
-		dispatch.updateSelectionProperties( props );
-		dispatch.markDirty();
+	const updateSelected = useCallback(
+		( props, label = 'Update' ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getActiveObject();
+			if ( ! obj ) {
+				return;
+			}
 
-		dispatch.pushHistory( {
-			label,
-			undo: () => {
-				obj.set( prevProps );
-				if ( obj.type === 'i-text' || obj.type === 'textbox' ) obj.initDimensions();
-				canvas.requestRenderAll();
-				dispatch.updateSelectionProperties( prevProps );
-			},
-			redo: () => {
-				obj.set( props );
-				if ( obj.type === 'i-text' || obj.type === 'textbox' ) obj.initDimensions();
-				canvas.requestRenderAll();
-				dispatch.updateSelectionProperties( props );
-			},
-		} );
-	}, [ dispatch ] );
+			const prevProps = {};
+			Object.keys( props ).forEach( ( k ) => {
+				prevProps[ k ] = obj.get( k );
+			} );
+
+			obj.set( props );
+			if ( obj.type === 'i-text' || obj.type === 'textbox' ) {
+				obj.initDimensions();
+			}
+			canvas.requestRenderAll();
+
+			dispatch.updateSelectionProperties( props );
+			dispatch.markDirty();
+
+			dispatch.pushHistory( {
+				label,
+				undo: () => {
+					obj.set( prevProps );
+					if ( obj.type === 'i-text' || obj.type === 'textbox' ) {
+						obj.initDimensions();
+					}
+					canvas.requestRenderAll();
+					dispatch.updateSelectionProperties( prevProps );
+				},
+				redo: () => {
+					obj.set( props );
+					if ( obj.type === 'i-text' || obj.type === 'textbox' ) {
+						obj.initDimensions();
+					}
+					canvas.requestRenderAll();
+					dispatch.updateSelectionProperties( props );
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
 	const deleteSelected = useCallback( () => {
 		const canvas = fabricRef.current;
-		const obj    = canvas?.getActiveObject();
-		if ( ! obj ) return;
+		const obj = canvas?.getActiveObject();
+		if ( ! obj ) {
+			return;
+		}
 
 		canvas.remove( obj );
 		canvas.discardActiveObject();
@@ -581,122 +757,202 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 		dispatch.pushHistory( {
 			label: 'Delete object',
-			undo: () => { canvas.add( obj ); canvas.setActiveObject( obj ); canvas.renderAll(); },
-			redo: () => { canvas.remove( obj ); canvas.discardActiveObject(); canvas.renderAll(); },
+			undo: () => {
+				canvas.add( obj );
+				canvas.setActiveObject( obj );
+				canvas.renderAll();
+			},
+			redo: () => {
+				canvas.remove( obj );
+				canvas.discardActiveObject();
+				canvas.renderAll();
+			},
 		} );
 	}, [ dispatch ] );
 
 	// ── Shape fill with image ─────────────────────────────────────────────────
 
-	const fillShapeWithImage = useCallback( async ( src, fitMode = 'cover' ) => {
-		const canvas = fabricRef.current;
-		const shape  = canvas?.getActiveObject();
-		if ( ! canvas || ! shape ) return;
+	const fillShapeWithImage = useCallback(
+		async ( src, fitMode = 'cover' ) => {
+			const canvas = fabricRef.current;
+			const shape = canvas?.getActiveObject();
+			if ( ! canvas || ! shape ) {
+				return;
+			}
 
-		const img  = await fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } );
-		const imgW = img.width;
-		const imgH = img.height;
+			const img = await fabric.Image.fromURL( src, {
+				crossOrigin: 'anonymous',
+			} );
+			const imgW = img.width;
+			const imgH = img.height;
 
-		const patternTransform = shapeFitTransform( imgW, imgH, shape.width, shape.height, fitMode );
+			const patternTransform = shapeFitTransform(
+				imgW,
+				imgH,
+				shape.width,
+				shape.height,
+				fitMode
+			);
 
-		const pattern = new fabric.Pattern( {
-			source:           img.getElement(),
-			repeat:           'no-repeat',
-			patternTransform,
-		} );
+			const pattern = new fabric.Pattern( {
+				source: img.getElement(),
+				repeat: 'no-repeat',
+				patternTransform,
+			} );
 
-		const prevFill = shape.fill;
-		shape.set( 'fill', pattern );
-		canvas.renderAll();
-		dispatch.markDirty();
+			const prevFill = shape.fill;
+			shape.set( 'fill', pattern );
+			canvas.renderAll();
+			dispatch.markDirty();
 
-		dispatch.pushHistory( {
-			label: 'Fill shape with image',
-			undo: () => { shape.set( 'fill', prevFill ); shape.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
-			redo: () => { shape.set( 'fill', pattern );  shape.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
-		} );
-	}, [ dispatch ] );
+			dispatch.pushHistory( {
+				label: 'Fill shape with image',
+				undo: () => {
+					shape.set( 'fill', prevFill );
+					shape.dirty = true;
+					canvas.renderAll();
+					dispatch.markDirty();
+				},
+				redo: () => {
+					shape.set( 'fill', pattern );
+					shape.dirty = true;
+					canvas.renderAll();
+					dispatch.markDirty();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
-	const updateShapeImageFit = useCallback( ( fitMode ) => {
-		const canvas = fabricRef.current;
-		const shape  = canvas?.getActiveObject();
-		if ( ! canvas || ! shape || ! shape.fill?.patternTransform ) return;
+	const updateShapeImageFit = useCallback(
+		( fitMode ) => {
+			const canvas = fabricRef.current;
+			const shape = canvas?.getActiveObject();
+			if ( ! canvas || ! shape || ! shape.fill?.patternTransform ) {
+				return;
+			}
 
-		const imgEl = shape.fill.source;
-		if ( ! imgEl ) return;
+			const imgEl = shape.fill.source;
+			if ( ! imgEl ) {
+				return;
+			}
 
-		const imgW = imgEl.naturalWidth  || imgEl.width;
-		const imgH = imgEl.naturalHeight || imgEl.height;
+			const imgW = imgEl.naturalWidth || imgEl.width;
+			const imgH = imgEl.naturalHeight || imgEl.height;
 
-		const newPattern = new fabric.Pattern( {
-			source:           imgEl,
-			repeat:           'no-repeat',
-			patternTransform: shapeFitTransform( imgW, imgH, shape.width, shape.height, fitMode ),
-		} );
+			const newPattern = new fabric.Pattern( {
+				source: imgEl,
+				repeat: 'no-repeat',
+				patternTransform: shapeFitTransform(
+					imgW,
+					imgH,
+					shape.width,
+					shape.height,
+					fitMode
+				),
+			} );
 
-		shape.set( 'fill', newPattern );
-		shape.dirty = true;
-		canvas.renderAll();
-		dispatch.markDirty();
-	}, [ dispatch ] );
+			shape.set( 'fill', newPattern );
+			shape.dirty = true;
+			canvas.renderAll();
+			dispatch.markDirty();
+		},
+		[ dispatch ]
+	);
 
 	// ── Artboard background image (stored as Pattern fill on the artboard) ────
 
-	const setBackgroundImage = useCallback( async ( src, fitMode = 'cover' ) => {
-		const canvas   = fabricRef.current;
-		const artboard = artboardRectRef.current;
-		if ( ! canvas || ! artboard ) return;
+	const setBackgroundImage = useCallback(
+		async ( src, fitMode = 'cover' ) => {
+			const canvas = fabricRef.current;
+			const artboard = artboardRectRef.current;
+			if ( ! canvas || ! artboard ) {
+				return;
+			}
 
-		const artW = artboardWRef.current;
-		const artH = artboardHRef.current;
-		const prev = artboard.fill;
-		const img  = await fabric.Image.fromURL( src, { crossOrigin: 'anonymous' } );
+			const artW = artboardWRef.current;
+			const artH = artboardHRef.current;
+			const prev = artboard.fill;
+			const img = await fabric.Image.fromURL( src, {
+				crossOrigin: 'anonymous',
+			} );
 
-		const pattern = new fabric.Pattern( {
-			source:           img.getElement(),
-			repeat:           'no-repeat',
-			patternTransform: shapeFitTransform( img.width, img.height, artW, artH, fitMode ),
-		} );
+			const pattern = new fabric.Pattern( {
+				source: img.getElement(),
+				repeat: 'no-repeat',
+				patternTransform: shapeFitTransform(
+					img.width,
+					img.height,
+					artW,
+					artH,
+					fitMode
+				),
+			} );
 
-		artboard.set( 'fill', pattern );
-		artboard.dirty = true;
-		canvas.renderAll();
-		dispatch.markDirty();
+			artboard.set( 'fill', pattern );
+			artboard.dirty = true;
+			canvas.renderAll();
+			dispatch.markDirty();
 
-		dispatch.pushHistory( {
-			label: 'Set background image',
-			undo: () => { artboard.set( 'fill', prev );    artboard.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
-			redo: () => { artboard.set( 'fill', pattern ); artboard.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
-		} );
-	}, [ dispatch ] );
+			dispatch.pushHistory( {
+				label: 'Set background image',
+				undo: () => {
+					artboard.set( 'fill', prev );
+					artboard.dirty = true;
+					canvas.renderAll();
+					dispatch.markDirty();
+				},
+				redo: () => {
+					artboard.set( 'fill', pattern );
+					artboard.dirty = true;
+					canvas.renderAll();
+					dispatch.markDirty();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
-	const updateBackgroundImageFit = useCallback( ( fitMode ) => {
-		const canvas   = fabricRef.current;
-		const artboard = artboardRectRef.current;
-		if ( ! canvas || ! artboard || ! artboard.fill?.source ) return;
+	const updateBackgroundImageFit = useCallback(
+		( fitMode ) => {
+			const canvas = fabricRef.current;
+			const artboard = artboardRectRef.current;
+			if ( ! canvas || ! artboard || ! artboard.fill?.source ) {
+				return;
+			}
 
-		const artW  = artboardWRef.current;
-		const artH  = artboardHRef.current;
-		const imgEl = artboard.fill.source;
-		const imgW  = imgEl.naturalWidth  || imgEl.width;
-		const imgH  = imgEl.naturalHeight || imgEl.height;
+			const artW = artboardWRef.current;
+			const artH = artboardHRef.current;
+			const imgEl = artboard.fill.source;
+			const imgW = imgEl.naturalWidth || imgEl.width;
+			const imgH = imgEl.naturalHeight || imgEl.height;
 
-		const newPattern = new fabric.Pattern( {
-			source:           imgEl,
-			repeat:           'no-repeat',
-			patternTransform: shapeFitTransform( imgW, imgH, artW, artH, fitMode ),
-		} );
+			const newPattern = new fabric.Pattern( {
+				source: imgEl,
+				repeat: 'no-repeat',
+				patternTransform: shapeFitTransform(
+					imgW,
+					imgH,
+					artW,
+					artH,
+					fitMode
+				),
+			} );
 
-		artboard.set( 'fill', newPattern );
-		artboard.dirty = true;
-		canvas.renderAll();
-		dispatch.markDirty();
-	}, [ dispatch ] );
+			artboard.set( 'fill', newPattern );
+			artboard.dirty = true;
+			canvas.renderAll();
+			dispatch.markDirty();
+		},
+		[ dispatch ]
+	);
 
 	const clearBackgroundImage = useCallback( () => {
-		const canvas   = fabricRef.current;
+		const canvas = fabricRef.current;
 		const artboard = artboardRectRef.current;
-		if ( ! canvas || ! artboard ) return;
+		if ( ! canvas || ! artboard ) {
+			return;
+		}
 
 		const prev = artboard.fill;
 		artboard.set( 'fill', '#ffffff' );
@@ -705,8 +961,17 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 		dispatch.pushHistory( {
 			label: 'Remove background image',
-			undo: () => { artboard.set( 'fill', prev );      artboard.dirty = true; canvas.renderAll(); dispatch.markDirty(); },
-			redo: () => { artboard.set( 'fill', '#ffffff' ); canvas.renderAll(); dispatch.markDirty(); },
+			undo: () => {
+				artboard.set( 'fill', prev );
+				artboard.dirty = true;
+				canvas.renderAll();
+				dispatch.markDirty();
+			},
+			redo: () => {
+				artboard.set( 'fill', '#ffffff' );
+				canvas.renderAll();
+				dispatch.markDirty();
+			},
 		} );
 	}, [ dispatch ] );
 
@@ -716,7 +981,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 	 */
 	const getBackgroundImageSrc = useCallback( () => {
 		const artboard = artboardRectRef.current;
-		if ( ! artboard?.fill?.source ) return null;
+		if ( ! artboard?.fill?.source ) {
+			return null;
+		}
 		return artboard.fill.source.src ?? null;
 	}, [] );
 
@@ -730,8 +997,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 	/** Zoom in 25% toward the viewport center. */
 	const zoomIn = useCallback( () => {
 		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
-		const center  = new fabric.Point( canvas.width / 2, canvas.height / 2 );
+		if ( ! canvas ) {
+			return;
+		}
+		const center = new fabric.Point( canvas.width / 2, canvas.height / 2 );
 		const newZoom = Math.min( canvas.getZoom() * 1.25, 8 );
 		canvas.zoomToPoint( center, newZoom );
 		dispatch.setZoom( Math.round( newZoom * 100 ) );
@@ -740,8 +1009,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 	/** Zoom out 25% from the viewport center. */
 	const zoomOut = useCallback( () => {
 		const canvas = fabricRef.current;
-		if ( ! canvas ) return;
-		const center  = new fabric.Point( canvas.width / 2, canvas.height / 2 );
+		if ( ! canvas ) {
+			return;
+		}
+		const center = new fabric.Point( canvas.width / 2, canvas.height / 2 );
 		const newZoom = Math.max( canvas.getZoom() / 1.25, 0.05 );
 		canvas.zoomToPoint( center, newZoom );
 		dispatch.setZoom( Math.round( newZoom * 100 ) );
@@ -750,42 +1021,67 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 	// ── Alignment ─────────────────────────────────────────────────────────────
 
 	/** Align the selected object relative to the artboard boundaries. */
-	const alignObject = useCallback( ( direction ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getActiveObject();
-		if ( ! canvas || ! obj ) return;
+	const alignObject = useCallback(
+		( direction ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getActiveObject();
+			if ( ! canvas || ! obj ) {
+				return;
+			}
 
-		const bbox    = obj.getBoundingRect();
-		const offsetL = obj.left - bbox.left;
-		const offsetT = obj.top  - bbox.top;
-		const artW    = artboardWRef.current;
-		const artH    = artboardHRef.current;
-		const prevLeft = obj.left;
-		const prevTop  = obj.top;
+			const bbox = obj.getBoundingRect();
+			const offsetL = obj.left - bbox.left;
+			const offsetT = obj.top - bbox.top;
+			const artW = artboardWRef.current;
+			const artH = artboardHRef.current;
+			const prevLeft = obj.left;
+			const prevTop = obj.top;
 
-		let newLeft = obj.left;
-		let newTop  = obj.top;
+			let newLeft = obj.left;
+			let newTop = obj.top;
 
-		switch ( direction ) {
-			case 'left':    newLeft = offsetL; break;
-			case 'centerH': newLeft = ( artW - bbox.width )  / 2 + offsetL; break;
-			case 'right':   newLeft = artW - bbox.width  + offsetL; break;
-			case 'top':     newTop  = offsetT; break;
-			case 'centerV': newTop  = ( artH - bbox.height ) / 2 + offsetT; break;
-			case 'bottom':  newTop  = artH - bbox.height + offsetT; break;
-		}
+			switch ( direction ) {
+				case 'left':
+					newLeft = offsetL;
+					break;
+				case 'centerH':
+					newLeft = ( artW - bbox.width ) / 2 + offsetL;
+					break;
+				case 'right':
+					newLeft = artW - bbox.width + offsetL;
+					break;
+				case 'top':
+					newTop = offsetT;
+					break;
+				case 'centerV':
+					newTop = ( artH - bbox.height ) / 2 + offsetT;
+					break;
+				case 'bottom':
+					newTop = artH - bbox.height + offsetT;
+					break;
+			}
 
-		obj.set( { left: newLeft, top: newTop } );
-		obj.setCoords();
-		canvas.renderAll();
-		syncSelection( obj, dispatch );
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: `Align ${ direction }`,
-			undo: () => { obj.set( { left: prevLeft, top: prevTop } ); obj.setCoords(); canvas.renderAll(); },
-			redo: () => { obj.set( { left: newLeft,  top: newTop  } ); obj.setCoords(); canvas.renderAll(); },
-		} );
-	}, [ dispatch ] );
+			obj.set( { left: newLeft, top: newTop } );
+			obj.setCoords();
+			canvas.renderAll();
+			syncSelection( obj, dispatch );
+			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: `Align ${ direction }`,
+				undo: () => {
+					obj.set( { left: prevLeft, top: prevTop } );
+					obj.setCoords();
+					canvas.renderAll();
+				},
+				redo: () => {
+					obj.set( { left: newLeft, top: newTop } );
+					obj.setCoords();
+					canvas.renderAll();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
 	const setSnapToGrid = useCallback( ( enabled, size = 20 ) => {
 		snapRef.current = { enabled, size };
@@ -797,107 +1093,202 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	const selectById = useCallback( ( id ) => {
 		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
+		const obj = canvas?.getObjects().find( ( o ) => o.id === id );
+		if ( ! canvas || ! obj ) {
+			return;
+		}
 		canvas.setActiveObject( obj );
 		canvas.renderAll();
 	}, [] );
 
-	const moveLayerUp = useCallback( ( id ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
-		canvas.bringObjectForward( obj );
-		canvas.renderAll();
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: 'Move layer up',
-			undo: () => { canvas.sendObjectBackwards( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-			redo: () => { canvas.bringObjectForward( obj );  canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-		} );
-	}, [ dispatch ] );
+	const moveLayerUp = useCallback(
+		( id ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
+			if ( ! canvas || ! obj ) {
+				return;
+			}
+			canvas.bringObjectForward( obj );
+			canvas.renderAll();
+			syncLayersToStore( canvas, dispatch );
+			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: 'Move layer up',
+				undo: () => {
+					canvas.sendObjectBackwards( obj );
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+				redo: () => {
+					canvas.bringObjectForward( obj );
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
-	const moveLayerDown = useCallback( ( id ) => {
-		const canvas  = fabricRef.current;
-		const obj     = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
+	const moveLayerDown = useCallback(
+		( id ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
+			if ( ! canvas || ! obj ) {
+				return;
+			}
 
-		// Prevent sending below the artboard (always at the bottom of the stack).
-		const objects = canvas.getObjects();
-		const minIdx  = objects.findIndex( ( o ) => ! isArtboardObject( o ) );
-		if ( objects.indexOf( obj ) <= minIdx ) return;
+			// Prevent sending below the artboard (always at the bottom of the stack).
+			const objects = canvas.getObjects();
+			const minIdx = objects.findIndex(
+				( o ) => ! isArtboardObject( o )
+			);
+			if ( objects.indexOf( obj ) <= minIdx ) {
+				return;
+			}
 
-		canvas.sendObjectBackwards( obj );
-		canvas.renderAll();
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: 'Move layer down',
-			undo: () => { canvas.bringObjectForward( obj );  canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-			redo: () => { canvas.sendObjectBackwards( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-		} );
-	}, [ dispatch ] );
+			canvas.sendObjectBackwards( obj );
+			canvas.renderAll();
+			syncLayersToStore( canvas, dispatch );
+			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: 'Move layer down',
+				undo: () => {
+					canvas.bringObjectForward( obj );
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+				redo: () => {
+					canvas.sendObjectBackwards( obj );
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
-	const duplicateById = useCallback( async ( id ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
-		const clone = await obj.clone();
-		clone.set( { id: genId(), left: ( obj.left ?? 0 ) + 20, top: ( obj.top ?? 0 ) + 20 } );
-		if ( obj.name ) clone.name = obj.name;
-		canvas.add( clone );
-		canvas.setActiveObject( clone );
-		canvas.renderAll();
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: 'Duplicate layer',
-			undo: () => { canvas.remove( clone ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-			redo: () => { canvas.add( clone ); canvas.setActiveObject( clone ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-		} );
-	}, [ dispatch ] );
+	const duplicateById = useCallback(
+		async ( id ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
+			if ( ! canvas || ! obj ) {
+				return;
+			}
+			const clone = await obj.clone();
+			clone.set( {
+				id: genId(),
+				left: ( obj.left ?? 0 ) + 20,
+				top: ( obj.top ?? 0 ) + 20,
+			} );
+			if ( obj.name ) {
+				clone.name = obj.name;
+			}
+			canvas.add( clone );
+			canvas.setActiveObject( clone );
+			canvas.renderAll();
+			syncLayersToStore( canvas, dispatch );
+			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: 'Duplicate layer',
+				undo: () => {
+					canvas.remove( clone );
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+				redo: () => {
+					canvas.add( clone );
+					canvas.setActiveObject( clone );
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
-	const deleteById = useCallback( ( id ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
-		canvas.remove( obj );
-		canvas.discardActiveObject();
-		canvas.renderAll();
-		dispatch.clearSelection();
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: 'Delete layer',
-			undo: () => { canvas.add( obj ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-			redo: () => { canvas.remove( obj ); canvas.discardActiveObject(); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-		} );
-	}, [ dispatch ] );
+	const deleteById = useCallback(
+		( id ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
+			if ( ! canvas || ! obj ) {
+				return;
+			}
+			canvas.remove( obj );
+			canvas.discardActiveObject();
+			canvas.renderAll();
+			dispatch.clearSelection();
+			syncLayersToStore( canvas, dispatch );
+			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: 'Delete layer',
+				undo: () => {
+					canvas.add( obj );
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+				redo: () => {
+					canvas.remove( obj );
+					canvas.discardActiveObject();
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
-	const renameById = useCallback( ( id, name ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
-		const prev = obj.name;
-		obj.name   = name;
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: 'Rename layer',
-			undo: () => { obj.name = prev;  syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-			redo: () => { obj.name = name; syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-		} );
-	}, [ dispatch ] );
+	const renameById = useCallback(
+		( id, name ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
+			if ( ! canvas || ! obj ) {
+				return;
+			}
+			const prev = obj.name;
+			obj.name = name;
+			syncLayersToStore( canvas, dispatch );
+			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: 'Rename layer',
+				undo: () => {
+					obj.name = prev;
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+				redo: () => {
+					obj.name = name;
+					syncLayersToStore( canvas, dispatch );
+					dispatch.markDirty();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
 	/** Duplicate the currently active object, offset by 20px. */
 	const duplicateSelected = useCallback( async () => {
 		const canvas = fabricRef.current;
-		const obj    = canvas?.getActiveObject();
-		if ( ! canvas || ! obj ) return;
+		const obj = canvas?.getActiveObject();
+		if ( ! canvas || ! obj ) {
+			return;
+		}
 		const clone = await obj.clone();
-		clone.set( { id: genId(), left: ( obj.left ?? 0 ) + 20, top: ( obj.top ?? 0 ) + 20 } );
-		if ( obj.name ) clone.name = obj.name;
+		clone.set( {
+			id: genId(),
+			left: ( obj.left ?? 0 ) + 20,
+			top: ( obj.top ?? 0 ) + 20,
+		} );
+		if ( obj.name ) {
+			clone.name = obj.name;
+		}
 		canvas.add( clone );
 		canvas.setActiveObject( clone );
 		canvas.renderAll();
@@ -905,31 +1296,54 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		dispatch.markDirty();
 		dispatch.pushHistory( {
 			label: 'Duplicate',
-			undo: () => { canvas.remove( clone ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
-			redo: () => { canvas.add( clone ); canvas.setActiveObject( clone ); canvas.renderAll(); syncLayersToStore( canvas, dispatch ); dispatch.markDirty(); },
+			undo: () => {
+				canvas.remove( clone );
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.markDirty();
+			},
+			redo: () => {
+				canvas.add( clone );
+				canvas.setActiveObject( clone );
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.markDirty();
+			},
 		} );
 	}, [ dispatch ] );
 
-	const setLayerLocked = useCallback( ( id, locked ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
-		obj.set( { selectable: ! locked, evented: ! locked } );
-		if ( locked ) canvas.discardActiveObject();
-		canvas.renderAll();
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-	}, [ dispatch ] );
+	const setLayerLocked = useCallback(
+		( id, locked ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
+			if ( ! canvas || ! obj ) {
+				return;
+			}
+			obj.set( { selectable: ! locked, evented: ! locked } );
+			if ( locked ) {
+				canvas.discardActiveObject();
+			}
+			canvas.renderAll();
+			syncLayersToStore( canvas, dispatch );
+			dispatch.markDirty();
+		},
+		[ dispatch ]
+	);
 
-	const setLayerVisible = useCallback( ( id, visible ) => {
-		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
-		obj.set( 'visible', visible );
-		canvas.renderAll();
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-	}, [ dispatch ] );
+	const setLayerVisible = useCallback(
+		( id, visible ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
+			if ( ! canvas || ! obj ) {
+				return;
+			}
+			obj.set( 'visible', visible );
+			canvas.renderAll();
+			syncLayersToStore( canvas, dispatch );
+			dispatch.markDirty();
+		},
+		[ dispatch ]
+	);
 
 	return {
 		getFabric,
@@ -971,20 +1385,20 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 /**
  * Create the artboard sentinel rect.
  *
- * @param {number} artW   Artboard width in canvas pixels.
- * @param {number} artH   Artboard height in canvas pixels.
- * @param {*}      fill   Fabric fill value (color string or Pattern).
- * @returns {fabric.Rect}
+ * @param {number} artW Artboard width in canvas pixels.
+ * @param {number} artH Artboard height in canvas pixels.
+ * @param {*}      fill Fabric fill value (color string or Pattern).
+ * @return {fabric.Rect}
  */
 function createArtboardRect( artW, artH, fill ) {
 	return new fabric.Rect( {
-		id:          'artboard',
-		isArtboard:  true,
-		width:       artW,
-		height:      artH,
+		id: 'artboard',
+		isArtboard: true,
+		width: artW,
+		height: artH,
 		fill,
-		selectable:  false,
-		evented:     false,
+		selectable: false,
+		evented: false,
 		hoverCursor: 'default',
 	} );
 }
@@ -1002,17 +1416,31 @@ function createArtboardRect( artW, artH, fill ) {
  * @param {number} shapeW  Shape unscaled width.
  * @param {number} shapeH  Shape unscaled height.
  * @param {string} fitMode 'cover'|'contain'|'fill'|'none'
- * @returns {number[]} 6-element transform matrix.
+ * @return {number[]} 6-element transform matrix.
  */
 function shapeFitTransform( imgW, imgH, shapeW, shapeH, fitMode ) {
 	switch ( fitMode ) {
 		case 'cover': {
 			const s = Math.max( shapeW / imgW, shapeH / imgH );
-			return [ s, 0, 0, s, ( shapeW - imgW * s ) / 2, ( shapeH - imgH * s ) / 2 ];
+			return [
+				s,
+				0,
+				0,
+				s,
+				( shapeW - imgW * s ) / 2,
+				( shapeH - imgH * s ) / 2,
+			];
 		}
 		case 'contain': {
 			const s = Math.min( shapeW / imgW, shapeH / imgH );
-			return [ s, 0, 0, s, ( shapeW - imgW * s ) / 2, ( shapeH - imgH * s ) / 2 ];
+			return [
+				s,
+				0,
+				0,
+				s,
+				( shapeW - imgW * s ) / 2,
+				( shapeH - imgH * s ) / 2,
+			];
 		}
 		case 'fill':
 			return [ shapeW / imgW, 0, 0, shapeH / imgH, 0, 0 ];
@@ -1025,11 +1453,14 @@ function shapeFitTransform( imgW, imgH, shapeW, shapeH, fitMode ) {
  * Map a Fabric object type to a selection type string.
  *
  * @param {fabric.Object} obj
- * @returns {'text'|'image'|'shape'|'none'}
+ * @param                 dispatch
+ * @return {'text'|'image'|'shape'|'none'}
  */
 function syncSelection( obj, dispatch ) {
-	if ( ! obj ) return;
-	const type       = getObjectType( obj );
+	if ( ! obj ) {
+		return;
+	}
+	const type = getObjectType( obj );
 	const properties = extractProperties( obj, type );
 	dispatch.setSelection( {
 		type,
@@ -1044,22 +1475,27 @@ function syncSelection( obj, dispatch ) {
  *
  * @param {fabric.Canvas} canvas
  * @param {Object}        dispatch
+ * @param                 o
  */
 function isArtboardObject( o ) {
 	return o.isArtboard || o.id === 'artboard';
 }
 
 function syncLayersToStore( canvas, dispatch ) {
-	const objects = canvas.getObjects().filter( ( o ) => ! isArtboardObject( o ) );
+	const objects = canvas
+		.getObjects()
+		.filter( ( o ) => ! isArtboardObject( o ) );
 	// Ensure every object has a stable ID before syncing to the store.
 	objects.forEach( ( obj ) => {
-		if ( ! obj.id ) obj.id = genId();
+		if ( ! obj.id ) {
+			obj.id = genId();
+		}
 	} );
 	const layers = [ ...objects ].reverse().map( ( obj ) => ( {
-		id:      obj.id,
-		name:    obj.name || getDefaultLayerName( obj ),
-		type:    getObjectType( obj ),
-		locked:  ! ( obj.selectable ?? true ),
+		id: obj.id,
+		name: obj.name || getDefaultLayerName( obj ),
+		type: getObjectType( obj ),
+		locked: ! ( obj.selectable ?? true ),
 		visible: obj.visible ?? true,
 	} ) );
 	dispatch.setLayers( layers );

@@ -12,20 +12,26 @@ import './ContentPanel.css';
 
 const PANEL_MAP = {
 	templates: TemplatesPanel,
-	elements:  ElementsPanel,
-	text:      TextPanel,
-	media:     MediaPanel,
-	posts:     PostsPanel,
-	layers:    LayersPanel,
+	elements: ElementsPanel,
+	text: TextPanel,
+	media: MediaPanel,
+	posts: PostsPanel,
+	layers: LayersPanel,
 };
 
 export function ContentPanel() {
-	const activePanel = useSelect( ( select ) => select( STORE_KEY ).getActivePanel() );
+	const activePanel = useSelect( ( select ) =>
+		select( STORE_KEY ).getActivePanel()
+	);
 
-	if ( ! activePanel ) return null;
+	if ( ! activePanel ) {
+		return null;
+	}
 
 	const Panel = PANEL_MAP[ activePanel ];
-	if ( ! Panel ) return null;
+	if ( ! Panel ) {
+		return null;
+	}
 
 	return (
 		<div className="socialframe-editor__content-panel">

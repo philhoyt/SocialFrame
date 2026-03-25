@@ -1,4 +1,10 @@
-import { useRef, useEffect, useState, createContext, useContext } from '@wordpress/element';
+import {
+	useRef,
+	useEffect,
+	useState,
+	createContext,
+	useContext,
+} from '@wordpress/element';
 import { useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
@@ -28,8 +34,8 @@ const { designId: initialDesignId } = window.socialFrameConfig ?? {};
 
 export function EditorApp() {
 	const [ design, setDesign ] = useState( null );
-	const [ error, setError ]   = useState( null );
-	const dispatch              = useDispatch( STORE_KEY );
+	const [ error, setError ] = useState( null );
+	const dispatch = useDispatch( STORE_KEY );
 
 	useEffect( () => {
 		if ( ! initialDesignId ) {
@@ -41,12 +47,14 @@ export function EditorApp() {
 			.then( ( d ) => {
 				dispatch.setDesign( {
 					designId: d.id,
-					title:    d.title,
-					format:   d.format,
+					title: d.title,
+					format: d.format,
 				} );
 				setDesign( d );
 			} )
-			.catch( () => setError( __( 'Failed to load design.', 'socialframe' ) ) );
+			.catch( () =>
+				setError( __( 'Failed to load design.', 'socialframe' ) )
+			);
 	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if ( error ) {
@@ -72,10 +80,10 @@ export function EditorApp() {
 
 function EditorInner( { design } ) {
 	const canvasRef = useRef( null );
-	const areaRef   = useRef( null );
+	const areaRef = useRef( null );
 
 	const fabricApi = useFabricCanvas( canvasRef, areaRef, {
-		format:     design.format,
+		format: design.format,
 		fabricJson: design.fabricJson,
 	} );
 

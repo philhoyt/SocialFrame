@@ -3,17 +3,21 @@ import { Modal, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import QRCode from 'qrcode';
 
+/* global navigator */
+
 export function ShareModal( { url, onClose } ) {
-	const canvasRef              = useRef( null );
+	const canvasRef = useRef( null );
 	const [ copied, setCopied ] = useState( false );
 
 	useEffect( () => {
-		if ( ! canvasRef.current || ! url ) return;
+		if ( ! canvasRef.current || ! url ) {
+			return;
+		}
 		QRCode.toCanvas( canvasRef.current, url, {
-			width:           240,
-			margin:          2,
+			width: 240,
+			margin: 2,
 			color: {
-				dark:  '#000000',
+				dark: '#000000',
 				light: '#ffffff',
 			},
 		} );
@@ -34,7 +38,10 @@ export function ShareModal( { url, onClose } ) {
 			size="small"
 		>
 			<p className="socialframe-share-modal__desc">
-				{ __( 'Scan this QR code with your phone camera to download the image.', 'socialframe' ) }
+				{ __(
+					'Scan this QR code with your phone camera to download the image.',
+					'socialframe'
+				) }
 			</p>
 
 			<div className="socialframe-share-modal__qr">
@@ -47,7 +54,9 @@ export function ShareModal( { url, onClose } ) {
 					onClick={ handleCopy }
 					style={ { minWidth: 100 } }
 				>
-					{ copied ? __( 'Copied!', 'socialframe' ) : __( 'Copy Link', 'socialframe' ) }
+					{ copied
+						? __( 'Copied!', 'socialframe' )
+						: __( 'Copy Link', 'socialframe' ) }
 				</Button>
 				<Button
 					variant="primary"

@@ -13,8 +13,9 @@ import { ShareModal } from './ShareModal';
 import './Header.css';
 
 export function Header() {
-	const dispatch                                    = useDispatch( STORE_KEY );
-	const { createSuccessNotice, createErrorNotice } = useDispatch( 'core/notices' );
+	const dispatch = useDispatch( STORE_KEY );
+	const { createSuccessNotice, createErrorNotice } =
+		useDispatch( 'core/notices' );
 
 	const [ shareUrl, setShareUrl ] = useState( null );
 
@@ -32,16 +33,16 @@ export function Header() {
 	} = useSelect( ( select ) => {
 		const s = select( STORE_KEY );
 		return {
-			title:     s.getDesignTitle(),
-			format:    s.getFormat(),
-			isDirty:   s.isDirty(),
-			isSaving:  s.isSaving(),
-			canUndo:   s.canUndo(),
-			canRedo:   s.canRedo(),
+			title: s.getDesignTitle(),
+			format: s.getFormat(),
+			isDirty: s.isDirty(),
+			isSaving: s.isSaving(),
+			canUndo: s.canUndo(),
+			canRedo: s.canRedo(),
 			undoLabel: s.getUndoLabel(),
 			redoLabel: s.getRedoLabel(),
-			designId:  s.getDesignId(),
-			zoom:      s.getZoom(),
+			designId: s.getDesignId(),
+			zoom: s.getZoom(),
 		};
 	} );
 
@@ -51,13 +52,15 @@ export function Header() {
 	useAutoSave( fabric?.getJSON, designId );
 
 	const handleSave = async () => {
-		if ( ! fabric || ! designId ) return;
+		if ( ! fabric || ! designId ) {
+			return;
+		}
 		dispatch.setSaving( true );
 		try {
 			await apiFetch( {
-				path:   `socialframe/v1/designs/${ designId }`,
+				path: `socialframe/v1/designs/${ designId }`,
 				method: 'PUT',
-				data:   { title, fabricJson: JSON.stringify( fabric.getJSON() ) },
+				data: { title, fabricJson: JSON.stringify( fabric.getJSON() ) },
 			} );
 			dispatch.markClean();
 		} catch ( e ) {
@@ -68,20 +71,30 @@ export function Header() {
 	};
 
 	const handleExport = async () => {
-		if ( ! fabric || ! designId ) return;
+		if ( ! fabric || ! designId ) {
+			return;
+		}
 		dispatch.setSaving( true );
 		try {
-			const result = await exportDesign( fabric.toDataURL, designId, apiFetch );
+			const result = await exportDesign(
+				fabric.toDataURL,
+				designId,
+				apiFetch
+			);
 			setShareUrl( result.url );
 		} catch ( e ) {
-			createErrorNotice( __( 'Export failed. Please try again.', 'socialframe' ) );
+			createErrorNotice(
+				__( 'Export failed. Please try again.', 'socialframe' )
+			);
 		} finally {
 			dispatch.setSaving( false );
 		}
 	};
 
 	const handleSaveAsTemplate = async () => {
-		if ( ! fabric ) return;
+		if ( ! fabric ) {
+			return;
+		}
 		dispatch.setSaving( true );
 		try {
 			await saveAsTemplate( {
@@ -92,7 +105,9 @@ export function Header() {
 			} );
 			createSuccessNotice( __( 'Saved as template.', 'socialframe' ) );
 		} catch ( e ) {
-			createErrorNotice( __( 'Could not save template.', 'socialframe' ) );
+			createErrorNotice(
+				__( 'Could not save template.', 'socialframe' )
+			);
 		} finally {
 			dispatch.setSaving( false );
 		}
@@ -107,8 +122,18 @@ export function Header() {
 				className="socialframe-header__back"
 				title={ __( 'All Designs', 'socialframe' ) }
 			>
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-					<path d="M15.6 7l-1.4-1.4L8 12l6.2 6.4 1.4-1.4L10.8 12z" fill="currentColor"/>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					width="20"
+					height="20"
+					aria-hidden="true"
+					focusable="false"
+				>
+					<path
+						d="M15.6 7l-1.4-1.4L8 12l6.2 6.4 1.4-1.4L10.8 12z"
+						fill="currentColor"
+					/>
 				</svg>
 			</a>
 			<div className="socialframe-header__left">
@@ -128,9 +153,11 @@ export function Header() {
 					variant="tertiary"
 					disabled={ ! canUndo }
 					onClick={ () => dispatch.undoAction() }
-					label={ undoLabel
-						? `${ __( 'Undo', 'socialframe' ) } ${ undoLabel }`
-						: __( 'Undo', 'socialframe' ) }
+					label={
+						undoLabel
+							? `${ __( 'Undo', 'socialframe' ) } ${ undoLabel }`
+							: __( 'Undo', 'socialframe' )
+					}
 					showTooltip
 				>
 					{ __( 'Undo', 'socialframe' ) }
@@ -139,9 +166,11 @@ export function Header() {
 					variant="tertiary"
 					disabled={ ! canRedo }
 					onClick={ () => dispatch.redoAction() }
-					label={ redoLabel
-						? `${ __( 'Redo', 'socialframe' ) } ${ redoLabel }`
-						: __( 'Redo', 'socialframe' ) }
+					label={
+						redoLabel
+							? `${ __( 'Redo', 'socialframe' ) } ${ redoLabel }`
+							: __( 'Redo', 'socialframe' )
+					}
 					showTooltip
 				>
 					{ __( 'Redo', 'socialframe' ) }
@@ -164,7 +193,9 @@ export function Header() {
 					>
 						{ '−' }
 					</Button>
-					<span className="socialframe-header__zoom-pct">{ zoom }%</span>
+					<span className="socialframe-header__zoom-pct">
+						{ zoom }%
+					</span>
 					<Button
 						variant="tertiary"
 						onClick={ () => fabric?.zoomIn?.() }

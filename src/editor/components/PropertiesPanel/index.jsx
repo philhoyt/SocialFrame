@@ -7,14 +7,17 @@ import { ShapeProperties } from './ShapeProperties';
 import './PropertiesPanel.css';
 
 export function PropertiesPanel() {
-	const selectionType = useSelect( ( select ) => select( STORE_KEY ).getSelectionType() );
+	const selectionType = useSelect( ( select ) =>
+		select( STORE_KEY ).getSelectionType()
+	);
 
-	const Panel = {
-		none:  ArtboardPanel,
-		text:  TextProperties,
-		image: ImageProperties,
-		shape: ShapeProperties,
-	}[ selectionType ] ?? ArtboardPanel;
+	const Panel =
+		{
+			none: ArtboardPanel,
+			text: TextProperties,
+			image: ImageProperties,
+			shape: ShapeProperties,
+		}[ selectionType ] ?? ArtboardPanel;
 
 	return (
 		<div className="socialframe-editor__properties-panel">

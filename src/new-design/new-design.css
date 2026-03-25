@@ -27,7 +27,7 @@
 
 .socialframe-new__grid {
 	display: grid;
-	grid-template-columns: repeat( auto-fill, minmax( 160px, 1fr ) );
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 	gap: 16px;
 	margin-bottom: 32px;
 }
@@ -48,12 +48,12 @@
 
 .socialframe-new__format-card:hover {
 	border-color: #0073aa;
-	box-shadow: 0 2px 8px rgba( 0, 115, 170, 0.15 );
+	box-shadow: 0 2px 8px rgba(0, 115, 170, 0.15);
 }
 
 .socialframe-new__format-card.is-selected {
 	border-color: #0073aa;
-	box-shadow: 0 0 0 1px #0073aa, 0 2px 8px rgba( 0, 115, 170, 0.2 );
+	box-shadow: 0 0 0 1px #0073aa, 0 2px 8px rgba(0, 115, 170, 0.2);
 }
 
 .socialframe-new__format-preview {

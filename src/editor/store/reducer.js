@@ -16,7 +16,7 @@ const DEFAULT_STATE = {
 	undoStack: [],
 	undoIndex: -1,
 	layers: [],
-	zoom:   100,
+	zoom: 100,
 };
 
 export function reducer( state = DEFAULT_STATE, action ) {
@@ -24,7 +24,8 @@ export function reducer( state = DEFAULT_STATE, action ) {
 		case 'SET_ACTIVE_PANEL':
 			return {
 				...state,
-				activePanel: state.activePanel === action.panel ? null : action.panel,
+				activePanel:
+					state.activePanel === action.panel ? null : action.panel,
 			};
 
 		case 'SET_DESIGN':
@@ -53,7 +54,10 @@ export function reducer( state = DEFAULT_STATE, action ) {
 				...state,
 				selection: {
 					...state.selection,
-					properties: { ...state.selection.properties, ...action.properties },
+					properties: {
+						...state.selection.properties,
+						...action.properties,
+					},
 				},
 			};
 
@@ -61,7 +65,11 @@ export function reducer( state = DEFAULT_STATE, action ) {
 			return { ...state, isDirty: true };
 
 		case 'MARK_CLEAN':
-			return { ...state, isDirty: false, lastSaved: new Date().toISOString() };
+			return {
+				...state,
+				isDirty: false,
+				lastSaved: new Date().toISOString(),
+			};
 
 		case 'SET_SAVING':
 			return { ...state, isSaving: action.saving };
@@ -69,7 +77,7 @@ export function reducer( state = DEFAULT_STATE, action ) {
 		case 'PUSH_HISTORY': {
 			// Truncate any forward history when a new action is pushed.
 			const trimmed = state.undoStack.slice( 0, state.undoIndex + 1 );
-			const next    = [ ...trimmed, action.entry ].slice( -MAX_HISTORY );
+			const next = [ ...trimmed, action.entry ].slice( -MAX_HISTORY );
 			return {
 				...state,
 				undoStack: next,
@@ -78,13 +86,17 @@ export function reducer( state = DEFAULT_STATE, action ) {
 		}
 
 		case 'UNDO': {
-			if ( state.undoIndex < 0 ) return state;
+			if ( state.undoIndex < 0 ) {
+				return state;
+			}
 			state.undoStack[ state.undoIndex ].undo();
 			return { ...state, undoIndex: state.undoIndex - 1, isDirty: true };
 		}
 
 		case 'REDO': {
-			if ( state.undoIndex >= state.undoStack.length - 1 ) return state;
+			if ( state.undoIndex >= state.undoStack.length - 1 ) {
+				return state;
+			}
 			state.undoStack[ state.undoIndex + 1 ].redo();
 			return { ...state, undoIndex: state.undoIndex + 1, isDirty: true };
 		}

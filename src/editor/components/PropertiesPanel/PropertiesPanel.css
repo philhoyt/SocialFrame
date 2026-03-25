@@ -32,7 +32,7 @@
 }
 
 .socialframe-accordion__header:hover {
-	background: rgba( 255, 255, 255, 0.04 );
+	background: rgba(255, 255, 255, 0.04);
 }
 
 .socialframe-accordion__title {
@@ -53,11 +53,11 @@
 }
 
 .socialframe-accordion.is-open .socialframe-accordion__chevron {
-	transform: rotate( 0deg );
+	transform: rotate(0deg);
 }
 
 .socialframe-accordion:not(.is-open) .socialframe-accordion__chevron {
-	transform: rotate( -90deg );
+	transform: rotate(-90deg);
 }
 
 .socialframe-accordion__body {
@@ -173,14 +173,14 @@
 }
 
 .socialframe-color-swatch--none::after {
-	content: '';
+	content: "";
 	position: absolute;
 	top: 50%;
 	left: 50%;
 	width: 130%;
 	height: 2px;
 	background: #e04040;
-	transform: translate( -50%, -50% ) rotate( -45deg );
+	transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 /* Color picker button — round swatch that opens a Dropdown */
@@ -224,7 +224,7 @@
 
 .socialframe-props__align-grid {
 	display: grid;
-	grid-template-columns: repeat( 3, 1fr );
+	grid-template-columns: repeat(3, 1fr);
 	gap: 4px;
 }
 

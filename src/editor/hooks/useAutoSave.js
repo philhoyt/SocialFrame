@@ -13,20 +13,22 @@ const DEBOUNCE_MS = 2000;
  * @param {number}   designId The design post ID.
  */
 export function useAutoSave( getJSON, designId ) {
-	const isDirty  = useSelect( ( select ) => select( STORE_KEY ).isDirty() );
+	const isDirty = useSelect( ( select ) => select( STORE_KEY ).isDirty() );
 	const dispatch = useDispatch( STORE_KEY );
 	const timerRef = useRef( null );
 
 	useEffect( () => {
-		if ( ! isDirty || ! designId || ! getJSON ) return;
+		if ( ! isDirty || ! designId || ! getJSON ) {
+			return;
+		}
 
 		timerRef.current = setTimeout( async () => {
 			dispatch.setSaving( true );
 			try {
 				await apiFetch( {
-					path:   `socialframe/v1/designs/${ designId }`,
+					path: `socialframe/v1/designs/${ designId }`,
 					method: 'PUT',
-					data:   { fabricJson: JSON.stringify( getJSON() ) },
+					data: { fabricJson: JSON.stringify( getJSON() ) },
 				} );
 				dispatch.markClean();
 			} catch ( e ) {

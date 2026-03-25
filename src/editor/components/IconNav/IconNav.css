@@ -14,11 +14,11 @@
 }
 
 .socialframe-icon-nav__btn:hover {
-	background: rgba( 255, 255, 255, 0.08 );
+	background: rgba(255, 255, 255, 0.08);
 	color: #fff;
 }
 
 .socialframe-icon-nav__btn.is-active {
-	background: rgba( 255, 255, 255, 0.15 );
+	background: rgba(255, 255, 255, 0.15);
 	color: #fff;
 }

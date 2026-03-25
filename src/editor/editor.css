@@ -1,8 +1,8 @@
 /* SocialFrame Editor — full-screen shell styles */
-@import './components/Header/Header.css';
-@import './components/IconNav/IconNav.css';
-@import './components/ContentPanel/ContentPanel.css';
-@import './components/PropertiesPanel/PropertiesPanel.css';
+@import "./components/Header/Header.css";
+@import "./components/IconNav/IconNav.css";
+@import "./components/ContentPanel/ContentPanel.css";
+@import "./components/PropertiesPanel/PropertiesPanel.css";
 
 #socialframe-editor-root {
 	width: 100vw;
@@ -78,7 +78,7 @@
 	position: relative;
 	overflow: hidden;
 	background: #1a1a1a;
-	background-image: radial-gradient( circle, #333 1px, transparent 1px );
+	background-image: radial-gradient(circle, #333 1px, transparent 1px);
 	background-size: 20px 20px;
 }
 

@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
-import { Button, CheckboxControl, Spinner, SearchControl } from '@wordpress/components';
+import {
+	Button,
+	CheckboxControl,
+	Spinner,
+	SearchControl,
+} from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
@@ -9,15 +14,15 @@ export function PostsPanel() {
 	const fabric = useFabric();
 
 	// Step: 'search' | 'options'
-	const [ step,           setStep           ] = useState( 'search' );
-	const [ query,          setQuery          ] = useState( '' );
-	const [ results,        setResults        ] = useState( [] );
-	const [ searching,      setSearching      ] = useState( false );
-	const [ selectedPost,   setSelectedPost   ] = useState( null );
-	const [ postData,       setPostData       ] = useState( null );
-	const [ loadingPost,    setLoadingPost    ] = useState( false );
-	const [ metaOpen,       setMetaOpen       ] = useState( false );
-	const [ importing,      setImporting      ] = useState( false );
+	const [ step, setStep ] = useState( 'search' );
+	const [ query, setQuery ] = useState( '' );
+	const [ results, setResults ] = useState( [] );
+	const [ searching, setSearching ] = useState( false );
+	const [ selectedPost, setSelectedPost ] = useState( null );
+	const [ postData, setPostData ] = useState( null );
+	const [ loadingPost, setLoadingPost ] = useState( false );
+	const [ metaOpen, setMetaOpen ] = useState( false );
+	const [ importing, setImporting ] = useState( false );
 
 	// Import options — booleans keyed by field name
 	const [ checks, setChecks ] = useState( {} );
@@ -34,7 +39,11 @@ export function PostsPanel() {
 		}
 		setSearching( true );
 		debounceRef.current = setTimeout( () => {
-			apiFetch( { path: `socialframe/v1/post-import?search=${ encodeURIComponent( query ) }` } )
+			apiFetch( {
+				path: `socialframe/v1/post-import?search=${ encodeURIComponent(
+					query
+				) }`,
+			} )
 				.then( ( data ) => setResults( data ) )
 				.catch( () => setResults( [] ) )
 				.finally( () => setSearching( false ) );
@@ -59,10 +68,10 @@ export function PostsPanel() {
 					termChecks[ `term_${ slug }` ] = false;
 				} );
 				setChecks( {
-					title:          !! data.title,
+					title: !! data.title,
 					featured_image: !! data.featured_image_url,
-					content:        false,
-					excerpt:        false,
+					content: false,
+					excerpt: false,
 					...termChecks,
 				} );
 			} )
@@ -81,15 +90,23 @@ export function PostsPanel() {
 	}
 
 	function toggleMeta( key ) {
-		setChecks( ( prev ) => ( { ...prev, [ `meta_${ key }` ]: ! prev[ `meta_${ key }` ] } ) );
+		setChecks( ( prev ) => ( {
+			...prev,
+			[ `meta_${ key }` ]: ! prev[ `meta_${ key }` ],
+		} ) );
 	}
 
 	function toggleTerm( slug ) {
-		setChecks( ( prev ) => ( { ...prev, [ `term_${ slug }` ]: ! prev[ `term_${ slug }` ] } ) );
+		setChecks( ( prev ) => ( {
+			...prev,
+			[ `term_${ slug }` ]: ! prev[ `term_${ slug }` ],
+		} ) );
 	}
 
 	async function handleImport() {
-		if ( ! fabric || ! postData ) return;
+		if ( ! fabric || ! postData ) {
+			return;
+		}
 		setImporting( true );
 		try {
 			if ( checks.title && postData.title ) {
@@ -105,9 +122,13 @@ export function PostsPanel() {
 				fabric.addText( 'small', { text: postData.excerpt } );
 			}
 			if ( postData.terms ) {
-				for ( const [ slug, taxonomy ] of Object.entries( postData.terms ) ) {
+				for ( const [ slug, taxonomy ] of Object.entries(
+					postData.terms
+				) ) {
 					if ( checks[ `term_${ slug }` ] ) {
-						fabric.addText( 'small', { text: taxonomy.terms.join( ', ' ) } );
+						fabric.addText( 'small', {
+							text: taxonomy.terms.join( ', ' ),
+						} );
 					}
 				}
 			}
@@ -117,7 +138,9 @@ export function PostsPanel() {
 						if ( item.type === 'image' ) {
 							await fabric.addImage( item.image_url );
 						} else {
-							fabric.addText( 'small', { text: String( item.value ) } );
+							fabric.addText( 'small', {
+								text: String( item.value ),
+							} );
 						}
 					}
 				}
@@ -130,14 +153,30 @@ export function PostsPanel() {
 	// ── Render ───────────────────────────────────────────────────────────────
 
 	if ( step === 'options' ) {
-		const metaKeys  = postData ? Object.keys( postData.meta ?? {} ) : [];
+		const metaKeys = postData ? Object.keys( postData.meta ?? {} ) : [];
 		const termSlugs = postData ? Object.keys( postData.terms ?? {} ) : [];
 
 		return (
 			<div className="socialframe-panel socialframe-posts-panel">
-				<button className="socialframe-posts-panel__back" onClick={ goBack }>
-					<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-						<path d="M10.5 3.5 6 8l4.5 4.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+				<button
+					className="socialframe-posts-panel__back"
+					onClick={ goBack }
+				>
+					<svg
+						width="16"
+						height="16"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							d="M10.5 3.5 6 8l4.5 4.5"
+							stroke="currentColor"
+							strokeWidth="1.5"
+							fill="none"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						/>
 					</svg>
 					{ __( 'Back', 'socialframe' ) }
 				</button>
@@ -146,9 +185,12 @@ export function PostsPanel() {
 					{ selectedPost?.title }
 				</p>
 
-				{ loadingPost ? (
-					<div className="socialframe-posts-panel__loading"><Spinner /></div>
-				) : postData ? (
+				{ loadingPost && (
+					<div className="socialframe-posts-panel__loading">
+						<Spinner />
+					</div>
+				) }
+				{ ! loadingPost && postData && (
 					<>
 						<div className="socialframe-posts-panel__options">
 							{ postData.title && (
@@ -160,9 +202,14 @@ export function PostsPanel() {
 							) }
 							{ postData.featured_image_url && (
 								<CheckboxControl
-									label={ __( 'Featured Image', 'socialframe' ) }
+									label={ __(
+										'Featured Image',
+										'socialframe'
+									) }
 									checked={ !! checks.featured_image }
-									onChange={ () => toggleCheck( 'featured_image' ) }
+									onChange={ () =>
+										toggleCheck( 'featured_image' )
+									}
 								/>
 							) }
 							{ postData.content && (
@@ -193,12 +240,22 @@ export function PostsPanel() {
 											key={ slug }
 											label={
 												<span className="socialframe-posts-panel__term-label">
-													<span className="socialframe-posts-panel__term-name">{ taxonomy.label }</span>
-													<span className="socialframe-posts-panel__term-values">{ taxonomy.terms.join( ', ' ) }</span>
+													<span className="socialframe-posts-panel__term-name">
+														{ taxonomy.label }
+													</span>
+													<span className="socialframe-posts-panel__term-values">
+														{ taxonomy.terms.join(
+															', '
+														) }
+													</span>
 												</span>
 											}
-											checked={ !! checks[ `term_${ slug }` ] }
-											onChange={ () => toggleTerm( slug ) }
+											checked={
+												!! checks[ `term_${ slug }` ]
+											}
+											onChange={ () =>
+												toggleTerm( slug )
+											}
 										/>
 									);
 								} ) }
@@ -209,16 +266,36 @@ export function PostsPanel() {
 							<div className="socialframe-posts-panel__meta-section">
 								<button
 									className="socialframe-posts-panel__meta-toggle"
-									onClick={ () => setMetaOpen( ( v ) => ! v ) }
+									onClick={ () =>
+										setMetaOpen( ( v ) => ! v )
+									}
 									aria-expanded={ metaOpen }
 								>
-									{ __( 'Advanced: Meta Fields', 'socialframe' ) }
+									{ __(
+										'Advanced: Meta Fields',
+										'socialframe'
+									) }
 									<svg
-										width="12" height="12" viewBox="0 0 12 12"
-										fill="currentColor" aria-hidden="true"
-										style={ { transform: metaOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' } }
+										width="12"
+										height="12"
+										viewBox="0 0 12 12"
+										fill="currentColor"
+										aria-hidden="true"
+										style={ {
+											transform: metaOpen
+												? 'rotate(0deg)'
+												: 'rotate(-90deg)',
+											transition: 'transform 0.15s',
+										} }
 									>
-										<path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+										<path
+											d="M2 4l4 4 4-4"
+											stroke="currentColor"
+											strokeWidth="1.5"
+											fill="none"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+										/>
 									</svg>
 								</button>
 
@@ -231,22 +308,38 @@ export function PostsPanel() {
 													key={ key }
 													label={
 														<span className="socialframe-posts-panel__meta-label">
-															<span className="socialframe-posts-panel__meta-key">{ key }</span>
-															{ item.type === 'image' ? (
+															<span className="socialframe-posts-panel__meta-key">
+																{ key }
+															</span>
+															{ item.type ===
+															'image' ? (
 																<img
-																	src={ item.image_url }
+																	src={
+																		item.image_url
+																	}
 																	alt=""
 																	className="socialframe-posts-panel__meta-thumb"
 																/>
 															) : (
 																<span className="socialframe-posts-panel__meta-value">
-																	{ String( item.value ).slice( 0, 40 ) }
+																	{ String(
+																		item.value
+																	).slice(
+																		0,
+																		40
+																	) }
 																</span>
 															) }
 														</span>
 													}
-													checked={ !! checks[ `meta_${ key }` ] }
-													onChange={ () => toggleMeta( key ) }
+													checked={
+														!! checks[
+															`meta_${ key }`
+														]
+													}
+													onChange={ () =>
+														toggleMeta( key )
+													}
 												/>
 											);
 										} ) }
@@ -258,14 +351,22 @@ export function PostsPanel() {
 						<Button
 							variant="primary"
 							onClick={ handleImport }
-							disabled={ importing || ! Object.values( checks ).some( Boolean ) }
+							disabled={
+								importing ||
+								! Object.values( checks ).some( Boolean )
+							}
 							isBusy={ importing }
-							style={ { width: '100%', justifyContent: 'center', marginTop: 16 } }
+							style={ {
+								width: '100%',
+								justifyContent: 'center',
+								marginTop: 16,
+							} }
 						>
 							{ __( 'Import to Canvas', 'socialframe' ) }
 						</Button>
 					</>
-				) : (
+				) }
+				{ ! loadingPost && ! postData && (
 					<p className="socialframe-posts-panel__empty">
 						{ __( 'Could not load post data.', 'socialframe' ) }
 					</p>
@@ -277,7 +378,9 @@ export function PostsPanel() {
 	// Step: search
 	return (
 		<div className="socialframe-panel socialframe-posts-panel">
-			<p className="socialframe-panel__title">{ __( 'Import Post', 'socialframe' ) }</p>
+			<p className="socialframe-panel__title">
+				{ __( 'Import Post', 'socialframe' ) }
+			</p>
 
 			<SearchControl
 				value={ query }
@@ -287,7 +390,9 @@ export function PostsPanel() {
 			/>
 
 			{ searching && (
-				<div className="socialframe-posts-panel__loading"><Spinner /></div>
+				<div className="socialframe-posts-panel__loading">
+					<Spinner />
+				</div>
 			) }
 
 			{ ! searching && query.trim() && results.length === 0 && (
@@ -318,7 +423,10 @@ export function PostsPanel() {
 
 			{ ! query.trim() && (
 				<p className="socialframe-posts-panel__hint">
-					{ __( 'Search across all post types to import content into your design.', 'socialframe' ) }
+					{ __(
+						'Search across all post types to import content into your design.',
+						'socialframe'
+					) }
 				</p>
 			) }
 		</div>

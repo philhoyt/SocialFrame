@@ -6,41 +6,52 @@ import { __ } from '@wordpress/i18n';
 const { formats, editorBase } = window.socialFrameNewConfig ?? {};
 
 const ASPECT_LABELS = {
-	'instagram-post':  '1:1',
+	'instagram-post': '1:1',
 	'instagram-story': '9:16',
-	'facebook-post':   '1.91:1',
-	'twitter-post':    '16:9',
-	'linkedin-post':   '1.91:1',
-	'pinterest-pin':   '2:3',
+	'facebook-post': '1.91:1',
+	'twitter-post': '16:9',
+	'linkedin-post': '1.91:1',
+	'pinterest-pin': '2:3',
 };
 
 export function NewDesignApp() {
 	const [ selectedFormat, setSelectedFormat ] = useState( null );
-	const [ title, setTitle ]                   = useState( '' );
-	const [ isCreating, setCreating ]           = useState( false );
-	const [ error, setError ]                   = useState( null );
+	const [ title, setTitle ] = useState( '' );
+	const [ isCreating, setCreating ] = useState( false );
+	const [ error, setError ] = useState( null );
 
 	const handleCreate = async () => {
-		if ( ! selectedFormat ) return;
+		if ( ! selectedFormat ) {
+			return;
+		}
 
 		setCreating( true );
 		setError( null );
 
 		try {
 			const design = await apiFetch( {
-				path:   'socialframe/v1/designs',
+				path: 'socialframe/v1/designs',
 				method: 'POST',
-				data:   {
-					title:  title.trim() || formats?.[ selectedFormat ]?.label || __( 'Untitled', 'socialframe' ),
+				data: {
+					title:
+						title.trim() ||
+						formats?.[ selectedFormat ]?.label ||
+						__( 'Untitled', 'socialframe' ),
 					format: selectedFormat,
-					type:   'design',
+					type: 'design',
 				},
 			} );
 
 			// Redirect to the editor.
 			window.location.href = design.editUrl;
 		} catch ( err ) {
-			setError( err.message || __( 'Failed to create design. Please try again.', 'socialframe' ) );
+			setError(
+				err.message ||
+					__(
+						'Failed to create design. Please try again.',
+						'socialframe'
+					)
+			);
 			setCreating( false );
 		}
 	};
@@ -56,7 +67,11 @@ export function NewDesignApp() {
 				</p>
 
 				{ error && (
-					<Notice status="error" isDismissible onRemove={ () => setError( null ) }>
+					<Notice
+						status="error"
+						isDismissible
+						onRemove={ () => setError( null ) }
+					>
 						{ error }
 					</Notice>
 				) }
@@ -65,11 +80,19 @@ export function NewDesignApp() {
 					{ Object.entries( formats ?? {} ).map( ( [ key, fmt ] ) => (
 						<button
 							key={ key }
-							className={ `socialframe-new__format-card${ selectedFormat === key ? ' is-selected' : '' }` }
+							className={ `socialframe-new__format-card${
+								selectedFormat === key ? ' is-selected' : ''
+							}` }
 							onClick={ () => setSelectedFormat( key ) }
 						>
-							<FormatPreview formatKey={ key } width={ fmt.width } height={ fmt.height } />
-							<span className="socialframe-new__format-label">{ fmt.label }</span>
+							<FormatPreview
+								formatKey={ key }
+								width={ fmt.width }
+								height={ fmt.height }
+							/>
+							<span className="socialframe-new__format-label">
+								{ fmt.label }
+							</span>
 							<span className="socialframe-new__format-dims">
 								{ fmt.width } × { fmt.height }
 							</span>
@@ -83,18 +106,31 @@ export function NewDesignApp() {
 				{ selectedFormat && (
 					<div className="socialframe-new__form">
 						<TextControl
-							label={ __( 'Design Title (optional)', 'socialframe' ) }
+							label={ __(
+								'Design Title (optional)',
+								'socialframe'
+							) }
 							value={ title }
 							onChange={ setTitle }
-							placeholder={ formats?.[ selectedFormat ]?.label || __( 'Untitled', 'socialframe' ) }
-							onKeyDown={ ( e ) => { if ( e.key === 'Enter' ) handleCreate(); } }
+							placeholder={
+								formats?.[ selectedFormat ]?.label ||
+								__( 'Untitled', 'socialframe' )
+							}
+							onKeyDown={ ( e ) => {
+								if ( e.key === 'Enter' ) {
+									handleCreate();
+								}
+							} }
 						/>
 						<Button
 							variant="primary"
 							onClick={ handleCreate }
 							disabled={ isCreating }
 							isBusy={ isCreating }
-							style={ { width: '100%', justifyContent: 'center' } }
+							style={ {
+								width: '100%',
+								justifyContent: 'center',
+							} }
 						>
 							{ isCreating
 								? __( 'Creating…', 'socialframe' )
@@ -109,21 +145,25 @@ export function NewDesignApp() {
 
 /**
  * Renders a proportional SVG preview of the format dimensions.
+ * @param root0
+ * @param root0.formatKey
+ * @param root0.width
+ * @param root0.height
  */
 function FormatPreview( { formatKey, width, height } ) {
-	const maxW   = 80;
-	const maxH   = 80;
-	const scale  = Math.min( maxW / width, maxH / height );
-	const svgW   = Math.round( width * scale );
-	const svgH   = Math.round( height * scale );
+	const maxW = 80;
+	const maxH = 80;
+	const scale = Math.min( maxW / width, maxH / height );
+	const svgW = Math.round( width * scale );
+	const svgH = Math.round( height * scale );
 
 	const fills = {
-		'instagram-post':  '#833ab4',
+		'instagram-post': '#833ab4',
 		'instagram-story': '#fd1d1d',
-		'facebook-post':   '#1877f2',
-		'twitter-post':    '#1d9bf0',
-		'linkedin-post':   '#0a66c2',
-		'pinterest-pin':   '#e60023',
+		'facebook-post': '#1877f2',
+		'twitter-post': '#1d9bf0',
+		'linkedin-post': '#0a66c2',
+		'pinterest-pin': '#e60023',
 	};
 
 	return (

@@ -7,9 +7,9 @@ import { useFabric } from '../../EditorApp';
 
 export function TemplatesPanel() {
 	const fabric = useFabric();
-	const [ bundled, setBundled ]   = useState( [] );
+	const [ bundled, setBundled ] = useState( [] );
 	const [ userMade, setUserMade ] = useState( [] );
-	const [ loading, setLoading ]   = useState( true );
+	const [ loading, setLoading ] = useState( true );
 
 	useEffect( () => {
 		apiFetch( { path: 'socialframe/v1/templates' } )
@@ -22,11 +22,14 @@ export function TemplatesPanel() {
 	}, [] );
 
 	const loadTemplate = ( template ) => {
-		if ( ! fabric?.loadFromJSON ) return;
+		if ( ! fabric?.loadFromJSON ) {
+			return;
+		}
 		try {
-			const json = typeof template.fabricJson === 'string'
-				? JSON.parse( template.fabricJson )
-				: template.fabricJson;
+			const json =
+				typeof template.fabricJson === 'string'
+					? JSON.parse( template.fabricJson )
+					: template.fabricJson;
 			fabric.loadFromJSON( json );
 		} catch ( e ) {
 			// Invalid JSON — skip.
@@ -35,7 +38,9 @@ export function TemplatesPanel() {
 
 	if ( loading ) {
 		return (
-			<div style={ { textAlign: 'center', padding: 24 } }><Spinner /></div>
+			<div style={ { textAlign: 'center', padding: 24 } }>
+				<Spinner />
+			</div>
 		);
 	}
 
@@ -45,7 +50,10 @@ export function TemplatesPanel() {
 		return (
 			<div className="socialframe-panel">
 				<p style={ { color: '#888', fontSize: 12 } }>
-					{ __( 'No templates yet. Save a design as a template to see it here.', 'socialframe' ) }
+					{ __(
+						'No templates yet. Save a design as a template to see it here.',
+						'socialframe'
+					) }
 				</p>
 			</div>
 		);
@@ -55,12 +63,21 @@ export function TemplatesPanel() {
 		<>
 			{ bundled.length > 0 && (
 				<>
-					<div className="socialframe-panel" style={ { paddingBottom: 0 } }>
-						<p className="socialframe-panel__title">{ __( 'Starter Templates', 'socialframe' ) }</p>
+					<div
+						className="socialframe-panel"
+						style={ { paddingBottom: 0 } }
+					>
+						<p className="socialframe-panel__title">
+							{ __( 'Starter Templates', 'socialframe' ) }
+						</p>
 					</div>
 					<div className="socialframe-panel__template-grid">
 						{ bundled.map( ( tpl ) => (
-							<TemplateItem key={ tpl.id } template={ tpl } onSelect={ loadTemplate } />
+							<TemplateItem
+								key={ tpl.id }
+								template={ tpl }
+								onSelect={ loadTemplate }
+							/>
 						) ) }
 					</div>
 				</>
@@ -68,12 +85,21 @@ export function TemplatesPanel() {
 
 			{ userMade.length > 0 && (
 				<>
-					<div className="socialframe-panel" style={ { paddingBottom: 0 } }>
-						<p className="socialframe-panel__title">{ __( 'My Templates', 'socialframe' ) }</p>
+					<div
+						className="socialframe-panel"
+						style={ { paddingBottom: 0 } }
+					>
+						<p className="socialframe-panel__title">
+							{ __( 'My Templates', 'socialframe' ) }
+						</p>
 					</div>
 					<div className="socialframe-panel__template-grid">
 						{ userMade.map( ( tpl ) => (
-							<TemplateItem key={ tpl.id } template={ tpl } onSelect={ loadTemplate } />
+							<TemplateItem
+								key={ tpl.id }
+								template={ tpl }
+								onSelect={ loadTemplate }
+							/>
 						) ) }
 					</div>
 				</>

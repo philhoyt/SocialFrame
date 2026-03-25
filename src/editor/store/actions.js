@@ -1,4 +1,7 @@
-export const setActivePanel = ( panel ) => ( { type: 'SET_ACTIVE_PANEL', panel } );
+export const setActivePanel = ( panel ) => ( {
+	type: 'SET_ACTIVE_PANEL',
+	panel,
+} );
 
 export const setDesign = ( { designId, title, format } ) => ( {
 	type: 'SET_DESIGN',
@@ -9,7 +12,10 @@ export const setDesign = ( { designId, title, format } ) => ( {
 
 export const setTitle = ( title ) => ( { type: 'SET_TITLE', title } );
 
-export const setSelection = ( selection ) => ( { type: 'SET_SELECTION', selection } );
+export const setSelection = ( selection ) => ( {
+	type: 'SET_SELECTION',
+	selection,
+} );
 
 export const clearSelection = () => ( { type: 'CLEAR_SELECTION' } );
 

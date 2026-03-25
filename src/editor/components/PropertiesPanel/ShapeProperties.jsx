@@ -14,29 +14,38 @@ import { ShadowSection } from './ShadowSection';
 import { ColorRow } from './ColorRow';
 
 const FIT_MODES = [
-	{ value: 'cover',   label: __( 'Cover',   'socialframe' ) },
+	{ value: 'cover', label: __( 'Cover', 'socialframe' ) },
 	{ value: 'contain', label: __( 'Contain', 'socialframe' ) },
-	{ value: 'fill',    label: __( 'Fill',    'socialframe' ) },
-	{ value: 'none',    label: __( 'None',    'socialframe' ) },
+	{ value: 'fill', label: __( 'Fill', 'socialframe' ) },
+	{ value: 'none', label: __( 'None', 'socialframe' ) },
 ];
 
 export function ShapeProperties() {
-	const props  = useSelect( ( select ) => select( STORE_KEY ).getSelectionProps() );
+	const props = useSelect( ( select ) =>
+		select( STORE_KEY ).getSelectionProps()
+	);
 	const fabric = useFabric();
 	const [ fitMode, setFitMode ] = useState( 'cover' );
 
-	const update = ( partial, label ) => fabric?.updateSelected( partial, label );
+	const update = ( partial, label ) =>
+		fabric?.updateSelected( partial, label );
 
 	const handleFillWithImage = () => {
-		if ( ! window.wp?.media ) return;
+		if ( ! window.wp?.media ) {
+			return;
+		}
 		const frame = window.wp.media( {
-			title:    __( 'Choose Image', 'socialframe' ),
-			button:   { text: __( 'Use Image', 'socialframe' ) },
+			title: __( 'Choose Image', 'socialframe' ),
+			button: { text: __( 'Use Image', 'socialframe' ) },
 			multiple: false,
-			library:  { type: 'image' },
+			library: { type: 'image' },
 		} );
 		frame.on( 'select', () => {
-			const attachment = frame.state().get( 'selection' ).first().toJSON();
+			const attachment = frame
+				.state()
+				.get( 'selection' )
+				.first()
+				.toJSON();
 			fabric?.fillShapeWithImage( attachment.url, fitMode );
 		} );
 		frame.open();
@@ -44,19 +53,48 @@ export function ShapeProperties() {
 
 	return (
 		<div className="socialframe-props">
-
 			<Accordion title={ __( 'Position', 'socialframe' ) }>
 				<div className="socialframe-num-grid">
-					<NumField label="X" value={ Math.round( props.left   ?? 0 ) } onChange={ ( v ) => update( { left:   v }, 'Position X' ) } />
-					<NumField label="Y" value={ Math.round( props.top    ?? 0 ) } onChange={ ( v ) => update( { top:    v }, 'Position Y' ) } />
+					<NumField
+						label="X"
+						value={ Math.round( props.left ?? 0 ) }
+						onChange={ ( v ) =>
+							update( { left: v }, 'Position X' )
+						}
+					/>
+					<NumField
+						label="Y"
+						value={ Math.round( props.top ?? 0 ) }
+						onChange={ ( v ) => update( { top: v }, 'Position Y' ) }
+					/>
 					<LinkedNumFields
 						stateKey="wh"
-						aLabel="W" aValue={ Math.round( props.width  ?? 0 ) } aMin={ 1 } onChangeA={ ( v ) => update( { width:  v }, 'Width' ) }
-						bLabel="H" bValue={ Math.round( props.height ?? 0 ) } bMin={ 1 } onChangeB={ ( v ) => update( { height: v }, 'Height' ) }
-						onChangeBoth={ ( w, h ) => update( { width: w, height: h }, 'Size' ) }
+						aLabel="W"
+						aValue={ Math.round( props.width ?? 0 ) }
+						aMin={ 1 }
+						onChangeA={ ( v ) => update( { width: v }, 'Width' ) }
+						bLabel="H"
+						bValue={ Math.round( props.height ?? 0 ) }
+						bMin={ 1 }
+						onChangeB={ ( v ) => update( { height: v }, 'Height' ) }
+						onChangeBoth={ ( w, h ) =>
+							update( { width: w, height: h }, 'Size' )
+						}
 					/>
-					<NumField label="°" value={ Math.round( props.angle  ?? 0 ) } onChange={ ( v ) => update( { angle:   v }, 'Rotation' ) } />
-					<NumField label="%" value={ Math.round( ( props.opacity ?? 1 ) * 100 ) } min={ 0 } max={ 100 } onChange={ ( v ) => update( { opacity: v / 100 }, 'Opacity' ) } />
+					<NumField
+						label="°"
+						value={ Math.round( props.angle ?? 0 ) }
+						onChange={ ( v ) => update( { angle: v }, 'Rotation' ) }
+					/>
+					<NumField
+						label="%"
+						value={ Math.round( ( props.opacity ?? 1 ) * 100 ) }
+						min={ 0 }
+						max={ 100 }
+						onChange={ ( v ) =>
+							update( { opacity: v / 100 }, 'Opacity' )
+						}
+					/>
 				</div>
 
 				{ props.rx !== undefined && (
@@ -65,7 +103,9 @@ export function ShapeProperties() {
 						value={ props.rx ?? 0 }
 						min={ 0 }
 						max={ 200 }
-						onChange={ ( v ) => update( { rx: v, ry: v }, 'Corner radius' ) }
+						onChange={ ( v ) =>
+							update( { rx: v, ry: v }, 'Corner radius' )
+						}
 						style={ { marginTop: 8 } }
 					/>
 				) }
@@ -74,17 +114,24 @@ export function ShapeProperties() {
 			<Accordion title={ __( 'Fill', 'socialframe' ) }>
 				<ColorRow
 					value={ typeof props.fill === 'string' ? props.fill : null }
-					onChange={ ( hex ) => update( { fill: hex }, 'Fill color' ) }
+					onChange={ ( hex ) =>
+						update( { fill: hex }, 'Fill color' )
+					}
 					showNone
 					noneValue="transparent"
 					noneLabel={ __( 'No fill', 'socialframe' ) }
 				/>
 			</Accordion>
 
-			<Accordion title={ __( 'Stroke', 'socialframe' ) } defaultOpen={ false }>
+			<Accordion
+				title={ __( 'Stroke', 'socialframe' ) }
+				defaultOpen={ false }
+			>
 				<ColorRow
 					value={ props.stroke || null }
-					onChange={ ( hex ) => update( { stroke: hex }, 'Stroke color' ) }
+					onChange={ ( hex ) =>
+						update( { stroke: hex }, 'Stroke color' )
+					}
 					style={ { marginBottom: 12 } }
 				/>
 				<RangeControl
@@ -92,20 +139,36 @@ export function ShapeProperties() {
 					value={ props.strokeWidth ?? 0 }
 					min={ 0 }
 					max={ 50 }
-					onChange={ ( v ) => update( { strokeWidth: v }, 'Stroke width' ) }
+					onChange={ ( v ) =>
+						update( { strokeWidth: v }, 'Stroke width' )
+					}
 				/>
 			</Accordion>
 
-			<Accordion title={ __( 'Image Fill', 'socialframe' ) } defaultOpen={ false }>
-				<div className="socialframe-props__subsection-label">{ __( 'Fit', 'socialframe' ) }</div>
-				<div className="socialframe-props__button-group" style={ { flexWrap: 'wrap', marginBottom: 10 } }>
+			<Accordion
+				title={ __( 'Image Fill', 'socialframe' ) }
+				defaultOpen={ false }
+			>
+				<div className="socialframe-props__subsection-label">
+					{ __( 'Fit', 'socialframe' ) }
+				</div>
+				<div
+					className="socialframe-props__button-group"
+					style={ { flexWrap: 'wrap', marginBottom: 10 } }
+				>
 					{ FIT_MODES.map( ( { value, label } ) => (
 						<button
 							key={ value }
-							className={ `socialframe-props__toggle-btn${ fitMode === value ? ' socialframe-props__toggle-btn--active' : '' }` }
+							className={ `socialframe-props__toggle-btn${
+								fitMode === value
+									? ' socialframe-props__toggle-btn--active'
+									: ''
+							}` }
 							onClick={ () => {
 								setFitMode( value );
-								if ( props.fill === null ) fabric?.updateShapeImageFit( value );
+								if ( props.fill === null ) {
+									fabric?.updateShapeImageFit( value );
+								}
 							} }
 						>
 							{ label }
@@ -121,15 +184,20 @@ export function ShapeProperties() {
 				</Button>
 			</Accordion>
 
-			<Accordion title={ __( 'Layout', 'socialframe' ) } defaultOpen={ false }>
+			<Accordion
+				title={ __( 'Layout', 'socialframe' ) }
+				defaultOpen={ false }
+			>
 				<FlipSection />
 				<AlignmentSection />
 			</Accordion>
 
-			<Accordion title={ __( 'Effects', 'socialframe' ) } defaultOpen={ false }>
+			<Accordion
+				title={ __( 'Effects', 'socialframe' ) }
+				defaultOpen={ false }
+			>
 				<ShadowSection />
 			</Accordion>
-
 		</div>
 	);
 }

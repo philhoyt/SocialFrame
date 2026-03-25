@@ -20,6 +20,9 @@ use WP_Query;
  */
 class PostImportController extends AbstractController {
 
+	/**
+	 * Register the post-import REST routes.
+	 */
 	public function register_routes(): void {
 		register_rest_route(
 			self::NAMESPACE,
@@ -65,7 +68,7 @@ class PostImportController extends AbstractController {
 	/**
 	 * Search posts across all public, REST-enabled post types.
 	 *
-	 * @param WP_REST_Request $request
+	 * @param WP_REST_Request $request REST request object.
 	 * @return WP_REST_Response
 	 */
 	public function search_posts( WP_REST_Request $request ): WP_REST_Response {
@@ -74,14 +77,16 @@ class PostImportController extends AbstractController {
 
 		$post_types = $this->get_public_post_types();
 
-		$query = new WP_Query( [
-			's'              => $search,
-			'post_type'      => $post_types,
-			'post_status'    => 'publish',
-			'posts_per_page' => $per_page,
-			'orderby'        => 'relevance',
-			'no_found_rows'  => true,
-		] );
+		$query = new WP_Query(
+			[
+				's'              => $search,
+				'post_type'      => $post_types,
+				'post_status'    => 'publish',
+				'posts_per_page' => $per_page,
+				'orderby'        => 'relevance',
+				'no_found_rows'  => true,
+			]
+		);
 
 		$results = [];
 		foreach ( $query->posts as $post ) {
@@ -101,7 +106,7 @@ class PostImportController extends AbstractController {
 	/**
 	 * Return importable data for a single post.
 	 *
-	 * @param WP_REST_Request $request
+	 * @param WP_REST_Request $request REST request object.
 	 * @return WP_REST_Response|\WP_Error
 	 */
 	public function get_post_data( WP_REST_Request $request ): WP_REST_Response|\WP_Error {
@@ -131,7 +136,8 @@ class PostImportController extends AbstractController {
 		}
 
 		// Featured image.
-		$featured_image_url = get_the_post_thumbnail_url( $post_id, 'large' ) ?: '';
+		$thumb_url          = get_the_post_thumbnail_url( $post_id, 'large' );
+		$featured_image_url = $thumb_url ? $thumb_url : '';
 
 		// Meta fields — public (non-underscore-prefixed), non-empty scalars only.
 		// Each entry is typed so the editor can render/import it correctly.
@@ -152,15 +158,17 @@ class PostImportController extends AbstractController {
 		// Taxonomy terms — all taxonomies attached to the post type that have terms on this post.
 		$terms = $this->get_post_terms( $post_id, $post->post_type );
 
-		return $this->respond( [
-			'id'                 => $post_id,
-			'title'              => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
-			'featured_image_url' => $featured_image_url,
-			'content'            => $content,
-			'excerpt'            => $excerpt,
-			'terms'              => $terms,
-			'meta'               => $meta,
-		] );
+		return $this->respond(
+			[
+				'id'                 => $post_id,
+				'title'              => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
+				'featured_image_url' => $featured_image_url,
+				'content'            => $content,
+				'excerpt'            => $excerpt,
+				'terms'              => $terms,
+				'meta'               => $meta,
+			]
+		);
 	}
 
 	/**

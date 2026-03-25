@@ -6,29 +6,37 @@ import { __ } from '@wordpress/i18n';
 import { useFabric } from '../../EditorApp';
 
 export function MediaPanel() {
-	const fabric         = useFabric();
+	const fabric = useFabric();
 	const [ images, setImages ] = useState( [] );
 	const [ loading, setLoading ] = useState( true );
 
 	useEffect( () => {
-		apiFetch( { path: '/wp/v2/media?media_type=image&per_page=12&orderby=date&order=desc' } )
+		apiFetch( {
+			path: '/wp/v2/media?media_type=image&per_page=12&orderby=date&order=desc',
+		} )
 			.then( ( items ) => setImages( items ) )
 			.catch( () => {} )
 			.finally( () => setLoading( false ) );
 	}, [] );
 
 	const openMediaModal = () => {
-		if ( ! window.wp?.media ) return;
+		if ( ! window.wp?.media ) {
+			return;
+		}
 
 		const frame = window.wp.media( {
-			title:    __( 'Select Image', 'socialframe' ),
-			button:   { text: __( 'Insert Image', 'socialframe' ) },
+			title: __( 'Select Image', 'socialframe' ),
+			button: { text: __( 'Insert Image', 'socialframe' ) },
 			multiple: false,
-			library:  { type: 'image' },
+			library: { type: 'image' },
 		} );
 
 		frame.on( 'select', () => {
-			const attachment = frame.state().get( 'selection' ).first().toJSON();
+			const attachment = frame
+				.state()
+				.get( 'selection' )
+				.first()
+				.toJSON();
 			fabric?.addImage( attachment.url );
 		} );
 
@@ -41,7 +49,9 @@ export function MediaPanel() {
 
 	return (
 		<div className="socialframe-panel">
-			<p className="socialframe-panel__title">{ __( 'Media', 'socialframe' ) }</p>
+			<p className="socialframe-panel__title">
+				{ __( 'Media', 'socialframe' ) }
+			</p>
 
 			<div style={ { padding: '0 0 12px' } }>
 				<Button
@@ -53,10 +63,14 @@ export function MediaPanel() {
 				</Button>
 			</div>
 
-			<p className="socialframe-panel__title">{ __( 'Recent', 'socialframe' ) }</p>
+			<p className="socialframe-panel__title">
+				{ __( 'Recent', 'socialframe' ) }
+			</p>
 
 			{ loading ? (
-				<div style={ { textAlign: 'center', padding: 16 } }><Spinner /></div>
+				<div style={ { textAlign: 'center', padding: 16 } }>
+					<Spinner />
+				</div>
 			) : (
 				<div className="socialframe-panel__media-grid">
 					{ images.map( ( img ) => (
@@ -67,7 +81,10 @@ export function MediaPanel() {
 							aria-label={ img.alt_text || img.title?.rendered }
 						>
 							<img
-								src={ img.media_details?.sizes?.thumbnail?.source_url ?? img.source_url }
+								src={
+									img.media_details?.sizes?.thumbnail
+										?.source_url ?? img.source_url
+								}
 								alt={ img.alt_text || '' }
 								loading="lazy"
 							/>

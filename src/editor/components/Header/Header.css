@@ -32,7 +32,7 @@
 
 .socialframe-header__back:hover {
 	color: #fff;
-	background: rgba( 255, 255, 255, 0.08 );
+	background: rgba(255, 255, 255, 0.08);
 }
 
 .socialframe-header__left {
@@ -76,7 +76,7 @@
 
 .socialframe-header .components-button.is-tertiary:hover {
 	color: #fff;
-	background: rgba( 255, 255, 255, 0.08 );
+	background: rgba(255, 255, 255, 0.08);
 }
 
 .socialframe-header .components-button.is-tertiary:disabled {
@@ -115,7 +115,7 @@
 	padding: 12px;
 	margin-bottom: 20px;
 	line-height: 0;
-	box-shadow: 0 1px 4px rgba( 0, 0, 0, 0.12 );
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 .socialframe-share-modal__qr canvas {
