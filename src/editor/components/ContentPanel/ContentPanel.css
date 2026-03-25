@@ -258,3 +258,70 @@
 .socialframe-layers__item.is-locked .socialframe-layers__name {
 	color: #888;
 }
+
+/* Layer groups */
+.socialframe-layers__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+}
+
+.socialframe-layers__group-btn {
+	background: #2c2c2c;
+	border: 1px solid #3c3c3c;
+	color: #ccc;
+	border-radius: 4px;
+	padding: 3px 8px;
+	font-size: 11px;
+	cursor: pointer;
+	transition: background 0.1s;
+}
+
+.socialframe-layers__group-btn:hover {
+	background: #383838;
+	color: #fff;
+}
+
+.socialframe-layers__group-toggle {
+	background: none;
+	border: none;
+	color: #666;
+	cursor: pointer;
+	padding: 0;
+	width: 14px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: transform 0.15s;
+}
+
+.socialframe-layers__group-toggle svg {
+	transform: rotate(-90deg);
+	transition: transform 0.15s;
+}
+
+.socialframe-layers__group-toggle.is-open svg {
+	transform: rotate(0deg);
+}
+
+.socialframe-layers__group-toggle-spacer {
+	width: 14px;
+	flex-shrink: 0;
+}
+
+.socialframe-layers__children {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.socialframe-layers__children .socialframe-layers__item {
+	padding-left: 28px;
+	background: #1a1a1a;
+}
+
+.socialframe-layers__item.is-child {
+	border-left: 2px solid #3c3c3c;
+}

@@ -21,6 +21,7 @@ export function getDefaultLayerName( obj ) {
 		case 'circle':   return 'Circle';
 		case 'triangle': return 'Triangle';
 		case 'line':     return 'Line';
+		case 'group':    return 'Group';
 		default:         return 'Object';
 	}
 }
@@ -134,6 +135,8 @@ export function createText( role, overrides = {} ) {
  */
 export function getObjectType( obj ) {
 	if ( ! obj ) return 'none';
+	if ( obj.type === 'activeSelection' || obj.type === 'activeselection' ) return 'multi';
+	if ( obj.type === 'group' ) return 'group';
 	if ( obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox' ) return 'text';
 	if ( obj.type === 'image' ) return 'image';
 	return 'shape';

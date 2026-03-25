@@ -195,8 +195,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		resizeObserver.observe( container );
 
 		// ── Selection bridge ──────────────────────────────────────────────────
-		canvas.on( 'selection:created', ( e ) => syncSelection( e.selected?.[ 0 ], dispatch ) );
-		canvas.on( 'selection:updated', ( e ) => syncSelection( e.selected?.[ 0 ], dispatch ) );
+		// Use getActiveObject() so multi-select returns the ActiveSelection
+		// (type 'activeSelection' → 'multi'), not just the first selected item.
+		canvas.on( 'selection:created', () => syncSelection( canvas.getActiveObject(), dispatch ) );
+		canvas.on( 'selection:updated', () => syncSelection( canvas.getActiveObject(), dispatch ) );
 		canvas.on( 'selection:cleared', ()    => dispatch.clearSelection() );
 
 		// Sync selection props live during transform so the panel updates in real time.
@@ -900,6 +902,82 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		} );
 	}, [ dispatch ] );
 
+	const groupSelected = useCallback( () => {
+		const canvas = fabricRef.current;
+		const active = canvas?.getActiveObject();
+		if ( ! canvas || ! active || ( active.type !== 'activeSelection' && active.type !== 'activeselection' ) ) return;
+
+		const group = active.toGroup();
+		if ( ! group.id ) group.id = genId();
+		if ( ! group.name ) group.name = 'Group';
+
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		syncSelection( group, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Group objects',
+			undo: () => {
+				canvas.setActiveObject( group );
+				const sel = group.toActiveSelection();
+				canvas.setActiveObject( sel );
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.clearSelection();
+			},
+			redo: () => {
+				const active2 = canvas.getActiveObject();
+				if ( active2?.type === 'activeSelection' || active2?.type === 'activeselection' ) {
+					const g = active2.toGroup();
+					g.id   = group.id;
+					g.name = group.name;
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					syncSelection( g, dispatch );
+				}
+			},
+		} );
+	}, [ dispatch ] );
+
+	const ungroupSelected = useCallback( () => {
+		const canvas = fabricRef.current;
+		const active = canvas?.getActiveObject();
+		if ( ! canvas || ! active || active.type !== 'group' ) return;
+
+		const group    = active;
+		const groupId  = group.id;
+		const groupName = group.name;
+
+		const sel = group.toActiveSelection();
+		canvas.setActiveObject( sel );
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.clearSelection();
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Ungroup objects',
+			undo: () => {
+				const current = canvas.getActiveObject();
+				if ( current?.type === 'activeSelection' || current?.type === 'activeselection' ) {
+					const g = current.toGroup();
+					g.id   = groupId;
+					g.name = groupName;
+					canvas.renderAll();
+					syncLayersToStore( canvas, dispatch );
+					syncSelection( g, dispatch );
+				}
+			},
+			redo: () => {
+				canvas.setActiveObject( group );
+				const s = group.toActiveSelection();
+				canvas.setActiveObject( s );
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.clearSelection();
+			},
+		} );
+	}, [ dispatch ] );
+
 	const setLayerLocked = useCallback( ( id, locked ) => {
 		const canvas = fabricRef.current;
 		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
@@ -951,6 +1029,8 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		deleteById,
 		renameById,
 		duplicateSelected,
+		groupSelected,
+		ungroupSelected,
 		setLayerLocked,
 		setLayerVisible,
 	};
@@ -1042,15 +1122,33 @@ function isArtboardObject( o ) {
 function syncLayersToStore( canvas, dispatch ) {
 	const objects = canvas.getObjects().filter( ( o ) => ! isArtboardObject( o ) );
 	// Ensure every object has a stable ID before syncing to the store.
-	objects.forEach( ( obj ) => {
+	function ensureId( obj ) {
 		if ( ! obj.id ) obj.id = genId();
-	} );
-	const layers = [ ...objects ].reverse().map( ( obj ) => ( {
-		id:      obj.id,
-		name:    obj.name || getDefaultLayerName( obj ),
-		type:    getObjectType( obj ),
-		locked:  ! ( obj.selectable ?? true ),
-		visible: obj.visible ?? true,
-	} ) );
+	}
+	objects.forEach( ensureId );
+
+	function makeItem( obj ) {
+		const item = {
+			id:      obj.id,
+			name:    obj.name || getDefaultLayerName( obj ),
+			type:    getObjectType( obj ),
+			locked:  ! ( obj.selectable ?? true ),
+			visible: obj.visible ?? true,
+		};
+		if ( obj.type === 'group' ) {
+			const children = obj.getObjects();
+			children.forEach( ensureId );
+			item.children = [ ...children ].reverse().map( ( child ) => ( {
+				id:      child.id,
+				name:    child.name || getDefaultLayerName( child ),
+				type:    getObjectType( child ),
+				locked:  ! ( child.selectable ?? true ),
+				visible: child.visible ?? true,
+			} ) );
+		}
+		return item;
+	}
+
+	const layers = [ ...objects ].reverse().map( makeItem );
 	dispatch.setLayers( layers );
 }

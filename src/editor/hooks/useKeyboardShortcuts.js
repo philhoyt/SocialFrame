@@ -58,6 +58,20 @@ export function useKeyboardShortcuts( fabricApi, designId ) {
 				return;
 			}
 
+			// Group: Ctrl/Cmd+G
+			if ( mod && ! e.shiftKey && e.key === 'g' ) {
+				e.preventDefault();
+				fabricApi?.groupSelected?.();
+				return;
+			}
+
+			// Ungroup: Ctrl/Cmd+Shift+G
+			if ( mod && e.shiftKey && e.key === 'g' ) {
+				e.preventDefault();
+				fabricApi?.ungroupSelected?.();
+				return;
+			}
+
 			// Delete selected: Backspace / Delete (when not in a text field)
 			if ( ( e.key === 'Backspace' || e.key === 'Delete' ) ) {
 				const tag = document.activeElement?.tagName;
