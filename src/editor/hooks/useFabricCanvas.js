@@ -443,7 +443,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
 		canvas.renderAll();
 
-		const dataURL = canvas.toDataURL( { format: 'png', multiplier: 1 } );
+		// Read pixels directly from the lower canvas — Fabric v6's toDataURL() creates
+		// an offscreen canvas internally whose context is null after setDimensions().
+		const dataURL = canvas.lowerCanvasEl.toDataURL( 'image/png' );
 
 		// Restore viewport and shadow.
 		if ( artboard ) artboard.set( 'shadow', prevShadow );

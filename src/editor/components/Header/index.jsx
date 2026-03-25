@@ -1,7 +1,6 @@
 import { useSelect, useDispatch } from '@wordpress/data';
 import { Button, TextControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
-import { createSuccessNotice, createErrorNotice } from '@wordpress/notices';
 import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
@@ -13,7 +12,8 @@ import { exportDesign, saveAsTemplate } from '../../utils/exportHelpers';
 import './Header.css';
 
 export function Header() {
-	const dispatch = useDispatch( STORE_KEY );
+	const dispatch                                    = useDispatch( STORE_KEY );
+	const { createSuccessNotice, createErrorNotice } = useDispatch( 'core/notices' );
 
 	const {
 		title,
@@ -69,7 +69,7 @@ export function Header() {
 		dispatch.setSaving( true );
 		try {
 			const result = await exportDesign( fabric.toDataURL, designId, apiFetch );
-			dispatch( createSuccessNotice(
+			createSuccessNotice(
 				__( 'Design exported successfully.', 'socialframe' ),
 				{
 					actions: [
@@ -77,9 +77,9 @@ export function Header() {
 						{ label: __( 'View in Library', 'socialframe' ), url: result.libraryUrl },
 					],
 				}
-			) );
+			);
 		} catch ( e ) {
-			dispatch( createErrorNotice( __( 'Export failed. Please try again.', 'socialframe' ) ) );
+			createErrorNotice( __( 'Export failed. Please try again.', 'socialframe' ) );
 		} finally {
 			dispatch.setSaving( false );
 		}
@@ -95,9 +95,9 @@ export function Header() {
 				fabricJson: fabric.getJSON(),
 				apiFetch,
 			} );
-			dispatch( createSuccessNotice( __( 'Saved as template.', 'socialframe' ) ) );
+			createSuccessNotice( __( 'Saved as template.', 'socialframe' ) );
 		} catch ( e ) {
-			dispatch( createErrorNotice( __( 'Could not save template.', 'socialframe' ) ) );
+			createErrorNotice( __( 'Could not save template.', 'socialframe' ) );
 		} finally {
 			dispatch.setSaving( false );
 		}
