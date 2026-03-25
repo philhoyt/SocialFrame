@@ -241,16 +241,27 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			const prevWidth = obj.width;
 			obj.set( 'width', 9999 );
 			obj.initDimensions();
-			// Use _measureLine (same path as the word-wrap logic) so measurements
-			// are consistent and the last word never wraps at the fitted width.
+			const targetLineCount = obj._textLines.length;
+
+			// Use _measureLine to get the widest line at unconstrained width.
 			let maxLineWidth = 0;
 			for ( let i = 0; i < obj._textLines.length; i++ ) {
 				const measured = obj._measureLine( i );
 				if ( measured.width > maxLineWidth ) maxLineWidth = measured.width;
 			}
-			const naturalWidth = Math.max( Math.ceil( maxLineWidth ) + 2, 50 );
+
+			// Start at ceil of measured width then nudge up 1px at a time until
+			// Fabric's own wrapping logic agrees the text fits (line count stable).
+			// This beats any fixed buffer because it uses the exact same code path.
+			let naturalWidth = Math.max( Math.ceil( maxLineWidth ), 50 );
 			obj.set( 'width', naturalWidth );
 			obj.initDimensions();
+			while ( obj._textLines.length > targetLineCount && naturalWidth < 9999 ) {
+				naturalWidth += 1;
+				obj.set( 'width', naturalWidth );
+				obj.initDimensions();
+			}
+
 			canvas.renderAll();
 
 			if ( naturalWidth !== prevWidth ) {
