@@ -160,6 +160,11 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 					}
 
 					canvas.backgroundColor = null;
+					// Restore interactive flag on groups (custom props not always
+					// round-tripped by loadFromJSON in all Fabric v6 builds).
+					canvas.getObjects().forEach( ( obj ) => {
+						if ( obj.type === 'group' ) obj.interactive = true;
+					} );
 					syncLayersToStore( canvas, dispatch );
 					canvas.renderAll();
 					fitToScreen();
@@ -410,7 +415,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
-		return fabricRef.current?.toJSON( [ 'id', 'isArtboard' ] ) ?? null;
+		return fabricRef.current?.toJSON( [ 'id', 'isArtboard', 'name', 'interactive' ] ) ?? null;
 	}, [] );
 
 	/**
@@ -741,34 +746,54 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	// ── Alignment ─────────────────────────────────────────────────────────────
 
-	/** Align the selected object relative to the artboard boundaries. */
+	/** Align the selected object relative to the artboard (or parent group) boundaries. */
 	const alignObject = useCallback( ( direction ) => {
 		const canvas = fabricRef.current;
 		const obj    = canvas?.getActiveObject();
 		if ( ! canvas || ! obj ) return;
 
-		const bbox    = obj.getBoundingRect();
-		const offsetL = obj.left - bbox.left;
-		const offsetT = obj.top  - bbox.top;
-		const artW    = artboardWRef.current;
-		const artH    = artboardHRef.current;
+		const parentGroup  = obj.group && obj.group.type === 'group' ? obj.group : null;
 		const prevLeft = obj.left;
 		const prevTop  = obj.top;
-
 		let newLeft = obj.left;
 		let newTop  = obj.top;
 
-		switch ( direction ) {
-			case 'left':    newLeft = offsetL; break;
-			case 'centerH': newLeft = ( artW - bbox.width )  / 2 + offsetL; break;
-			case 'right':   newLeft = artW - bbox.width  + offsetL; break;
-			case 'top':     newTop  = offsetT; break;
-			case 'centerV': newTop  = ( artH - bbox.height ) / 2 + offsetT; break;
-			case 'bottom':  newTop  = artH - bbox.height + offsetT; break;
+		if ( parentGroup ) {
+			// Align within group: group local space has center at (0,0),
+			// so top-left corner is (-W/2, -H/2) and bottom-right is (W/2, H/2).
+			const cW = parentGroup.width;
+			const cH = parentGroup.height;
+			const oW = obj.getScaledWidth();
+			const oH = obj.getScaledHeight();
+
+			switch ( direction ) {
+				case 'left':    newLeft = -cW / 2; break;
+				case 'centerH': newLeft = -oW / 2; break;
+				case 'right':   newLeft =  cW / 2 - oW; break;
+				case 'top':     newTop  = -cH / 2; break;
+				case 'centerV': newTop  = -oH / 2; break;
+				case 'bottom':  newTop  =  cH / 2 - oH; break;
+			}
+		} else {
+			const bbox    = obj.getBoundingRect();
+			const offsetL = obj.left - bbox.left;
+			const offsetT = obj.top  - bbox.top;
+			const artW    = artboardWRef.current;
+			const artH    = artboardHRef.current;
+
+			switch ( direction ) {
+				case 'left':    newLeft = offsetL; break;
+				case 'centerH': newLeft = ( artW - bbox.width )  / 2 + offsetL; break;
+				case 'right':   newLeft = artW - bbox.width  + offsetL; break;
+				case 'top':     newTop  = offsetT; break;
+				case 'centerV': newTop  = ( artH - bbox.height ) / 2 + offsetT; break;
+				case 'bottom':  newTop  = artH - bbox.height + offsetT; break;
+			}
 		}
 
 		obj.set( { left: newLeft, top: newTop } );
 		obj.setCoords();
+		if ( parentGroup ) parentGroup.setCoords();
 		canvas.renderAll();
 		syncSelection( obj, dispatch );
 		dispatch.markDirty();
@@ -789,8 +814,25 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	const selectById = useCallback( ( id ) => {
 		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
+		if ( ! canvas ) return;
+
+		// Search top-level objects first.
+		let obj = canvas.getObjects().find( ( o ) => o.id === id );
+
+		if ( ! obj ) {
+			// Search inside groups for the child.
+			for ( const topObj of canvas.getObjects() ) {
+				if ( topObj.type === 'group' ) {
+					const child = topObj.getObjects().find( ( c ) => c.id === id );
+					if ( child ) {
+						obj = child;
+						break;
+					}
+				}
+			}
+		}
+
+		if ( ! obj ) return;
 		canvas.setActiveObject( obj );
 		canvas.renderAll();
 	}, [] );
@@ -882,6 +924,45 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		} );
 	}, [ dispatch ] );
 
+	/** Move a child object within its parent group up or down. */
+	const moveObjectInGroup = useCallback( ( groupId, childId, direction ) => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) return;
+		const group = canvas.getObjects().find( ( o ) => o.id === groupId && o.type === 'group' );
+		if ( ! group ) return;
+		const child = group.getObjects().find( ( c ) => c.id === childId );
+		if ( ! child ) return;
+
+		if ( direction === 'up' ) {
+			group.bringObjectForward( child );
+		} else {
+			group.sendObjectBackwards( child );
+		}
+		group.setCoords();
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: `Move child layer ${ direction }`,
+			undo: () => {
+				if ( direction === 'up' ) group.sendObjectBackwards( child );
+				else group.bringObjectForward( child );
+				group.setCoords();
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.markDirty();
+			},
+			redo: () => {
+				if ( direction === 'up' ) group.bringObjectForward( child );
+				else group.sendObjectBackwards( child );
+				group.setCoords();
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.markDirty();
+			},
+		} );
+	}, [ dispatch ] );
+
 	/** Duplicate the currently active object, offset by 20px. */
 	const duplicateSelected = useCallback( async () => {
 		const canvas = fabricRef.current;
@@ -907,10 +988,26 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		const active = canvas?.getActiveObject();
 		if ( ! canvas || ! active || ( active.type !== 'activeSelection' && active.type !== 'activeselection' ) ) return;
 
-		const group = active.toGroup();
-		if ( ! group.id ) group.id = genId();
-		if ( ! group.name ) group.name = 'Group';
+		// Fabric v6 removed toGroup(). Implement manually:
+		// 1. discardActiveObject restores each object to absolute canvas coordinates.
+		// 2. Remove objects from canvas individually.
+		// 3. Create an empty Group, add it to canvas so group.canvas is set.
+		// 4. group.add(objects) calls enterGroup(obj, true) per object which converts
+		//    canvas-absolute → group-relative, then the layout manager repositions
+		//    the group and adjusts all child offsets in one pass.
+		const objects = active.getObjects().slice();
+		canvas.discardActiveObject();
+		objects.forEach( ( obj ) => canvas.remove( obj ) );
 
+		const group = new fabric.Group( [] );
+		group.id          = genId();
+		group.name        = 'Group';
+		group.interactive = true;
+		canvas.add( group );
+		group.add( ...objects );
+
+		canvas.setActiveObject( group );
+		group.setCoords();
 		canvas.renderAll();
 		syncLayersToStore( canvas, dispatch );
 		syncSelection( group, dispatch );
@@ -918,23 +1015,31 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		dispatch.pushHistory( {
 			label: 'Group objects',
 			undo: () => {
-				canvas.setActiveObject( group );
-				const sel = group.toActiveSelection();
-				canvas.setActiveObject( sel );
+				const objs = group.getObjects().slice();
+				objs.forEach( ( obj ) => group.remove( obj ) ); // restores absolute positions
+				canvas.remove( group );
+				objs.forEach( ( obj ) => canvas.add( obj ) );
+				canvas.discardActiveObject();
 				canvas.renderAll();
 				syncLayersToStore( canvas, dispatch );
 				dispatch.clearSelection();
 			},
 			redo: () => {
-				const active2 = canvas.getActiveObject();
-				if ( active2?.type === 'activeSelection' || active2?.type === 'activeselection' ) {
-					const g = active2.toGroup();
-					g.id   = group.id;
-					g.name = group.name;
-					canvas.renderAll();
-					syncLayersToStore( canvas, dispatch );
-					syncSelection( g, dispatch );
-				}
+				const objs = group.getObjects().slice().length
+					? group.getObjects().slice()
+					: objects.filter( ( o ) => canvas.getObjects().includes( o ) );
+				objs.forEach( ( obj ) => canvas.remove( obj ) );
+				const g = new fabric.Group( [] );
+				g.id          = group.id;
+				g.name        = group.name;
+				g.interactive = true;
+				canvas.add( g );
+				g.add( ...objs );
+				canvas.setActiveObject( g );
+				g.setCoords();
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				syncSelection( g, dispatch );
 			},
 		} );
 	}, [ dispatch ] );
@@ -948,7 +1053,15 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		const groupId  = group.id;
 		const groupName = group.name;
 
-		const sel = group.toActiveSelection();
+		// Fabric v6 removed toActiveSelection(). Implement manually:
+		// group.remove(obj) calls exitGroup(obj, false) which applies the group's
+		// transform matrix to the object, restoring canvas-absolute coordinates.
+		const objects = group.getObjects().slice();
+		objects.forEach( ( obj ) => group.remove( obj ) );
+		canvas.remove( group );
+		objects.forEach( ( obj ) => canvas.add( obj ) );
+
+		const sel = new fabric.ActiveSelection( objects, { canvas } );
 		canvas.setActiveObject( sel );
 		canvas.renderAll();
 		syncLayersToStore( canvas, dispatch );
@@ -957,19 +1070,28 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		dispatch.pushHistory( {
 			label: 'Ungroup objects',
 			undo: () => {
-				const current = canvas.getActiveObject();
-				if ( current?.type === 'activeSelection' || current?.type === 'activeselection' ) {
-					const g = current.toGroup();
-					g.id   = groupId;
-					g.name = groupName;
-					canvas.renderAll();
-					syncLayersToStore( canvas, dispatch );
-					syncSelection( g, dispatch );
-				}
+				const objs = objects.filter( ( o ) => canvas.getObjects().includes( o ) );
+				objs.forEach( ( obj ) => canvas.remove( obj ) );
+				const g = new fabric.Group( [] );
+				g.id          = groupId;
+				g.name        = groupName;
+				g.interactive = true;
+				canvas.add( g );
+				g.add( ...objs );
+				canvas.setActiveObject( g );
+				g.setCoords();
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				syncSelection( g, dispatch );
 			},
 			redo: () => {
-				canvas.setActiveObject( group );
-				const s = group.toActiveSelection();
+				const objs = group.getObjects().slice().length
+					? group.getObjects().slice()
+					: objects.filter( ( o ) => canvas.getObjects().includes( o ) );
+				objs.forEach( ( obj ) => group.remove( obj ) );
+				canvas.remove( group );
+				objs.forEach( ( obj ) => canvas.add( obj ) );
+				const s = new fabric.ActiveSelection( objs, { canvas } );
 				canvas.setActiveObject( s );
 				canvas.renderAll();
 				syncLayersToStore( canvas, dispatch );
@@ -980,8 +1102,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	const setLayerLocked = useCallback( ( id, locked ) => {
 		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
+		if ( ! canvas ) return;
+		const obj = findObjectById( canvas, id );
+		if ( ! obj ) return;
 		obj.set( { selectable: ! locked, evented: ! locked } );
 		if ( locked ) canvas.discardActiveObject();
 		canvas.renderAll();
@@ -991,12 +1114,134 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	const setLayerVisible = useCallback( ( id, visible ) => {
 		const canvas = fabricRef.current;
-		const obj    = canvas?.getObjects().find( ( o ) => o.id === id );
-		if ( ! canvas || ! obj ) return;
+		if ( ! canvas ) return;
+		const obj = findObjectById( canvas, id );
+		if ( ! obj ) return;
 		obj.set( 'visible', visible );
 		canvas.renderAll();
 		syncLayersToStore( canvas, dispatch );
 		dispatch.markDirty();
+	}, [ dispatch ] );
+
+	/**
+	 * Toggle-select a top-level canvas object by ID, building or updating an
+	 * ActiveSelection when a modifier key is held in the layers panel.
+	 */
+	const toggleSelectById = useCallback( ( id ) => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) return;
+
+		// Only top-level objects can participate in an ActiveSelection.
+		const targetObj = canvas.getObjects().find( ( o ) => o.id === id );
+		if ( ! targetObj ) return;
+
+		const active = canvas.getActiveObject();
+
+		if ( ! active ) {
+			canvas.setActiveObject( targetObj );
+		} else if ( active.type === 'activeselection' || active.type === 'activeSelection' ) {
+			const currentObjs = active.getObjects();
+			canvas.discardActiveObject();
+			if ( currentObjs.includes( targetObj ) ) {
+				const remaining = currentObjs.filter( ( o ) => o !== targetObj );
+				if ( remaining.length === 1 ) {
+					canvas.setActiveObject( remaining[ 0 ] );
+				} else if ( remaining.length > 1 ) {
+					canvas.setActiveObject( new fabric.ActiveSelection( remaining, { canvas } ) );
+				}
+			} else {
+				canvas.setActiveObject( new fabric.ActiveSelection( [ ...currentObjs, targetObj ], { canvas } ) );
+			}
+		} else if ( active === targetObj ) {
+			canvas.discardActiveObject();
+		} else {
+			canvas.discardActiveObject();
+			canvas.setActiveObject( new fabric.ActiveSelection( [ active, targetObj ], { canvas } ) );
+		}
+
+		canvas.renderAll();
+	}, [] );
+
+	/** Extract a child object from its parent group back onto the canvas. */
+	const removeFromGroup = useCallback( ( groupId, childId ) => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) return;
+		const group = canvas.getObjects().find( ( o ) => o.id === groupId && o.type === 'group' );
+		if ( ! group ) return;
+		const child = group.getObjects().find( ( c ) => c.id === childId );
+		if ( ! child ) return;
+
+		// group.remove(child) calls exitGroup which restores absolute coords.
+		group.remove( child );
+		canvas.add( child );
+
+		const isEmpty = group.getObjects().length === 0;
+		if ( isEmpty ) canvas.remove( group );
+
+		canvas.setActiveObject( child );
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Remove from group',
+			undo: () => {
+				canvas.remove( child );
+				if ( ! canvas.getObjects().includes( group ) ) canvas.add( group );
+				group.add( child );
+				group.setCoords();
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.markDirty();
+			},
+			redo: () => {
+				group.remove( child );
+				canvas.add( child );
+				if ( group.getObjects().length === 0 ) canvas.remove( group );
+				canvas.setActiveObject( child );
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.markDirty();
+			},
+		} );
+	}, [ dispatch ] );
+
+	/** Move a top-level canvas object into an existing group. */
+	const addToGroup = useCallback( ( groupId, objectId ) => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) return;
+		const group = canvas.getObjects().find( ( o ) => o.id === groupId && o.type === 'group' );
+		const obj   = canvas.getObjects().find( ( o ) => o.id === objectId );
+		if ( ! group || ! obj || obj === group ) return;
+
+		canvas.discardActiveObject();
+		canvas.remove( obj );
+		group.add( obj );
+		group.setCoords();
+		canvas.setActiveObject( group );
+		canvas.renderAll();
+		syncLayersToStore( canvas, dispatch );
+		dispatch.markDirty();
+		dispatch.pushHistory( {
+			label: 'Add to group',
+			undo: () => {
+				group.remove( obj );
+				canvas.add( obj );
+				canvas.setActiveObject( obj );
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.markDirty();
+			},
+			redo: () => {
+				canvas.discardActiveObject();
+				canvas.remove( obj );
+				group.add( obj );
+				group.setCoords();
+				canvas.setActiveObject( group );
+				canvas.renderAll();
+				syncLayersToStore( canvas, dispatch );
+				dispatch.markDirty();
+			},
+		} );
 	}, [ dispatch ] );
 
 	return {
@@ -1031,6 +1276,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		duplicateSelected,
 		groupSelected,
 		ungroupSelected,
+		moveObjectInGroup,
+		toggleSelectById,
+		removeFromGroup,
+		addToGroup,
 		setLayerLocked,
 		setLayerVisible,
 	};
@@ -1117,6 +1366,25 @@ function syncSelection( obj, dispatch ) {
  */
 function isArtboardObject( o ) {
 	return o.isArtboard || o.id === 'artboard';
+}
+
+/**
+ * Find a canvas object by ID, searching both top-level objects and group children.
+ *
+ * @param {fabric.Canvas} canvas
+ * @param {string}        id
+ * @returns {fabric.Object|null}
+ */
+function findObjectById( canvas, id ) {
+	for ( const obj of canvas.getObjects() ) {
+		if ( obj.id === id ) return obj;
+		if ( obj.type === 'group' ) {
+			for ( const child of obj.getObjects() ) {
+				if ( child.id === id ) return child;
+			}
+		}
+	}
+	return null;
 }
 
 function syncLayersToStore( canvas, dispatch ) {

@@ -15,6 +15,14 @@ export function LayersPanel() {
 	const [ expandedGroups, setExpandedGroups ] = useState( {} );
 	const committingRef = useRef( false );
 
+	// True when a single top-level non-group object is selected — used to show
+	// the "Add to group" button on group rows.
+	const canAddToGroup = selectedId &&
+		( layers ?? [] ).some( ( l ) => l.id === selectedId ) &&
+		selectionType !== 'group' &&
+		selectionType !== 'multi' &&
+		selectionType !== 'none';
+
 	function startRename( layer ) {
 		setEditingId( layer.id );
 		setEditName( layer.name );
@@ -47,7 +55,17 @@ export function LayersPanel() {
 		setExpandedGroups( ( prev ) => ( { ...prev, [ id ]: ! prev[ id ] } ) );
 	}
 
-	function renderLayerRow( layer, isChild = false ) {
+	function handleLayerClick( e, layer, isChild ) {
+		// Modifier key → multi-select (top-level only).
+		if ( ! isChild && ( e.shiftKey || e.metaKey || e.ctrlKey ) ) {
+			e.stopPropagation();
+			fabric.toggleSelectById( layer.id );
+		} else {
+			fabric.selectById( layer.id );
+		}
+	}
+
+	function renderLayerRow( layer, isChild = false, parentId = null ) {
 		const isGroup    = layer.type === 'group';
 		const isExpanded = expandedGroups[ layer.id ] ?? true;
 
@@ -61,7 +79,7 @@ export function LayersPanel() {
 					! layer.visible ? 'is-hidden' : '',
 					isChild ? 'is-child' : '',
 				].filter( Boolean ).join( ' ' ) }
-				onClick={ () => fabric.selectById( layer.id ) }
+				onClick={ ( e ) => handleLayerClick( e, layer, isChild ) }
 			>
 				{ isGroup && (
 					<button
@@ -115,11 +133,53 @@ export function LayersPanel() {
 
 				<span className="socialframe-layers__actions" onClick={ ( e ) => e.stopPropagation() }>
 					{ isGroup ? (
-						<button
-							className="socialframe-layers__action-btn"
-							title={ __( 'Ungroup', 'socialframe' ) }
-							onClick={ () => { fabric.selectById( layer.id ); fabric.ungroupSelected(); } }
-						>⊠</button>
+						<>
+							<button
+								className="socialframe-layers__action-btn"
+								title={ __( 'Move up', 'socialframe' ) }
+								onClick={ () => fabric.moveLayerUp( layer.id ) }
+							>↑</button>
+							<button
+								className="socialframe-layers__action-btn"
+								title={ __( 'Move down', 'socialframe' ) }
+								onClick={ () => fabric.moveLayerDown( layer.id ) }
+							>↓</button>
+							{ canAddToGroup && (
+								<button
+									className="socialframe-layers__action-btn"
+									title={ __( 'Add selected layer to this group', 'socialframe' ) }
+									onClick={ () => fabric.addToGroup( layer.id, selectedId ) }
+								>+</button>
+							) }
+							<button
+								className="socialframe-layers__action-btn"
+								title={ __( 'Ungroup', 'socialframe' ) }
+								onClick={ () => { fabric.selectById( layer.id ); fabric.ungroupSelected(); } }
+							>⊠</button>
+							<button
+								className="socialframe-layers__action-btn socialframe-layers__action-btn--delete"
+								title={ __( 'Delete', 'socialframe' ) }
+								onClick={ () => fabric.deleteById( layer.id ) }
+							>✕</button>
+						</>
+					) : isChild ? (
+						<>
+							<button
+								className="socialframe-layers__action-btn"
+								title={ __( 'Move up', 'socialframe' ) }
+								onClick={ () => fabric.moveObjectInGroup( parentId, layer.id, 'up' ) }
+							>↑</button>
+							<button
+								className="socialframe-layers__action-btn"
+								title={ __( 'Move down', 'socialframe' ) }
+								onClick={ () => fabric.moveObjectInGroup( parentId, layer.id, 'down' ) }
+							>↓</button>
+							<button
+								className="socialframe-layers__action-btn"
+								title={ __( 'Remove from group', 'socialframe' ) }
+								onClick={ () => fabric.removeFromGroup( parentId, layer.id ) }
+							>←</button>
+						</>
 					) : (
 						<>
 							<button
@@ -137,14 +197,12 @@ export function LayersPanel() {
 								title={ __( 'Duplicate', 'socialframe' ) }
 								onClick={ () => fabric.duplicateById( layer.id ) }
 							>⧉</button>
+							<button
+								className="socialframe-layers__action-btn socialframe-layers__action-btn--delete"
+								title={ __( 'Delete', 'socialframe' ) }
+								onClick={ () => fabric.deleteById( layer.id ) }
+							>✕</button>
 						</>
-					) }
-					{ ! isChild && (
-						<button
-							className="socialframe-layers__action-btn socialframe-layers__action-btn--delete"
-							title={ __( 'Delete', 'socialframe' ) }
-							onClick={ () => fabric.deleteById( layer.id ) }
-						>✕</button>
 					) }
 				</span>
 			</li>
@@ -189,7 +247,7 @@ export function LayersPanel() {
 						{ renderLayerRow( layer ) }
 						{ layer.type === 'group' && ( expandedGroups[ layer.id ] ?? true ) && layer.children?.length > 0 && (
 							<ul className="socialframe-layers__children" key={ `${ layer.id }-children` }>
-								{ layer.children.map( ( child ) => renderLayerRow( child, true ) ) }
+								{ layer.children.map( ( child ) => renderLayerRow( child, true, layer.id ) ) }
 							</ul>
 						) }
 					</>
