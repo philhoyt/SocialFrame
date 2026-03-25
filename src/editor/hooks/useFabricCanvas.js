@@ -233,10 +233,18 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			} );
 		} );
 
-		// ── Double-click: fit textbox to content width ────────────────────────
+		// ── Double-click on mr handle: fit textbox to content width ─────────
 		canvas.on( 'mouse:dblclick', ( e ) => {
 			const obj = e.target;
 			if ( ! obj || obj.type !== 'textbox' ) return;
+
+			// Only trigger when the double-click lands on the middle-right (mr)
+			// transform handle. oCoords and absolutePointer are both in scene
+			// (canvas) coordinates so the distance check is straightforward.
+			// oCoords are in viewport space (canvas element px); e.pointer matches.
+			const mr  = obj.oCoords?.mr;
+			const ptr = e.pointer;
+			if ( ! mr || ! ptr || Math.hypot( ptr.x - mr.x, ptr.y - mr.y ) > 12 ) return;
 
 			const prevWidth = obj.width;
 			obj.set( 'width', 9999 );
