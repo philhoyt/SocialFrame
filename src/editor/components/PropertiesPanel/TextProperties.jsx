@@ -20,7 +20,7 @@ export function TextProperties() {
 	const update = ( partial, label ) => fabric?.updateSelected( partial, label );
 
 	const fontOptions = ( themeFonts ?? [] ).map( ( f ) => ( {
-		label: f.name,
+		label: f.name || f.fontFamily,
 		value: f.fontFamily,
 	} ) );
 
