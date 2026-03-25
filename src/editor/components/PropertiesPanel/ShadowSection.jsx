@@ -1,12 +1,12 @@
 import { useSelect } from '@wordpress/data';
-import { RangeControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import * as fabric from 'fabric';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
 import { ColorRow } from './ColorRow';
-import { LinkedRangeControls } from './LinkedRangeControls';
+import { NumField } from './NumField';
+import { LinkedNumFields } from './LinkedNumFields';
 
 const DEFAULT_SHADOW = { blur: 10, offsetX: 4, offsetY: 4, color: 'rgba(0,0,0,0.5)' };
 
@@ -49,30 +49,31 @@ export function ShadowSection() {
 						pickerLabel={ __( 'Shadow color', 'socialframe' ) }
 					/>
 
-					<RangeControl
-						label={ __( 'Blur', 'socialframe' ) }
-						value={ shadow.blur }
-						min={ 0 }
-						max={ 100 }
-						step={ 2 }
-						onChange={ ( v ) => applyShadow( { blur: v } ) }
-					/>
-					<LinkedRangeControls
-						stateKey="shadow-offset"
-						aLabel={ __( 'Offset X', 'socialframe' ) }
-						aValue={ shadow.offsetX }
-						aMin={ -200 }
-						aMax={ 200 }
-						aStep={ 2 }
-						onChangeA={ ( v ) => applyShadow( { offsetX: v } ) }
-						bLabel={ __( 'Offset Y', 'socialframe' ) }
-						bValue={ shadow.offsetY }
-						bMin={ -200 }
-						bMax={ 200 }
-						bStep={ 2 }
-						onChangeB={ ( v ) => applyShadow( { offsetY: v } ) }
-						onChangeBoth={ ( x, y ) => applyShadow( { offsetX: x, offsetY: y } ) }
-					/>
+					<div style={ { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 } }>
+						<NumField
+							label="Blur"
+							value={ shadow.blur }
+							min={ 0 }
+							onChange={ ( v ) => applyShadow( { blur: v } ) }
+						/>
+						<LinkedNumFields
+							stateKey="shadow-offset"
+							linkMode="delta"
+							lockLabel={ __( 'Lock offsets', 'socialframe' ) }
+							unlockLabel={ __( 'Unlock offsets', 'socialframe' ) }
+							aLabel="X"
+							aValue={ shadow.offsetX }
+							aMin={ -200 }
+							aMax={ 200 }
+							onChangeA={ ( v ) => applyShadow( { offsetX: v } ) }
+							bLabel="Y"
+							bValue={ shadow.offsetY }
+							bMin={ -200 }
+							bMax={ 200 }
+							onChangeB={ ( v ) => applyShadow( { offsetY: v } ) }
+							onChangeBoth={ ( x, y ) => applyShadow( { offsetX: x, offsetY: y } ) }
+						/>
+					</div>
 				</>
 			) }
 		</>

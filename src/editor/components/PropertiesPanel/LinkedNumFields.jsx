@@ -33,9 +33,18 @@ const IconUnlinked = () => (
 	</svg>
 );
 
+function clamp( v, min, max ) {
+	if ( min !== undefined && v < min ) return min;
+	if ( max !== undefined && v > max ) return max;
+	return v;
+}
+
 /**
- * Width + Height NumFields with an aspect-ratio lock toggle between them.
+ * Two NumFields with a lock toggle between them.
  * Spans both columns when placed inside a .socialframe-num-grid.
+ *
+ * linkMode="ratio" (default) — scales the other value proportionally (W/H).
+ * linkMode="delta"           — shifts the other value by the same delta (X/Y offsets).
  *
  * When linked, both values must be updated atomically. Provide
  * `onChangeBoth(aVal, bVal)` for that; `onChangeA`/`onChangeB` handle
@@ -45,22 +54,26 @@ const IconUnlinked = () => (
  * @param {string}   props.aLabel
  * @param {number}   props.aValue
  * @param {number}   [props.aMin]
+ * @param {number}   [props.aMax]
  * @param {number}   [props.aStep=1]
  * @param {Function} props.onChangeA
  * @param {string}   props.bLabel
  * @param {number}   props.bValue
  * @param {number}   [props.bMin]
+ * @param {number}   [props.bMax]
  * @param {number}   [props.bStep=1]
  * @param {Function} props.onChangeB
  * @param {Function} props.onChangeBoth   Called with (aVal, bVal) when linked.
- * @param {string}   [props.stateKey]    Unique key so state persists across remounts.
+ * @param {string}   [props.linkMode]     "ratio" (default) or "delta".
+ * @param {string}   [props.stateKey]     Unique key so state persists across remounts.
  * @param {string}   [props.lockLabel]
  * @param {string}   [props.unlockLabel]
  */
 export function LinkedNumFields( {
-	aLabel, aValue, aMin, aStep = 1, onChangeA,
-	bLabel, bValue, bMin, bStep = 1, onChangeB,
+	aLabel, aValue, aMin, aMax, aStep = 1, onChangeA,
+	bLabel, bValue, bMin, bMax, bStep = 1, onChangeB,
 	onChangeBoth,
+	linkMode    = 'ratio',
 	stateKey    = 'default',
 	lockLabel   = __( 'Lock aspect ratio', 'socialframe' ),
 	unlockLabel = __( 'Unlock aspect ratio', 'socialframe' ),
@@ -68,8 +81,10 @@ export function LinkedNumFields( {
 	const [ linked, setLinked ] = usePersistedLinked( stateKey );
 
 	function handleA( v ) {
-		if ( linked && aValue > 0 ) {
-			const newB = Math.round( v * ( bValue / aValue ) );
+		if ( linked ) {
+			const newB = linkMode === 'delta'
+				? clamp( bValue + ( v - aValue ), bMin, bMax )
+				: ( aValue > 0 ? Math.round( v * ( bValue / aValue ) ) : bValue );
 			onChangeBoth ? onChangeBoth( v, newB ) : ( onChangeA( v ), onChangeB( newB ) );
 		} else {
 			onChangeA( v );
@@ -77,8 +92,10 @@ export function LinkedNumFields( {
 	}
 
 	function handleB( v ) {
-		if ( linked && bValue > 0 ) {
-			const newA = Math.round( v * ( aValue / bValue ) );
+		if ( linked ) {
+			const newA = linkMode === 'delta'
+				? clamp( aValue + ( v - bValue ), aMin, aMax )
+				: ( bValue > 0 ? Math.round( v * ( aValue / bValue ) ) : aValue );
 			onChangeBoth ? onChangeBoth( newA, v ) : ( onChangeA( newA ), onChangeB( v ) );
 		} else {
 			onChangeB( v );
@@ -91,6 +108,7 @@ export function LinkedNumFields( {
 				label={ aLabel }
 				value={ aValue }
 				min={ aMin }
+				max={ aMax }
 				step={ aStep }
 				onChange={ handleA }
 			/>
@@ -108,6 +126,7 @@ export function LinkedNumFields( {
 				label={ bLabel }
 				value={ bValue }
 				min={ bMin }
+				max={ bMax }
 				step={ bStep }
 				onChange={ handleB }
 			/>
