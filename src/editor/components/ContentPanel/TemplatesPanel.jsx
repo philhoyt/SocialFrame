@@ -1,5 +1,5 @@
 import { useState, useEffect } from '@wordpress/element';
-import { Spinner } from '@wordpress/components';
+import { Spinner, Modal, Button } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
@@ -10,6 +10,7 @@ export function TemplatesPanel() {
 	const [ bundled, setBundled ] = useState( [] );
 	const [ userMade, setUserMade ] = useState( [] );
 	const [ loading, setLoading ] = useState( true );
+	const [ pendingTemplate, setPendingTemplate ] = useState( null );
 
 	useEffect( () => {
 		apiFetch( { path: 'socialframe/v1/templates' } )
@@ -21,7 +22,7 @@ export function TemplatesPanel() {
 			.finally( () => setLoading( false ) );
 	}, [] );
 
-	const loadTemplate = ( template ) => {
+	const applyTemplate = ( template ) => {
 		if ( ! fabric?.loadFromJSON ) {
 			return;
 		}
@@ -34,6 +35,15 @@ export function TemplatesPanel() {
 		} catch ( e ) {
 			// Invalid JSON — skip.
 		}
+	};
+
+	const loadTemplate = ( template ) => {
+		setPendingTemplate( template );
+	};
+
+	const confirmLoad = () => {
+		applyTemplate( pendingTemplate );
+		setPendingTemplate( null );
 	};
 
 	if ( loading ) {
@@ -61,6 +71,32 @@ export function TemplatesPanel() {
 
 	return (
 		<>
+			{ pendingTemplate && (
+				<Modal
+					title={ __( 'Replace current design?', 'socialframe' ) }
+					onRequestClose={ () => setPendingTemplate( null ) }
+					size="small"
+				>
+					<p>
+						{ __(
+							'Loading this template will replace your current design. Any unsaved changes will be lost.',
+							'socialframe'
+						) }
+					</p>
+					<div style={ { display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 } }>
+						<Button
+							variant="tertiary"
+							onClick={ () => setPendingTemplate( null ) }
+						>
+							{ __( 'Cancel', 'socialframe' ) }
+						</Button>
+						<Button variant="primary" onClick={ confirmLoad }>
+							{ __( 'Load Template', 'socialframe' ) }
+						</Button>
+					</div>
+				</Modal>
+			) }
+
 			{ bundled.length > 0 && (
 				<>
 					<div

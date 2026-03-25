@@ -120,29 +120,21 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 					//   3. Geometry: a rect at (0,0) whose dimensions match the format
 					const allObjects = canvas.getObjects();
 
-					const findArtboard = () =>
-						allObjects.find( ( o ) => isArtboardObject( o ) ) ??
-						allObjects.find(
-							( o ) =>
-								o.type === 'rect' &&
-								Math.abs( o.left ?? 0 ) < 1 &&
-								Math.abs( o.top ?? 0 ) < 1 &&
-								Math.round( o.width ?? 0 ) === artW &&
-								Math.round( o.height ?? 0 ) === artH
-						);
+					// Geometry fallback: any rect at (0,0) that is reasonably large.
+					// This covers the case where a template with different dimensions
+					// was saved — the format-derived artW/artH won't match.
+					const isArtboardCandidate = ( o ) =>
+						isArtboardObject( o ) ||
+						( o.type === 'rect' &&
+							Math.abs( o.left ?? 0 ) < 1 &&
+							Math.abs( o.top ?? 0 ) < 1 &&
+							( o.width ?? 0 ) >= 100 &&
+							( o.height ?? 0 ) >= 100 );
 
 					// Remove every artboard candidate first, keeping the best one.
 					// This cleans up duplicate rects that may have been created by
 					// previous broken loads (one from JSON + one from the else-branch).
-					const candidates = allObjects.filter(
-						( o ) =>
-							isArtboardObject( o ) ||
-							( o.type === 'rect' &&
-								Math.abs( o.left ?? 0 ) < 1 &&
-								Math.abs( o.top ?? 0 ) < 1 &&
-								Math.round( o.width ?? 0 ) === artW &&
-								Math.round( o.height ?? 0 ) === artH )
-					);
+					const candidates = allObjects.filter( isArtboardCandidate );
 
 					// Keep the first candidate (prefer one with known markers).
 					const best =
@@ -157,6 +149,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 					} );
 
 					if ( best ) {
+						// Update dimension refs from the actual artboard so fitToScreen
+						// and the overlay use the correct size (template may differ from format).
+						artboardWRef.current = Math.round( best.width ?? artW );
+						artboardHRef.current = Math.round( best.height ?? artH );
 						setupArtboard( best );
 					} else {
 						// Truly blank / old-format canvas — migrate backgroundColor.
@@ -677,6 +673,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			}
 			syncLayersToStore( canvas, dispatch );
 			canvas.renderAll();
+			dispatch.markDirty();
 		} );
 	}, [ dispatch ] );
 
