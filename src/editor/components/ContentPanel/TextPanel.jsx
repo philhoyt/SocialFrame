@@ -2,10 +2,11 @@ import { __ } from '@wordpress/i18n';
 import { useFabric } from '../../EditorApp';
 
 const TEXT_ROLES = [
-	{ role: 'heading',    label: __( 'Heading',    'socialframe' ), style: { fontSize: 24, fontWeight: 'bold' } },
-	{ role: 'subheading', label: __( 'Subheading', 'socialframe' ), style: { fontSize: 18 } },
-	{ role: 'body',       label: __( 'Body',       'socialframe' ), style: { fontSize: 14 } },
-	{ role: 'caption',    label: __( 'Caption',    'socialframe' ), style: { fontSize: 11 } },
+	{ role: 'huge',        label: __( 'Huge',        'socialframe' ), style: { fontSize: 28, fontWeight: 'bold' } },
+	{ role: 'extra-large', label: __( 'Extra Large', 'socialframe' ), style: { fontSize: 22 } },
+	{ role: 'large',       label: __( 'Large',       'socialframe' ), style: { fontSize: 17 } },
+	{ role: 'medium',      label: __( 'Medium',      'socialframe' ), style: { fontSize: 13 } },
+	{ role: 'small',       label: __( 'Small',       'socialframe' ), style: { fontSize: 11 } },
 ];
 
 export function TextPanel() {

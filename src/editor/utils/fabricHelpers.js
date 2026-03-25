@@ -34,10 +34,11 @@ function defaultFont() {
 }
 
 export const TEXT_ROLE_DEFAULTS = {
-	heading:    { fontSize: 72, fontWeight: 'bold' },
-	subheading: { fontSize: 48, fontWeight: 'normal' },
-	body:       { fontSize: 28, fontWeight: 'normal' },
-	caption:    { fontSize: 18, fontWeight: 'normal' },
+	huge:        { fontSize: 96, fontWeight: 'bold' },
+	'extra-large': { fontSize: 64, fontWeight: 'normal' },
+	large:       { fontSize: 40, fontWeight: 'normal' },
+	medium:      { fontSize: 24, fontWeight: 'normal' },
+	small:       { fontSize: 16, fontWeight: 'normal' },
 };
 
 /**
@@ -86,23 +87,32 @@ export function createShape( type, overrides = {} ) {
  * Textbox needs an explicit width so text wraps instead of running off-canvas.
  */
 const TEXT_ROLE_WIDTHS = {
-	heading:    800,
-	subheading: 700,
-	body:       700,
-	caption:    500,
+	huge:          900,
+	'extra-large': 800,
+	large:         700,
+	medium:        600,
+	small:         500,
 };
 
 /**
  * Create a Fabric Textbox for a given text role.
  * Textbox (vs IText) enforces a width boundary and wraps text automatically.
  *
- * @param {'heading'|'subheading'|'body'|'caption'} role Text role.
+ * @param {'huge'|'extra-large'|'large'|'medium'|'small'} role Text role.
  * @param {Object} overrides Additional Fabric options.
  * @returns {fabric.Textbox}
  */
+const TEXT_ROLE_LABELS = {
+	huge:          'Huge',
+	'extra-large': 'Extra Large',
+	large:         'Large',
+	medium:        'Medium',
+	small:         'Small',
+};
+
 export function createText( role, overrides = {} ) {
-	const defaults = TEXT_ROLE_DEFAULTS[ role ] ?? TEXT_ROLE_DEFAULTS.body;
-	const label    = role.charAt( 0 ).toUpperCase() + role.slice( 1 );
+	const defaults = TEXT_ROLE_DEFAULTS[ role ] ?? TEXT_ROLE_DEFAULTS.medium;
+	const label    = TEXT_ROLE_LABELS[ role ] ?? 'Text';
 
 	return new fabric.Textbox( label, {
 		id:         genId(),
