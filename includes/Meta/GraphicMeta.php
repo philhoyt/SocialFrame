@@ -99,7 +99,11 @@ class GraphicMeta {
 		if ( empty( $value ) ) {
 			return '';
 		}
-		$decoded = json_decode( wp_unslash( $value ), true );
+		// WordPress has already called wp_unslash() before invoking this
+		// sanitize_callback, so do NOT call it again — a second unslash would
+		// strip the backslash from JSON escape sequences like \n, corrupting
+		// multi-line text into a bare "n".
+		$decoded = json_decode( $value, true );
 		if ( ! is_array( $decoded ) ) {
 			return '';
 		}

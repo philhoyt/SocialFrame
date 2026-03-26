@@ -171,7 +171,7 @@ class DesignsController extends AbstractController {
 		update_post_meta( $post_id, 'socialframe_type', $type );
 
 		if ( ! empty( $fabric_json ) ) {
-			update_post_meta( $post_id, 'socialframe_fabric_json', $fabric_json );
+			update_post_meta( $post_id, 'socialframe_fabric_json', wp_slash( $fabric_json ) );
 		}
 
 		$post = get_post( $post_id );
@@ -217,7 +217,7 @@ class DesignsController extends AbstractController {
 		}
 
 		if ( $request->has_param( 'fabricJson' ) ) {
-			update_post_meta( $post->ID, 'socialframe_fabric_json', $request->get_param( 'fabricJson' ) );
+			update_post_meta( $post->ID, 'socialframe_fabric_json', wp_slash( $request->get_param( 'fabricJson' ) ) );
 		}
 
 		return $this->respond( $this->format_design( get_post( $post->ID ) ) );
