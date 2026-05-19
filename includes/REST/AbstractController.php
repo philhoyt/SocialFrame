@@ -99,7 +99,9 @@ abstract class AbstractController {
 	 * @return array<string, mixed>
 	 */
 	protected function format_design( \WP_Post $post ): array {
-		$image_id = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
+		$image_id     = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
+		$preview_path = (string) get_post_meta( $post->ID, 'socialframe_preview_path', true );
+		$preview_url  = $preview_path ? wp_upload_dir()['baseurl'] . '/' . $preview_path : '';
 
 		return [
 			'id'           => $post->ID,
@@ -108,7 +110,7 @@ abstract class AbstractController {
 			'type'         => (string) get_post_meta( $post->ID, 'socialframe_type', true ),
 			'fabricJson'   => (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true ),
 			'imageId'      => $image_id,
-			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : '',
+			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : $preview_url,
 			'modified'     => $post->post_modified_gmt,
 			'editUrl'      => admin_url( 'admin.php?page=socialframe-editor&id=' . $post->ID ),
 		];
