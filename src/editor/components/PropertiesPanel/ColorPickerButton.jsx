@@ -1,5 +1,4 @@
-import { Dropdown } from '@wordpress/components';
-import { ColorPicker } from '@wordpress/components';
+import { Dropdown, ColorPicker } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 /**

@@ -95,19 +95,21 @@ class EditorPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$design_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
-		wp_localize_script(
+		wp_add_inline_script(
 			'socialframe-editor',
-			'socialFrameConfig',
-			array_merge(
-				$theme->get_localize_data(),
-				[
-					'restUrl'  => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
-					'nonce'    => wp_create_nonce( 'wp_rest' ),
-					'designId' => $design_id,
-					'adminUrl' => esc_url( admin_url( 'admin.php?page=socialframe' ) ),
-					'formats'  => socialframe_get_formats(),
-				]
-			)
+			'window.socialFrameConfig = ' . wp_json_encode(
+				array_merge(
+					$theme->get_localize_data(),
+					[
+						'restUrl'  => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
+						'nonce'    => wp_create_nonce( 'wp_rest' ),
+						'designId' => $design_id,
+						'adminUrl' => esc_url( admin_url( 'admin.php?page=socialframe' ) ),
+						'formats'  => socialframe_get_formats(),
+					]
+				)
+			) . ';',
+			'before'
 		);
 
 		// Full-screen: hide wp-admin chrome.

@@ -60,11 +60,11 @@ export function useKeyboardShortcuts( fabricApi, designId ) {
 
 			// Delete selected: Backspace / Delete (when not in a text field)
 			if ( e.key === 'Backspace' || e.key === 'Delete' ) {
-				const tag = document.activeElement?.tagName;
+				const tag = e.target?.ownerDocument?.activeElement?.tagName;
 				if (
 					tag === 'INPUT' ||
 					tag === 'TEXTAREA' ||
-					document.activeElement?.isContentEditable
+					e.target?.ownerDocument?.activeElement?.isContentEditable
 				) {
 					return;
 				}

@@ -83,7 +83,14 @@ export function TemplatesPanel() {
 							'socialframe'
 						) }
 					</p>
-					<div style={ { display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 } }>
+					<div
+						style={ {
+							display: 'flex',
+							gap: 8,
+							justifyContent: 'flex-end',
+							marginTop: 16,
+						} }
+					>
 						<Button
 							variant="tertiary"
 							onClick={ () => setPendingTemplate( null ) }

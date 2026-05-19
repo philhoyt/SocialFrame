@@ -1,5 +1,5 @@
 import { useSelect } from '@wordpress/data';
-import { SelectControl, RangeControl } from '@wordpress/components';
+import { SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';

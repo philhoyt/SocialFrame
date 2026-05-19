@@ -121,15 +121,19 @@ export function LinkedNumFields( {
 
 	function handleA( v ) {
 		if ( linked ) {
-			const newB =
-				linkMode === 'delta'
-					? clamp( bValue + ( v - aValue ), bMin, bMax )
-					: aValue > 0
-					? Math.round( v * ( bValue / aValue ) )
-					: bValue;
-			onChangeBoth
-				? onChangeBoth( v, newB )
-				: ( onChangeA( v ), onChangeB( newB ) );
+			let newB;
+			if ( linkMode === 'delta' ) {
+				newB = clamp( bValue + ( v - aValue ), bMin, bMax );
+			} else {
+				newB =
+					aValue > 0 ? Math.round( v * ( bValue / aValue ) ) : bValue;
+			}
+			if ( onChangeBoth ) {
+				onChangeBoth( v, newB );
+			} else {
+				onChangeA( v );
+				onChangeB( newB );
+			}
 		} else {
 			onChangeA( v );
 		}
@@ -137,15 +141,19 @@ export function LinkedNumFields( {
 
 	function handleB( v ) {
 		if ( linked ) {
-			const newA =
-				linkMode === 'delta'
-					? clamp( aValue + ( v - bValue ), aMin, aMax )
-					: bValue > 0
-					? Math.round( v * ( aValue / bValue ) )
-					: aValue;
-			onChangeBoth
-				? onChangeBoth( newA, v )
-				: ( onChangeA( newA ), onChangeB( v ) );
+			let newA;
+			if ( linkMode === 'delta' ) {
+				newA = clamp( aValue + ( v - bValue ), aMin, aMax );
+			} else {
+				newA =
+					bValue > 0 ? Math.round( v * ( aValue / bValue ) ) : aValue;
+			}
+			if ( onChangeBoth ) {
+				onChangeBoth( newA, v );
+			} else {
+				onChangeA( newA );
+				onChangeB( v );
+			}
 		} else {
 			onChangeB( v );
 		}

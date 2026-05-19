@@ -4,7 +4,7 @@
  * @param {Function} toDataURL Canvas toDataURL function.
  * @param {number}   designId  Design post ID.
  * @param {Function} apiFetch  @wordpress/api-fetch.
- * @return {Promise<{attachmentId, url, libraryUrl}>}
+ * @return {Promise<{attachmentId: number, url: string, libraryUrl: string}>} The uploaded attachment data.
  */
 export async function exportDesign( toDataURL, designId, apiFetch ) {
 	const imageData = toDataURL();

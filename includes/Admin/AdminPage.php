@@ -127,15 +127,17 @@ class AdminPage {
 			);
 		}
 
-		wp_localize_script(
+		wp_add_inline_script(
 			'socialframe-admin',
-			'socialFrameAdminConfig',
-			[
-				'restUrl'  => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
-				'nonce'    => wp_create_nonce( 'wp_rest' ),
-				'adminUrl' => esc_url( admin_url( 'admin.php' ) ),
-				'formats'  => socialframe_get_formats(),
-			]
+			'window.socialFrameAdminConfig = ' . wp_json_encode(
+				[
+					'restUrl'  => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
+					'nonce'    => wp_create_nonce( 'wp_rest' ),
+					'adminUrl' => esc_url( admin_url( 'admin.php' ) ),
+					'formats'  => socialframe_get_formats(),
+				]
+			) . ';',
+			'before'
 		);
 	}
 
@@ -168,15 +170,17 @@ class AdminPage {
 			);
 		}
 
-		wp_localize_script(
+		wp_add_inline_script(
 			'socialframe-new-design',
-			'socialFrameNewConfig',
-			[
-				'restUrl'    => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
-				'nonce'      => wp_create_nonce( 'wp_rest' ),
-				'formats'    => socialframe_get_formats(),
-				'editorBase' => esc_url( admin_url( 'admin.php?page=socialframe-editor' ) ),
-			]
+			'window.socialFrameNewConfig = ' . wp_json_encode(
+				[
+					'restUrl'    => esc_url_raw( rest_url( 'socialframe/v1/' ) ),
+					'nonce'      => wp_create_nonce( 'wp_rest' ),
+					'formats'    => socialframe_get_formats(),
+					'editorBase' => esc_url( admin_url( 'admin.php?page=socialframe-editor' ) ),
+				]
+			) . ';',
+			'before'
 		);
 	}
 }

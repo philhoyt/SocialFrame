@@ -3,8 +3,6 @@ import { Modal, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import QRCode from 'qrcode';
 
-/* global navigator */
-
 export function ShareModal( { url, onClose } ) {
 	const canvasRef = useRef( null );
 	const [ copied, setCopied ] = useState( false );

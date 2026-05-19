@@ -9,6 +9,10 @@ declare( strict_types=1 );
 
 namespace SocialFrame\Theme;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Reads the active theme's theme.json to extract colors and fonts.
  */

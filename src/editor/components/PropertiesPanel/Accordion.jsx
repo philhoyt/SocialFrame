@@ -3,10 +3,10 @@ import { useState } from '@wordpress/element';
 /**
  * Figma-style collapsible accordion section for the properties panel.
  *
- * @param {Object}          props
- * @param {string}          props.title              Section label shown in the header.
- * @param {boolean}         [props.defaultOpen=true] Whether the section starts expanded.
- * @param {React.ReactNode} props.children
+ * @param {Object}                    props
+ * @param {string}                    props.title              Section label shown in the header.
+ * @param {boolean}                   [props.defaultOpen=true] Whether the section starts expanded.
+ * @param {import('react').ReactNode} props.children
  */
 export function Accordion( { title, children, defaultOpen = true } ) {
 	const [ isOpen, setIsOpen ] = useState( defaultOpen );

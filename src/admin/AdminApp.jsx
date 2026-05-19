@@ -60,8 +60,8 @@ export function AdminApp() {
 	);
 
 	const handleDelete = useCallback(
-		( items ) => {
-			const count = items.length;
+		( selectedItems ) => {
+			const count = selectedItems.length;
 			const msg =
 				count === 1
 					? __(
@@ -74,7 +74,7 @@ export function AdminApp() {
 				return;
 			}
 			Promise.all(
-				items.map( ( item ) =>
+				selectedItems.map( ( item ) =>
 					apiFetch( {
 						path: `socialframe/v1/designs/${ item.id }`,
 						method: 'DELETE',

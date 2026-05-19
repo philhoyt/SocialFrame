@@ -1,4 +1,4 @@
-import { useState, useRef } from '@wordpress/element';
+import { useState, useEffect, useRef } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
@@ -14,6 +14,14 @@ export function LayersPanel() {
 	const [ editingId, setEditingId ] = useState( null );
 	const [ editName, setEditName ] = useState( '' );
 	const committingRef = useRef( false );
+	const renameInputRef = useRef( null );
+
+	useEffect( () => {
+		if ( editingId !== null ) {
+			renameInputRef.current?.focus();
+			renameInputRef.current?.select();
+		}
+	}, [ editingId ] );
 
 	function startRename( layer ) {
 		setEditingId( layer.id );
@@ -67,16 +75,28 @@ export function LayersPanel() {
 			<p className="socialframe-panel__title">
 				{ __( 'Layers', 'socialframe' ) }
 			</p>
-			<ul className="socialframe-layers__list">
+			<ul
+				className="socialframe-layers__list"
+				role="listbox"
+				aria-label={ __( 'Layers', 'socialframe' ) }
+			>
 				{ layers.map( ( layer, index ) => (
 					<li
 						key={ layer.id ?? index }
+						role="option"
+						tabIndex={ 0 }
+						aria-selected={ selectedId === layer.id }
 						className={ `socialframe-layers__item${
 							selectedId === layer.id ? ' is-selected' : ''
 						}${ layer.locked ? ' is-locked' : '' }${
 							! layer.visible ? ' is-hidden' : ''
 						}` }
 						onClick={ () => fabric.selectById( layer.id ) }
+						onKeyDown={ ( e ) => {
+							if ( e.key === 'Enter' || e.key === ' ' ) {
+								fabric.selectById( layer.id );
+							}
+						} }
 					>
 						<span
 							className="socialframe-layers__type-icon"
@@ -88,8 +108,8 @@ export function LayersPanel() {
 						{ editingId !== null && editingId === layer.id ? (
 							<input
 								className="socialframe-layers__rename-input"
+								ref={ renameInputRef }
 								value={ editName }
-								autoFocus
 								onChange={ ( e ) =>
 									setEditName( e.target.value )
 								}
@@ -115,10 +135,7 @@ export function LayersPanel() {
 							</span>
 						) }
 
-						<span
-							className="socialframe-layers__state-btns"
-							onClick={ ( e ) => e.stopPropagation() }
-						>
+						<span className="socialframe-layers__state-btns">
 							<button
 								className={ `socialframe-layers__state-btn${
 									layer.locked ? ' is-active' : ''
@@ -128,12 +145,13 @@ export function LayersPanel() {
 										? __( 'Unlock', 'socialframe' )
 										: __( 'Lock', 'socialframe' )
 								}
-								onClick={ () =>
+								onClick={ ( e ) => {
+									e.stopPropagation();
 									fabric.setLayerLocked(
 										layer.id,
 										! layer.locked
-									)
-								}
+									);
+								} }
 							>
 								{ layer.locked ? '🔒' : '🔓' }
 							</button>
@@ -146,50 +164,56 @@ export function LayersPanel() {
 										? __( 'Hide', 'socialframe' )
 										: __( 'Show', 'socialframe' )
 								}
-								onClick={ () =>
+								onClick={ ( e ) => {
+									e.stopPropagation();
 									fabric.setLayerVisible(
 										layer.id,
 										! layer.visible
-									)
-								}
+									);
+								} }
 							>
 								{ layer.visible ? '👁' : '🚫' }
 							</button>
 						</span>
 
-						<span
-							className="socialframe-layers__actions"
-							onClick={ ( e ) => e.stopPropagation() }
-						>
+						<span className="socialframe-layers__actions">
 							<button
 								className="socialframe-layers__action-btn"
 								title={ __( 'Move up', 'socialframe' ) }
-								onClick={ () => fabric.moveLayerUp( layer.id ) }
+								onClick={ ( e ) => {
+									e.stopPropagation();
+									fabric.moveLayerUp( layer.id );
+								} }
 							>
 								↑
 							</button>
 							<button
 								className="socialframe-layers__action-btn"
 								title={ __( 'Move down', 'socialframe' ) }
-								onClick={ () =>
-									fabric.moveLayerDown( layer.id )
-								}
+								onClick={ ( e ) => {
+									e.stopPropagation();
+									fabric.moveLayerDown( layer.id );
+								} }
 							>
 								↓
 							</button>
 							<button
 								className="socialframe-layers__action-btn"
 								title={ __( 'Duplicate', 'socialframe' ) }
-								onClick={ () =>
-									fabric.duplicateById( layer.id )
-								}
+								onClick={ ( e ) => {
+									e.stopPropagation();
+									fabric.duplicateById( layer.id );
+								} }
 							>
 								⧉
 							</button>
 							<button
 								className="socialframe-layers__action-btn socialframe-layers__action-btn--delete"
 								title={ __( 'Delete', 'socialframe' ) }
-								onClick={ () => fabric.deleteById( layer.id ) }
+								onClick={ ( e ) => {
+									e.stopPropagation();
+									fabric.deleteById( layer.id );
+								} }
 							>
 								✕
 							</button>

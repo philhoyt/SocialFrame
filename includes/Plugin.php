@@ -9,6 +9,10 @@ declare( strict_types=1 );
 
 namespace SocialFrame;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Wires all plugin components together.
  */
