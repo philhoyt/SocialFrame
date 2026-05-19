@@ -651,7 +651,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 					canvas.remove( obj );
 					canvas.add( img );
-					canvas.setActiveObject( img );
+					canvas.discardActiveObject();
 					canvas.renderAll();
 					dispatch.markDirty();
 
@@ -667,7 +667,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 						redo: () => {
 							canvas.remove( obj );
 							canvas.add( img );
-							canvas.setActiveObject( img );
+							canvas.discardActiveObject();
 							canvas.renderAll();
 							dispatch.markDirty();
 						},
