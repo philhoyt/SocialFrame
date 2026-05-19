@@ -1148,22 +1148,41 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			return;
 		}
 
+		const placeholder =
+			obj.collageZoneId && obj.type === 'image' && obj.clipPath
+				? createZonePlaceholder( obj )
+				: null;
+
 		canvas.remove( obj );
+		if ( placeholder ) {
+			canvas.add( placeholder );
+		}
 		canvas.discardActiveObject();
 		canvas.renderAll();
 		dispatch.clearSelection();
+		dispatch.markDirty();
 
 		dispatch.pushHistory( {
-			label: 'Delete object',
+			label: placeholder
+				? __( 'Remove collage image', 'socialframe' )
+				: 'Delete object',
 			undo: () => {
+				if ( placeholder ) {
+					canvas.remove( placeholder );
+				}
 				canvas.add( obj );
 				canvas.setActiveObject( obj );
 				canvas.renderAll();
+				dispatch.markDirty();
 			},
 			redo: () => {
 				canvas.remove( obj );
+				if ( placeholder ) {
+					canvas.add( placeholder );
+				}
 				canvas.discardActiveObject();
 				canvas.renderAll();
+				dispatch.markDirty();
 			},
 		} );
 	}, [ dispatch ] );
@@ -1617,15 +1636,29 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			if ( ! canvas || ! obj ) {
 				return;
 			}
+
+			const placeholder =
+				obj.collageZoneId && obj.type === 'image' && obj.clipPath
+					? createZonePlaceholder( obj )
+					: null;
+
 			canvas.remove( obj );
+			if ( placeholder ) {
+				canvas.add( placeholder );
+			}
 			canvas.discardActiveObject();
 			canvas.renderAll();
 			dispatch.clearSelection();
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Delete layer',
+				label: placeholder
+					? __( 'Remove collage image', 'socialframe' )
+					: 'Delete layer',
 				undo: () => {
+					if ( placeholder ) {
+						canvas.remove( placeholder );
+					}
 					canvas.add( obj );
 					canvas.renderAll();
 					syncLayersToStore( canvas, dispatch );
@@ -1633,6 +1666,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 				},
 				redo: () => {
 					canvas.remove( obj );
+					if ( placeholder ) {
+						canvas.add( placeholder );
+					}
 					canvas.discardActiveObject();
 					canvas.renderAll();
 					syncLayersToStore( canvas, dispatch );
@@ -1869,6 +1905,32 @@ function createArtboardRect( artW, artH, fill ) {
 		selectable: false,
 		evented: false,
 		hoverCursor: 'default',
+	} );
+}
+
+/**
+ * Reconstruct the placeholder Rect for a collage zone from a filled zone image.
+ * Used when deleting a collage zone image so the zone stays fillable.
+ *
+ * @param {fabric.Image} img A collage zone image (must have collageZoneId, clipPath).
+ * @return {fabric.Rect} A new placeholder rect matching the original zone.
+ */
+function createZonePlaceholder( img ) {
+	const clip = img.clipPath;
+	return new fabric.Rect( {
+		left: clip.left,
+		top: clip.top,
+		width: clip.width,
+		height: clip.height,
+		fill: '#d0d0d0',
+		stroke: '#ffffff',
+		strokeWidth: 2,
+		selectable: false,
+		evented: true,
+		hoverCursor: 'pointer',
+		isCollageZone: true,
+		collageZoneId: img.collageZoneId,
+		collageLayoutId: img.collageLayoutId,
 	} );
 }
 
