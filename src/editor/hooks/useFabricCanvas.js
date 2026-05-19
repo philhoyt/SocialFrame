@@ -14,6 +14,32 @@ import {
 	getDefaultLayerName,
 } from '../utils/fabricHelpers';
 
+const COLLAGE_LAYOUTS = {
+	'split-h': [
+		{ x: 0, y: 0, w: 0.5, h: 1 },
+		{ x: 0.5, y: 0, w: 0.5, h: 1 },
+	],
+	'split-v': [
+		{ x: 0, y: 0, w: 1, h: 0.5 },
+		{ x: 0, y: 0.5, w: 1, h: 0.5 },
+	],
+	'big-left': [
+		{ x: 0, y: 0, w: 0.5, h: 1 },
+		{ x: 0.5, y: 0, w: 0.5, h: 0.5 },
+		{ x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
+	],
+	'big-right': [
+		{ x: 0, y: 0, w: 0.5, h: 0.5 },
+		{ x: 0, y: 0.5, w: 0.5, h: 0.5 },
+		{ x: 0.5, y: 0, w: 0.5, h: 1 },
+	],
+	thirds: [
+		{ x: 0, y: 0, w: 1 / 3, h: 1 },
+		{ x: 1 / 3, y: 0, w: 1 / 3, h: 1 },
+		{ x: 2 / 3, y: 0, w: 1 / 3, h: 1 },
+	],
+};
+
 /**
  * Initializes and manages the Fabric.js canvas instance.
  *
@@ -561,6 +587,186 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		};
 		canvas.on( 'after:render', drawOverlay );
 
+		// ── Collage zone: single click on placeholder fills with image ─────────
+		canvas.on( 'mouse:up', ( e ) => {
+			if ( spaceRef.current || isPanningRef.current ) {
+				return;
+			}
+			const obj = e.target;
+			if ( ! obj?.isCollageZone ) {
+				return;
+			}
+			if ( ! window.wp?.media ) {
+				return;
+			}
+
+			const frame = window.wp.media( {
+				title: 'Select Image',
+				button: { text: 'Fill Zone' },
+				multiple: false,
+				library: { type: 'image' },
+			} );
+
+			frame.on( 'select', () => {
+				const attachment = frame
+					.state()
+					.get( 'selection' )
+					.first()
+					.toJSON();
+				const zoneLeft = obj.left;
+				const zoneTop = obj.top;
+				const zoneWidth = obj.width;
+				const zoneHeight = obj.height;
+				const zoneId = obj.collageZoneId;
+				const layoutId = obj.collageLayoutId;
+
+				fabric.Image.fromURL( attachment.url, {
+					crossOrigin: 'anonymous',
+				} ).then( ( img ) => {
+					const clipRect = new fabric.Rect( {
+						left: zoneLeft,
+						top: zoneTop,
+						width: zoneWidth,
+						height: zoneHeight,
+						absolutePositioned: true,
+					} );
+
+					const scale = Math.max(
+						zoneWidth / img.width,
+						zoneHeight / img.height
+					);
+
+					img.set( {
+						left: zoneLeft + zoneWidth / 2,
+						top: zoneTop + zoneHeight / 2,
+						scaleX: scale,
+						scaleY: scale,
+						originX: 'center',
+						originY: 'center',
+						clipPath: clipRect,
+						collageZoneId: zoneId,
+						collageLayoutId: layoutId,
+					} );
+
+					canvas.remove( obj );
+					canvas.add( img );
+					canvas.setActiveObject( img );
+					canvas.renderAll();
+					dispatch.markDirty();
+
+					dispatch.pushHistory( {
+						label: 'Fill collage zone',
+						undo: () => {
+							canvas.remove( img );
+							canvas.add( obj );
+							canvas.discardActiveObject();
+							canvas.renderAll();
+							dispatch.markDirty();
+						},
+						redo: () => {
+							canvas.remove( obj );
+							canvas.add( img );
+							canvas.setActiveObject( img );
+							canvas.renderAll();
+							dispatch.markDirty();
+						},
+					} );
+				} );
+			} );
+
+			frame.open();
+		} );
+
+		// ── Collage zone: double-click filled image to swap ───────────────────
+		canvas.on( 'mouse:dblclick', ( e ) => {
+			const obj = e.target;
+			if ( ! obj?.collageZoneId || obj.type !== 'image' ) {
+				return;
+			}
+			const clipPath = obj.clipPath;
+			if ( ! clipPath ) {
+				return;
+			}
+			if ( ! window.wp?.media ) {
+				return;
+			}
+
+			const frame = window.wp.media( {
+				title: 'Replace Image',
+				button: { text: 'Replace' },
+				multiple: false,
+				library: { type: 'image' },
+			} );
+
+			frame.on( 'select', () => {
+				const attachment = frame
+					.state()
+					.get( 'selection' )
+					.first()
+					.toJSON();
+				const oldImg = obj;
+				const zoneLeft = clipPath.left;
+				const zoneTop = clipPath.top;
+				const zoneWidth = clipPath.width;
+				const zoneHeight = clipPath.height;
+
+				fabric.Image.fromURL( attachment.url, {
+					crossOrigin: 'anonymous',
+				} ).then( ( newImg ) => {
+					const newClipRect = new fabric.Rect( {
+						left: zoneLeft,
+						top: zoneTop,
+						width: zoneWidth,
+						height: zoneHeight,
+						absolutePositioned: true,
+					} );
+
+					const scale = Math.max(
+						zoneWidth / newImg.width,
+						zoneHeight / newImg.height
+					);
+
+					newImg.set( {
+						left: zoneLeft + zoneWidth / 2,
+						top: zoneTop + zoneHeight / 2,
+						scaleX: scale,
+						scaleY: scale,
+						originX: 'center',
+						originY: 'center',
+						clipPath: newClipRect,
+						collageZoneId: obj.collageZoneId,
+						collageLayoutId: obj.collageLayoutId,
+					} );
+
+					canvas.remove( oldImg );
+					canvas.add( newImg );
+					canvas.setActiveObject( newImg );
+					canvas.renderAll();
+					dispatch.markDirty();
+
+					dispatch.pushHistory( {
+						label: 'Replace collage image',
+						undo: () => {
+							canvas.remove( newImg );
+							canvas.add( oldImg );
+							canvas.setActiveObject( oldImg );
+							canvas.renderAll();
+							dispatch.markDirty();
+						},
+						redo: () => {
+							canvas.remove( oldImg );
+							canvas.add( newImg );
+							canvas.setActiveObject( newImg );
+							canvas.renderAll();
+							dispatch.markDirty();
+						},
+					} );
+				} );
+			} );
+
+			frame.open();
+		} );
+
 		return () => {
 			canvas.off( 'after:render', drawOverlay );
 			cleanupGuides();
@@ -587,6 +793,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 				'id',
 				'isArtboard',
 				'sfShapeType',
+				'isCollageZone',
+				'collageZoneId',
+				'collageLayoutId',
 			] ) ?? null
 		);
 	}, [] );
@@ -815,6 +1024,73 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 					} );
 				}
 			);
+		},
+		[ dispatch ]
+	);
+
+	const addCollageLayout = useCallback(
+		( layoutKey ) => {
+			const canvas = fabricRef.current;
+			if ( ! canvas ) {
+				return;
+			}
+			const zones = COLLAGE_LAYOUTS[ layoutKey ];
+			if ( ! zones ) {
+				return;
+			}
+			const artW = artboardWRef.current;
+			const artH = artboardHRef.current;
+			const layoutId = genId();
+
+			const zoneRects = zones.map( ( zone, index ) => {
+				const zLeft = Math.round( zone.x * artW );
+				const zTop = Math.round( zone.y * artH );
+				// Last zone uses remainder to avoid sub-pixel rounding gaps.
+				const isLast = index === zones.length - 1;
+				const zWidth =
+					isLast && zone.x > 0
+						? artW - zLeft
+						: Math.round( zone.w * artW );
+				const zHeight =
+					isLast && zone.y > 0
+						? artH - zTop
+						: Math.round( zone.h * artH );
+
+				return new fabric.Rect( {
+					left: zLeft,
+					top: zTop,
+					width: zWidth,
+					height: zHeight,
+					fill: '#d0d0d0',
+					stroke: '#ffffff',
+					strokeWidth: 2,
+					selectable: false,
+					evented: true,
+					hoverCursor: 'pointer',
+					isCollageZone: true,
+					collageZoneId: genId(),
+					collageLayoutId: layoutId,
+				} );
+			} );
+
+			zoneRects.forEach( ( rect ) => canvas.add( rect ) );
+			canvas.renderAll();
+			dispatch.markDirty();
+
+			dispatch.pushHistory( {
+				label: 'Add collage layout',
+				undo: () => {
+					zoneRects.forEach( ( rect ) => canvas.remove( rect ) );
+					canvas.discardActiveObject();
+					canvas.renderAll();
+					dispatch.markDirty();
+				},
+				redo: () => {
+					zoneRects.forEach( ( rect ) => canvas.add( rect ) );
+					canvas.renderAll();
+					dispatch.markDirty();
+				},
+			} );
 		},
 		[ dispatch ]
 	);
@@ -1544,6 +1820,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		addShape,
 		addText,
 		addImage,
+		addCollageLayout,
 		updateSelected,
 		deleteSelected,
 		replaceImage,
