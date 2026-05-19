@@ -10,8 +10,24 @@ const LayoutSplitH = () => (
 		fill="none"
 		aria-hidden="true"
 	>
-		<rect x="1" y="1" width="21" height="46" rx="2" fill="currentColor" opacity="0.3" />
-		<rect x="26" y="1" width="21" height="46" rx="2" fill="currentColor" opacity="0.6" />
+		<rect
+			x="1"
+			y="1"
+			width="21"
+			height="46"
+			rx="2"
+			fill="currentColor"
+			opacity="0.3"
+		/>
+		<rect
+			x="26"
+			y="1"
+			width="21"
+			height="46"
+			rx="2"
+			fill="currentColor"
+			opacity="0.6"
+		/>
 	</svg>
 );
 
@@ -23,8 +39,24 @@ const LayoutSplitV = () => (
 		fill="none"
 		aria-hidden="true"
 	>
-		<rect x="1" y="1" width="46" height="21" rx="2" fill="currentColor" opacity="0.3" />
-		<rect x="1" y="26" width="46" height="21" rx="2" fill="currentColor" opacity="0.6" />
+		<rect
+			x="1"
+			y="1"
+			width="46"
+			height="21"
+			rx="2"
+			fill="currentColor"
+			opacity="0.3"
+		/>
+		<rect
+			x="1"
+			y="26"
+			width="46"
+			height="21"
+			rx="2"
+			fill="currentColor"
+			opacity="0.6"
+		/>
 	</svg>
 );
 
@@ -36,9 +68,33 @@ const LayoutBigLeft = () => (
 		fill="none"
 		aria-hidden="true"
 	>
-		<rect x="1" y="1" width="21" height="46" rx="2" fill="currentColor" opacity="0.6" />
-		<rect x="26" y="1" width="21" height="21" rx="2" fill="currentColor" opacity="0.3" />
-		<rect x="26" y="26" width="21" height="21" rx="2" fill="currentColor" opacity="0.45" />
+		<rect
+			x="1"
+			y="1"
+			width="21"
+			height="46"
+			rx="2"
+			fill="currentColor"
+			opacity="0.6"
+		/>
+		<rect
+			x="26"
+			y="1"
+			width="21"
+			height="21"
+			rx="2"
+			fill="currentColor"
+			opacity="0.3"
+		/>
+		<rect
+			x="26"
+			y="26"
+			width="21"
+			height="21"
+			rx="2"
+			fill="currentColor"
+			opacity="0.45"
+		/>
 	</svg>
 );
 
@@ -50,9 +106,33 @@ const LayoutBigRight = () => (
 		fill="none"
 		aria-hidden="true"
 	>
-		<rect x="1" y="1" width="21" height="21" rx="2" fill="currentColor" opacity="0.3" />
-		<rect x="1" y="26" width="21" height="21" rx="2" fill="currentColor" opacity="0.45" />
-		<rect x="26" y="1" width="21" height="46" rx="2" fill="currentColor" opacity="0.6" />
+		<rect
+			x="1"
+			y="1"
+			width="21"
+			height="21"
+			rx="2"
+			fill="currentColor"
+			opacity="0.3"
+		/>
+		<rect
+			x="1"
+			y="26"
+			width="21"
+			height="21"
+			rx="2"
+			fill="currentColor"
+			opacity="0.45"
+		/>
+		<rect
+			x="26"
+			y="1"
+			width="21"
+			height="46"
+			rx="2"
+			fill="currentColor"
+			opacity="0.6"
+		/>
 	</svg>
 );
 
@@ -64,9 +144,33 @@ const LayoutThirds = () => (
 		fill="none"
 		aria-hidden="true"
 	>
-		<rect x="1" y="1" width="13" height="46" rx="2" fill="currentColor" opacity="0.3" />
-		<rect x="18" y="1" width="12" height="46" rx="2" fill="currentColor" opacity="0.45" />
-		<rect x="34" y="1" width="13" height="46" rx="2" fill="currentColor" opacity="0.6" />
+		<rect
+			x="1"
+			y="1"
+			width="13"
+			height="46"
+			rx="2"
+			fill="currentColor"
+			opacity="0.3"
+		/>
+		<rect
+			x="18"
+			y="1"
+			width="12"
+			height="46"
+			rx="2"
+			fill="currentColor"
+			opacity="0.45"
+		/>
+		<rect
+			x="34"
+			y="1"
+			width="13"
+			height="46"
+			rx="2"
+			fill="currentColor"
+			opacity="0.6"
+		/>
 	</svg>
 );
 

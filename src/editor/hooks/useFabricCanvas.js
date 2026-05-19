@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from '@wordpress/element';
 import { useDispatch } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import * as fabric from 'fabric';
 import { initAligningGuidelines } from 'fabric/extensions';
 
@@ -601,8 +602,8 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			}
 
 			const frame = window.wp.media( {
-				title: 'Select Image',
-				button: { text: 'Fill Zone' },
+				title: __( 'Select Image', 'socialframe' ),
+				button: { text: __( 'Fill Zone', 'socialframe' ) },
 				multiple: false,
 				library: { type: 'image' },
 			} );
@@ -655,7 +656,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 					dispatch.markDirty();
 
 					dispatch.pushHistory( {
-						label: 'Fill collage zone',
+						label: __( 'Fill collage zone', 'socialframe' ),
 						undo: () => {
 							canvas.remove( img );
 							canvas.add( obj );
@@ -692,8 +693,8 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			}
 
 			const frame = window.wp.media( {
-				title: 'Replace Image',
-				button: { text: 'Replace' },
+				title: __( 'Replace Image', 'socialframe' ),
+				button: { text: __( 'Replace', 'socialframe' ) },
 				multiple: false,
 				library: { type: 'image' },
 			} );
@@ -745,7 +746,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 					dispatch.markDirty();
 
 					dispatch.pushHistory( {
-						label: 'Replace collage image',
+						label: __( 'Replace collage image', 'socialframe' ),
 						undo: () => {
 							canvas.remove( newImg );
 							canvas.add( oldImg );
@@ -1078,7 +1079,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			dispatch.markDirty();
 
 			dispatch.pushHistory( {
-				label: 'Add collage layout',
+				label: __( 'Add collage layout', 'socialframe' ),
 				undo: () => {
 					zoneRects.forEach( ( rect ) => canvas.remove( rect ) );
 					canvas.discardActiveObject();
