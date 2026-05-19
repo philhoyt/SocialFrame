@@ -1044,6 +1044,13 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			const layoutId = genId();
 			const half = gapPx / 2;
 
+			// Remove any unfilled placeholder zones so re-inserting a layout
+			// with a different gap doesn't leave old zones blocking the new gaps.
+			const existingPlaceholders = canvas
+				.getObjects()
+				.filter( ( o ) => o.isCollageZone && o.type === 'rect' );
+			existingPlaceholders.forEach( ( o ) => canvas.remove( o ) );
+
 			const zoneRects = zones.map( ( zone ) => {
 				// Raw edges in pixels.
 				const rawLeft = zone.x * artW;
@@ -1087,11 +1094,13 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 				label: __( 'Add collage layout', 'socialframe' ),
 				undo: () => {
 					zoneRects.forEach( ( rect ) => canvas.remove( rect ) );
+					existingPlaceholders.forEach( ( o ) => canvas.add( o ) );
 					canvas.discardActiveObject();
 					canvas.renderAll();
 					dispatch.markDirty();
 				},
 				redo: () => {
+					existingPlaceholders.forEach( ( o ) => canvas.remove( o ) );
 					zoneRects.forEach( ( rect ) => canvas.add( rect ) );
 					canvas.renderAll();
 					dispatch.markDirty();
