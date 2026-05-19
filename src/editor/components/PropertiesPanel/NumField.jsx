@@ -1,4 +1,4 @@
-import { useRef, useEffect } from '@wordpress/element';
+import { useRef, useEffect, useId } from '@wordpress/element';
 
 /**
  * Compact labeled number input with Figma-style drag-to-scrub.
@@ -26,6 +26,7 @@ export function NumField( {
 	min,
 	max,
 } ) {
+	const inputId = useId();
 	const inputRef = useRef( null );
 
 	// Always-current prop values for use inside the stable document handlers.
@@ -53,22 +54,27 @@ export function NumField( {
 				return;
 			}
 
-			const { onChange, step, min, max } = liveRef.current;
+			const {
+				onChange: liveOnChange,
+				step: liveStep,
+				min: liveMin,
+				max: liveMax,
+			} = liveRef.current;
 
 			// Scale sensitivity so sub-1 step fields (e.g. line-height 0.01)
 			// don't jump by huge amounts per pixel.
-			const sensitivity = step < 1 ? 0.1 : 1;
+			const sensitivity = liveStep < 1 ? 0.1 : 1;
 			let v = d.startValue + dx * sensitivity;
-			if ( min !== undefined ) {
-				v = Math.max( min, v );
+			if ( liveMin !== undefined ) {
+				v = Math.max( liveMin, v );
 			}
-			if ( max !== undefined ) {
-				v = Math.min( max, v );
+			if ( liveMax !== undefined ) {
+				v = Math.min( liveMax, v );
 			}
 
 			// Snap to nearest step, strip floating-point noise.
-			const snapped = Math.round( v / step ) * step;
-			onChange( parseFloat( snapped.toFixed( 10 ) ) );
+			const snapped = Math.round( v / liveStep ) * liveStep;
+			liveOnChange( parseFloat( snapped.toFixed( 10 ) ) );
 		};
 
 		const onUp = () => {
@@ -131,14 +137,18 @@ export function NumField( {
 	}
 
 	return (
-		<label
+		// eslint-disable-next-line jsx-a11y/no-static-element-interactions -- drag-to-scrub UX; the input inside provides full keyboard access
+		<div
 			className="socialframe-num-field"
 			onMouseDown={ onMouseDown }
 			style={ { cursor: readOnly ? 'default' : 'ew-resize' } }
 		>
-			<span className="socialframe-num-field__label">{ label }</span>
+			<label htmlFor={ inputId } className="socialframe-num-field__label">
+				{ label }
+			</label>
 			<input
 				ref={ inputRef }
+				id={ inputId }
 				className="socialframe-num-field__input"
 				type="number"
 				value={ value }
@@ -149,6 +159,6 @@ export function NumField( {
 				onChange={ readOnly ? undefined : onInputChange }
 				onKeyDown={ readOnly ? undefined : onKeyDown }
 			/>
-		</label>
+		</div>
 	);
 }

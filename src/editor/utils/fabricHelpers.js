@@ -20,7 +20,7 @@ const SF_SHAPE_NAMES = {
  * Return a human-readable default name for a Fabric object based on its type.
  *
  * @param {fabric.Object} obj
- * @return {string}
+ * @return {string} Human-readable layer name.
  */
 export function getDefaultLayerName( obj ) {
 	if ( obj.sfShapeType && SF_SHAPE_NAMES[ obj.sfShapeType ] ) {
@@ -65,12 +65,12 @@ export const TEXT_ROLE_DEFAULTS = {
 /**
  * Generate points for a regular polygon centered at (cx, cy) with a given radius.
  *
- * @param {number} cx      Center x.
- * @param {number} cy      Center y.
- * @param {number} r       Radius.
- * @param {number} sides   Number of sides.
+ * @param {number} cx                Center x.
+ * @param {number} cy                Center y.
+ * @param {number} r                 Radius.
+ * @param {number} sides             Number of sides.
  * @param {number} [startAngleDeg=0] Starting angle in degrees (0 = top).
- * @return {Array<{x:number,y:number}>}
+ * @return {Array<{x:number,y:number}>} Array of polygon vertex points.
  */
 function regularPolygonPoints( cx, cy, r, sides, startAngleDeg = 0 ) {
 	const pts = [];
@@ -88,16 +88,19 @@ function regularPolygonPoints( cx, cy, r, sides, startAngleDeg = 0 ) {
 /**
  * Generate points for a 5-pointed star centered at (cx, cy).
  *
- * @param {number} cx      Center x.
- * @param {number} cy      Center y.
- * @param {number} outerR  Outer radius (tip to center).
- * @param {number} innerR  Inner radius (notch to center).
- * @return {Array<{x:number,y:number}>}
+ * @param {number} cx     Center x.
+ * @param {number} cy     Center y.
+ * @param {number} outerR Outer radius (tip to center).
+ * @param {number} innerR Inner radius (notch to center).
+ * @return {Array<{x:number,y:number}>} Array of star vertex points.
  */
 function starPoints( cx, cy, outerR, innerR ) {
 	const pts = [];
 	for ( let i = 0; i < 10; i++ ) {
-		const angleDeg = i % 2 === 0 ? ( 360 / 5 ) * ( i / 2 ) : ( 360 / 5 ) * ( ( i - 1 ) / 2 ) + 36;
+		const angleDeg =
+			i % 2 === 0
+				? ( 360 / 5 ) * ( i / 2 )
+				: ( 360 / 5 ) * ( ( i - 1 ) / 2 ) + 36;
 		const angleRad = ( ( angleDeg - 90 ) * Math.PI ) / 180;
 		const r = i % 2 === 0 ? outerR : innerR;
 		pts.push( {
@@ -111,9 +114,9 @@ function starPoints( cx, cy, outerR, innerR ) {
 /**
  * Create a Fabric shape object with theme-color defaults.
  *
- * @param {'rect'|'rounded-rect'|'circle'|'triangle'|'line'|'arch'|'squircle'|'star'|'diamond'|'hexagon'|'cross'|'pentagon'|'arrow'} type Shape type.
- * @param {Object} overrides Additional Fabric options.
- * @return {fabric.Object}
+ * @param {'rect'|'rounded-rect'|'circle'|'triangle'|'line'|'arch'|'squircle'|'star'|'diamond'|'hexagon'|'cross'|'pentagon'|'arrow'} type      Shape type.
+ * @param {Object}                                                                                                                   overrides Additional Fabric options.
+ * @return {fabric.Object} The created Fabric shape object.
  */
 export function createShape( type, overrides = {} ) {
 	const base = {
@@ -178,15 +181,24 @@ export function createShape( type, overrides = {} ) {
 				{ x: 100, y: 200 },
 				{ x: 0, y: 100 },
 			];
-			return new fabric.Polygon( pts, { sfShapeType: 'diamond', ...base } );
+			return new fabric.Polygon( pts, {
+				sfShapeType: 'diamond',
+				...base,
+			} );
 		}
 		case 'hexagon': {
 			const pts = regularPolygonPoints( 100, 100, 100, 6, 0 );
-			return new fabric.Polygon( pts, { sfShapeType: 'hexagon', ...base } );
+			return new fabric.Polygon( pts, {
+				sfShapeType: 'hexagon',
+				...base,
+			} );
 		}
 		case 'pentagon': {
 			const pts = regularPolygonPoints( 100, 100, 100, 5, 0 );
-			return new fabric.Polygon( pts, { sfShapeType: 'pentagon', ...base } );
+			return new fabric.Polygon( pts, {
+				sfShapeType: 'pentagon',
+				...base,
+			} );
 		}
 		case 'cross': {
 			const cross = new fabric.Path(
@@ -257,7 +269,7 @@ export function createText( role, overrides = {} ) {
  * Determine the selection type from a Fabric object.
  *
  * @param {fabric.Object} obj Fabric object.
- * @return {'text'|'image'|'shape'}
+ * @return {'text'|'image'|'shape'} The selection type string.
  */
 export function getObjectType( obj ) {
 	if ( ! obj ) {
@@ -281,7 +293,7 @@ export function getObjectType( obj ) {
  *
  * @param {fabric.Object}          obj  Fabric object.
  * @param {'text'|'image'|'shape'} type Determined object type.
- * @return {Object}
+ * @return {Object} Display properties extracted from the object.
  */
 export function extractProperties( obj, type ) {
 	const base = {

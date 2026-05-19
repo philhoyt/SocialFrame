@@ -1,9 +1,9 @@
 import { useState } from '@wordpress/element';
-import { Button, TextControl, Notice, Spinner } from '@wordpress/components';
+import { Button, TextControl, Notice } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
-const { formats, editorBase } = window.socialFrameNewConfig ?? {};
+const { formats } = window.socialFrameNewConfig ?? {};
 
 const ASPECT_LABELS = {
 	'instagram-post': '1:1',
@@ -145,10 +145,11 @@ export function NewDesignApp() {
 
 /**
  * Renders a proportional SVG preview of the format dimensions.
- * @param root0
- * @param root0.formatKey
- * @param root0.width
- * @param root0.height
+ *
+ * @param {Object} props
+ * @param {string} props.formatKey
+ * @param {number} props.width
+ * @param {number} props.height
  */
 function FormatPreview( { formatKey, width, height } ) {
 	const maxW = 80;

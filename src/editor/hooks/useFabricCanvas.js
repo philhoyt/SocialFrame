@@ -23,11 +23,11 @@ import {
  *   isArtboard: true.  Zoom and pan are applied via Fabric's viewport transform
  *   so objects that overflow the artboard remain accessible.
  *
- * @param {React.RefObject} canvasRef          Ref attached to the <canvas> element.
- * @param {React.RefObject} areaRef            Ref attached to the container div.
- * @param {Object}          options
- * @param {string}          options.format     Format key, e.g. 'instagram-post'.
- * @param {string}          options.fabricJson Initial JSON string (may be empty).
+ * @param {import('react').RefObject<HTMLCanvasElement>} canvasRef          Ref attached to the <canvas> element.
+ * @param {import('react').RefObject<HTMLDivElement>}    areaRef            Ref attached to the container div.
+ * @param {Object}                                       options
+ * @param {string}                                       options.format     Format key, e.g. 'instagram-post'.
+ * @param {string}                                       options.fabricJson Initial JSON string (may be empty).
  * @return {Object} Stable imperative API consumed via FabricContext.
  */
 export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
@@ -152,7 +152,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 						// Update dimension refs from the actual artboard so fitToScreen
 						// and the overlay use the correct size (template may differ from format).
 						artboardWRef.current = Math.round( best.width ?? artW );
-						artboardHRef.current = Math.round( best.height ?? artH );
+						artboardHRef.current = Math.round(
+							best.height ?? artH
+						);
 						setupArtboard( best );
 					} else {
 						// Truly blank / old-format canvas — migrate backgroundColor.
@@ -280,14 +282,16 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			);
 
 			const action = e.transform?.action ?? '';
-			const label =
-				action === 'drag'
-					? 'Move'
-					: action === 'rotate'
-					? 'Rotate'
-					: action.startsWith( 'scale' )
-					? 'Resize'
-					: 'Transform';
+			let label;
+			if ( action === 'drag' ) {
+				label = 'Move';
+			} else if ( action === 'rotate' ) {
+				label = 'Rotate';
+			} else if ( action.startsWith( 'scale' ) ) {
+				label = 'Resize';
+			} else {
+				label = 'Transform';
+			}
 
 			dispatch.pushHistory( {
 				label,
@@ -476,11 +480,11 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			if ( e.code !== 'Space' ) {
 				return;
 			}
-			const tag = document.activeElement?.tagName;
+			const tag = e.target?.ownerDocument?.activeElement?.tagName;
 			if (
 				tag === 'INPUT' ||
 				tag === 'TEXTAREA' ||
-				document.activeElement?.isContentEditable
+				e.target?.ownerDocument?.activeElement?.isContentEditable
 			) {
 				return;
 			}
@@ -578,7 +582,13 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
-		return fabricRef.current?.toJSON( [ 'id', 'isArtboard', 'sfShapeType' ] ) ?? null;
+		return (
+			fabricRef.current?.toJSON( [
+				'id',
+				'isArtboard',
+				'sfShapeType',
+			] ) ?? null
+		);
 	}, [] );
 
 	/**
@@ -631,51 +641,54 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		return dataURL;
 	}, [] );
 
-	const loadFromJSON = useCallback( ( json ) => {
-		const canvas = fabricRef.current;
-		if ( ! canvas ) {
-			return;
-		}
-		const artW = artboardWRef.current;
-		const artH = artboardHRef.current;
-		// Clear existing objects and background before loading the template so
-		// old content doesn't bleed through (Fabric v6 does not auto-clear).
-		canvas.clear();
-		canvas.backgroundColor = null;
-		canvas.loadFromJSON( json ).then( () => {
-			// Fabric applies the JSON's "background" property to canvas.backgroundColor
-			// during loadFromJSON. Clear it — the artboard rect owns the background.
-			canvas.backgroundColor = null;
-
-			// Re-detect and re-apply artboard setup so the artboardRectRef stays
-			// accurate after a template is loaded onto an existing canvas.
-			const allObjects = canvas.getObjects();
-			const artboard =
-				allObjects.find( ( o ) => isArtboardObject( o ) ) ??
-				allObjects.find(
-					( o ) =>
-						o.type === 'rect' &&
-						Math.abs( o.left ?? 0 ) < 1 &&
-						Math.abs( o.top ?? 0 ) < 1 &&
-						Math.round( o.width ?? 0 ) === artW &&
-						Math.round( o.height ?? 0 ) === artH
-				);
-			if ( artboard ) {
-				// If the template uses different dimensions, update the refs so
-				// all subsequent operations (export, alignment, overlay) use the
-				// correct artboard size.
-				const newW = Math.round( artboard.width ?? artW );
-				const newH = Math.round( artboard.height ?? artH );
-				artboardWRef.current = newW;
-				artboardHRef.current = newH;
-				setupArtboardRef.current?.( artboard );
-				fitToScreenRef.current?.();
+	const loadFromJSON = useCallback(
+		( json ) => {
+			const canvas = fabricRef.current;
+			if ( ! canvas ) {
+				return;
 			}
-			syncLayersToStore( canvas, dispatch );
-			canvas.renderAll();
-			dispatch.markDirty();
-		} );
-	}, [ dispatch ] );
+			const artW = artboardWRef.current;
+			const artH = artboardHRef.current;
+			// Clear existing objects and background before loading the template so
+			// old content doesn't bleed through (Fabric v6 does not auto-clear).
+			canvas.clear();
+			canvas.backgroundColor = null;
+			canvas.loadFromJSON( json ).then( () => {
+				// Fabric applies the JSON's "background" property to canvas.backgroundColor
+				// during loadFromJSON. Clear it — the artboard rect owns the background.
+				canvas.backgroundColor = null;
+
+				// Re-detect and re-apply artboard setup so the artboardRectRef stays
+				// accurate after a template is loaded onto an existing canvas.
+				const allObjects = canvas.getObjects();
+				const artboard =
+					allObjects.find( ( o ) => isArtboardObject( o ) ) ??
+					allObjects.find(
+						( o ) =>
+							o.type === 'rect' &&
+							Math.abs( o.left ?? 0 ) < 1 &&
+							Math.abs( o.top ?? 0 ) < 1 &&
+							Math.round( o.width ?? 0 ) === artW &&
+							Math.round( o.height ?? 0 ) === artH
+					);
+				if ( artboard ) {
+					// If the template uses different dimensions, update the refs so
+					// all subsequent operations (export, alignment, overlay) use the
+					// correct artboard size.
+					const newW = Math.round( artboard.width ?? artW );
+					const newH = Math.round( artboard.height ?? artH );
+					artboardWRef.current = newW;
+					artboardHRef.current = newH;
+					setupArtboardRef.current?.( artboard );
+					fitToScreenRef.current?.();
+				}
+				syncLayersToStore( canvas, dispatch );
+				canvas.renderAll();
+				dispatch.markDirty();
+			} );
+		},
+		[ dispatch ]
+	);
 
 	/** Set the artboard background color. */
 	const setBackground = useCallback(
@@ -1490,34 +1503,37 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		[ dispatch ]
 	);
 
-	const replaceImage = useCallback( async ( url ) => {
-		const canvas = fabricRef.current;
-		const obj = canvas?.getActiveObject();
-		if ( ! canvas || ! obj || obj.type !== 'image' ) {
-			return;
-		}
-		const prevElement = obj.getElement();
-		const newImg = await fabric.Image.fromURL( url, {
-			crossOrigin: 'anonymous',
-		} );
-		const newElement = newImg.getElement();
-		obj.setElement( newElement );
-		canvas.renderAll();
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: 'Replace image',
-			undo: () => {
-				obj.setElement( prevElement );
-				canvas.renderAll();
-				dispatch.markDirty();
-			},
-			redo: () => {
-				obj.setElement( newElement );
-				canvas.renderAll();
-				dispatch.markDirty();
-			},
-		} );
-	}, [ dispatch ] );
+	const replaceImage = useCallback(
+		async ( url ) => {
+			const canvas = fabricRef.current;
+			const obj = canvas?.getActiveObject();
+			if ( ! canvas || ! obj || obj.type !== 'image' ) {
+				return;
+			}
+			const prevElement = obj.getElement();
+			const newImg = await fabric.Image.fromURL( url, {
+				crossOrigin: 'anonymous',
+			} );
+			const newElement = newImg.getElement();
+			obj.setElement( newElement );
+			canvas.renderAll();
+			dispatch.markDirty();
+			dispatch.pushHistory( {
+				label: 'Replace image',
+				undo: () => {
+					obj.setElement( prevElement );
+					canvas.renderAll();
+					dispatch.markDirty();
+				},
+				redo: () => {
+					obj.setElement( newElement );
+					canvas.renderAll();
+					dispatch.markDirty();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
 
 	return {
 		getFabric,
@@ -1563,7 +1579,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
  * @param {number} artW Artboard width in canvas pixels.
  * @param {number} artH Artboard height in canvas pixels.
  * @param {*}      fill Fabric fill value (color string or Pattern).
- * @return {fabric.Rect}
+ * @return {fabric.Rect} The artboard rectangle object.
  */
 function createArtboardRect( artW, artH, fill ) {
 	return new fabric.Rect( {
@@ -1625,11 +1641,10 @@ function shapeFitTransform( imgW, imgH, shapeW, shapeH, fitMode ) {
 }
 
 /**
- * Map a Fabric object type to a selection type string.
+ * Read a Fabric object's type and properties and write the selection to the store.
  *
- * @param {fabric.Object} obj
- * @param                 dispatch
- * @return {'text'|'image'|'shape'|'none'}
+ * @param {fabric.Object} obj      Selected Fabric object.
+ * @param {Object}        dispatch Store dispatch object.
  */
 function syncSelection( obj, dispatch ) {
 	if ( ! obj ) {
@@ -1645,12 +1660,8 @@ function syncSelection( obj, dispatch ) {
 }
 
 /**
- * Rebuild the layers list in the store from the current canvas objects.
- * The artboard sentinel is excluded.  Layers are ordered front-to-back.
- *
- * @param {fabric.Canvas} canvas
- * @param {Object}        dispatch
- * @param                 o
+ * @param {fabric.Object} o
+ * @return {boolean} True if the object is the artboard sentinel.
  */
 function isArtboardObject( o ) {
 	return o.isArtboard || o.id === 'artboard';

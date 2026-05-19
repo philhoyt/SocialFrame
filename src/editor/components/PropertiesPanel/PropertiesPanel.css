@@ -120,16 +120,13 @@
 	padding: 0 6px 0 2px;
 	height: 100%;
 	-moz-appearance: textfield;
+	cursor: ew-resize;
 }
 
 .socialframe-num-field__input::-webkit-outer-spin-button,
 .socialframe-num-field__input::-webkit-inner-spin-button {
 	-webkit-appearance: none;
 	margin: 0;
-}
-
-.socialframe-num-field__input {
-	cursor: ew-resize;
 }
 
 .socialframe-num-field__input:focus {

@@ -4,7 +4,8 @@
  * Plugin URI:        https://github.com/philhoyt/socialframe
  * Description:       Social media graphic editor inside wp-admin.
  * Version:           1.0.0
- * Requires at least: 6.5
+ * Requires at least: 6.6
+ * Tested up to:      6.9
  * Requires PHP:      8.1
  * Author:            Phil Hoyt
  * License:           GPL-2.0-or-later
