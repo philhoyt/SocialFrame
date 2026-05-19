@@ -47,6 +47,9 @@ class EditorPage {
 	 * Render the editor mount point.
 	 */
 	public function render_page(): void {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'socialframe' ) );
+		}
 		echo '<div id="socialframe-editor-root"></div>';
 		echo '<noscript>' . esc_html__( 'SocialFrame requires JavaScript to be enabled.', 'socialframe' ) . '</noscript>';
 	}

@@ -64,6 +64,9 @@ class AdminPage {
 	 * Render the management screen mount point.
 	 */
 	public function render_page(): void {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'socialframe' ) );
+		}
 		echo '<div id="socialframe-admin-root"></div>';
 	}
 
@@ -71,6 +74,9 @@ class AdminPage {
 	 * Render the new design page mount point.
 	 */
 	public function render_new_page(): void {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'socialframe' ) );
+		}
 		echo '<div id="socialframe-new-root"></div>';
 	}
 

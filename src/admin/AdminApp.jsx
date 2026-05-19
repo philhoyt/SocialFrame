@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { Button, Notice, Spinner } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
-import { __ } from '@wordpress/i18n';
-import { DataViews, filterSortAndPaginate } from '@wordpress/dataviews/wp';
+import { __, _n, sprintf } from '@wordpress/i18n';
+import { DataViews, filterSortAndPaginate } from '@wordpress/dataviews';
 
 const { adminUrl, formats } = window.socialFrameAdminConfig ?? {};
 
@@ -62,13 +62,16 @@ export function AdminApp() {
 	const handleDelete = useCallback(
 		( selectedItems ) => {
 			const count = selectedItems.length;
-			const msg =
-				count === 1
-					? __(
-							'Delete this design? This cannot be undone.',
-							'socialframe'
-					  )
-					: `Delete ${ count } designs? This cannot be undone.`;
+			const msg = sprintf(
+				/* translators: %d: number of designs to delete */
+				_n(
+					'Delete %d design? This cannot be undone.',
+					'Delete %d designs? This cannot be undone.',
+					count,
+					'socialframe'
+				),
+				count
+			);
 			// eslint-disable-next-line no-alert
 			if ( ! window.confirm( msg ) ) {
 				return;
