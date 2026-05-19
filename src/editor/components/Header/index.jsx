@@ -7,7 +7,11 @@ import { __ } from '@wordpress/i18n';
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
 import { useAutoSave } from '../../hooks/useAutoSave';
-import { exportDesign, saveAsTemplate } from '../../utils/exportHelpers';
+import {
+	exportDesign,
+	saveAsTemplate,
+	sendPreview,
+} from '../../utils/exportHelpers';
 import { ShareModal } from './ShareModal';
 
 import './Header.css';
@@ -48,8 +52,8 @@ export function Header() {
 
 	const fabric = useFabric();
 
-	// Debounced auto-save.
-	useAutoSave( fabric?.getJSON, designId );
+	// Debounced auto-save + background preview on every save.
+	useAutoSave( fabric?.getJSON, designId, fabric?.toDataURL );
 
 	const handleSave = async () => {
 		if ( ! fabric || ! designId ) {
@@ -63,6 +67,7 @@ export function Header() {
 				data: { title, fabricJson: JSON.stringify( fabric.getJSON() ) },
 			} );
 			dispatch.markClean();
+			sendPreview( fabric.toDataURL, designId, apiFetch );
 		} catch ( e ) {
 			// Errors surface via notices if needed.
 		} finally {
