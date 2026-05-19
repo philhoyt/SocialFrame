@@ -112,6 +112,20 @@ const IconLayers = () => (
 	</svg>
 );
 
+const IconCollage = () => (
+	<svg
+		width="18"
+		height="18"
+		viewBox="0 0 18 18"
+		fill="currentColor"
+		aria-hidden="true"
+	>
+		<rect x="1" y="1" width="7" height="16" rx="1.5" />
+		<rect x="10" y="1" width="7" height="7" rx="1.5" />
+		<rect x="10" y="10" width="7" height="7" rx="1.5" />
+	</svg>
+);
+
 const PANELS = [
 	{
 		id: 'templates',
@@ -125,6 +139,11 @@ const PANELS = [
 		label: __( 'Elements', 'socialframe' ),
 	},
 	{ id: 'media', icon: <IconMedia />, label: __( 'Media', 'socialframe' ) },
+	{
+		id: 'collage',
+		icon: <IconCollage />,
+		label: __( 'Collage', 'socialframe' ),
+	},
 	{
 		id: 'posts',
 		icon: <IconPosts />,

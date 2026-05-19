@@ -1,0 +1,15 @@
+.socialframe-collage-panel__hint {
+	font-size: 11px;
+	color: #666;
+	margin: 0 0 12px;
+	line-height: 1.5;
+}
+
+.socialframe-collage-panel__grid {
+	grid-template-columns: 1fr 1fr;
+}
+
+.socialframe-collage-panel__btn {
+	aspect-ratio: unset;
+	padding: 14px 8px 10px;
+}
