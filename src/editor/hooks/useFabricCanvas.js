@@ -647,6 +647,13 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 						clipPath: clipRect,
 						collageZoneId: zoneId,
 						collageLayoutId: layoutId,
+						hasControls: false,
+						lockMovementX: true,
+						lockMovementY: true,
+						lockRotation: true,
+						lockScalingX: true,
+						lockScalingY: true,
+						hoverCursor: 'default',
 					} );
 
 					canvas.remove( obj );
@@ -737,11 +744,18 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 						clipPath: newClipRect,
 						collageZoneId: obj.collageZoneId,
 						collageLayoutId: obj.collageLayoutId,
+						hasControls: false,
+						lockMovementX: true,
+						lockMovementY: true,
+						lockRotation: true,
+						lockScalingX: true,
+						lockScalingY: true,
+						hoverCursor: 'default',
 					} );
 
 					canvas.remove( oldImg );
 					canvas.add( newImg );
-					canvas.setActiveObject( newImg );
+					canvas.discardActiveObject();
 					canvas.renderAll();
 					dispatch.markDirty();
 
@@ -750,14 +764,14 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 						undo: () => {
 							canvas.remove( newImg );
 							canvas.add( oldImg );
-							canvas.setActiveObject( oldImg );
+							canvas.discardActiveObject();
 							canvas.renderAll();
 							dispatch.markDirty();
 						},
 						redo: () => {
 							canvas.remove( oldImg );
 							canvas.add( newImg );
-							canvas.setActiveObject( newImg );
+							canvas.discardActiveObject();
 							canvas.renderAll();
 							dispatch.markDirty();
 						},
@@ -797,6 +811,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 				'isCollageZone',
 				'collageZoneId',
 				'collageLayoutId',
+				'zoneFracX',
+				'zoneFracY',
+				'zoneFracW',
+				'zoneFracH',
 			] ) ?? null
 		);
 	}, [] );
@@ -1083,6 +1101,10 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 					isCollageZone: true,
 					collageZoneId: genId(),
 					collageLayoutId: layoutId,
+					zoneFracX: zone.x,
+					zoneFracY: zone.y,
+					zoneFracW: zone.w,
+					zoneFracH: zone.h,
 				} );
 			} );
 
@@ -1109,6 +1131,52 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		},
 		[ dispatch ]
 	);
+
+	const setCollageGap = useCallback( ( gapPx ) => {
+		const canvas = fabricRef.current;
+		if ( ! canvas ) {
+			return;
+		}
+		const artW = artboardWRef.current;
+		const artH = artboardHRef.current;
+		const half = gapPx / 2;
+
+		canvas
+			.getObjects()
+			.filter(
+				( o ) =>
+					o.isCollageZone &&
+					o.type === 'rect' &&
+					o.zoneFracX !== undefined
+			)
+			.forEach( ( rect ) => {
+				const rawLeft = rect.zoneFracX * artW;
+				const rawTop = rect.zoneFracY * artH;
+				const rawRight = rawLeft + rect.zoneFracW * artW;
+				const rawBottom = rawTop + rect.zoneFracH * artH;
+
+				const atLeft = rect.zoneFracX < 0.001;
+				const atTop = rect.zoneFracY < 0.001;
+				const atRight = rect.zoneFracX + rect.zoneFracW > 0.999;
+				const atBottom = rect.zoneFracY + rect.zoneFracH > 0.999;
+
+				const left = atLeft ? rawLeft : rawLeft + half;
+				const top = atTop ? rawTop : rawTop + half;
+				const right = atRight ? rawRight : rawRight - half;
+				const bottom = atBottom ? rawBottom : rawBottom - half;
+
+				rect.set( {
+					left: Math.round( left ),
+					top: Math.round( top ),
+					width: Math.max( 1, Math.round( right - left ) ),
+					height: Math.max( 1, Math.round( bottom - top ) ),
+					stroke: gapPx > 0 ? null : '#ffffff',
+					strokeWidth: gapPx > 0 ? 0 : 2,
+				} );
+			} );
+
+		canvas.requestRenderAll();
+	}, [] );
 
 	const updateSelected = useCallback(
 		( props, label = 'Update' ) => {
@@ -1872,6 +1940,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		addText,
 		addImage,
 		addCollageLayout,
+		setCollageGap,
 		updateSelected,
 		deleteSelected,
 		replaceImage,

@@ -233,7 +233,11 @@ export function CollagePanel() {
 					max="80"
 					step="2"
 					value={ gap }
-					onChange={ ( e ) => setGap( Number( e.target.value ) ) }
+					onChange={ ( e ) => {
+						const val = Number( e.target.value );
+						setGap( val );
+						fabric?.setCollageGap( val );
+					} }
 					className="socialframe-collage-panel__gap-slider"
 				/>
 				<span className="socialframe-collage-panel__gap-value">
