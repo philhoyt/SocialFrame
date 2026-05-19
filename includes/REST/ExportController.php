@@ -133,43 +133,4 @@ class ExportController extends AbstractController {
 			201
 		);
 	}
-
-	/**
-	 * Resize a PNG binary to a given width using GD, preserving aspect ratio.
-	 *
-	 * @param string $binary     Raw PNG binary.
-	 * @param int    $max_width  Target width in pixels.
-	 * @return string|false Resized PNG binary, or false on failure.
-	 */
-	private function resize_png( string $binary, int $max_width ): string|false {
-		if ( ! function_exists( 'imagecreatefromstring' ) ) {
-			return false;
-		}
-
-		$src = imagecreatefromstring( $binary );
-		if ( ! $src ) {
-			return false;
-		}
-
-		$orig_w = imagesx( $src );
-		$orig_h = imagesy( $src );
-
-		if ( $orig_w <= $max_width ) {
-			return $binary;
-		}
-
-		$ratio = $max_width / $orig_w;
-		$new_h = (int) round( $orig_h * $ratio );
-		$dst   = imagescale( $src, $max_width, $new_h, IMG_BILINEAR_FIXED );
-
-		if ( ! $dst ) {
-			return false;
-		}
-
-		ob_start();
-		imagepng( $dst );
-		$output = ob_get_clean();
-
-		return ( ! empty( $output ) ) ? $output : false;
-	}
 }

@@ -54,13 +54,54 @@ abstract class AbstractController {
 	}
 
 	/**
+	 * Resize a PNG binary to a given width using GD, preserving aspect ratio.
+	 *
+	 * @param string $binary    Raw PNG binary.
+	 * @param int    $max_width Target width in pixels.
+	 * @return string|false Resized PNG binary, or false on failure.
+	 */
+	protected function resize_png( string $binary, int $max_width ): string|false {
+		if ( ! function_exists( 'imagecreatefromstring' ) ) {
+			return false;
+		}
+
+		$src = imagecreatefromstring( $binary );
+		if ( ! $src ) {
+			return false;
+		}
+
+		$orig_w = imagesx( $src );
+		$orig_h = imagesy( $src );
+
+		if ( $orig_w <= $max_width ) {
+			return $binary;
+		}
+
+		$ratio = $max_width / $orig_w;
+		$new_h = (int) round( $orig_h * $ratio );
+		$dst   = imagescale( $src, $max_width, $new_h, IMG_BILINEAR_FIXED );
+
+		if ( ! $dst ) {
+			return false;
+		}
+
+		ob_start();
+		imagepng( $dst );
+		$output = ob_get_clean();
+
+		return ( ! empty( $output ) ) ? $output : false;
+	}
+
+	/**
 	 * Build a standard design object shape from a WP_Post.
 	 *
 	 * @param \WP_Post $post The post object.
 	 * @return array<string, mixed>
 	 */
 	protected function format_design( \WP_Post $post ): array {
-		$image_id = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
+		$image_id     = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
+		$preview_path = (string) get_post_meta( $post->ID, 'socialframe_preview_path', true );
+		$preview_url  = $preview_path ? wp_upload_dir()['baseurl'] . '/' . $preview_path : '';
 
 		return [
 			'id'           => $post->ID,
@@ -69,7 +110,7 @@ abstract class AbstractController {
 			'type'         => (string) get_post_meta( $post->ID, 'socialframe_type', true ),
 			'fabricJson'   => (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true ),
 			'imageId'      => $image_id,
-			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : '',
+			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : $preview_url,
 			'modified'     => $post->post_modified_gmt,
 			'editUrl'      => admin_url( 'admin.php?page=socialframe-editor&id=' . $post->ID ),
 		];

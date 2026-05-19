@@ -20,6 +20,33 @@ export async function exportDesign( toDataURL, designId, apiFetch ) {
 }
 
 /**
+ * Fire-and-forget helper to send a preview thumbnail to the server after save.
+ *
+ * Errors are intentionally swallowed — preview generation must not interrupt
+ * the save flow or surface anything to the user.
+ *
+ * @param {Function} toDataURL Canvas toDataURL function.
+ * @param {number}   designId  Design post ID.
+ * @param {Function} apiFetch  @wordpress/api-fetch.
+ * @return {Promise<void>} Resolves when the preview is sent (or silently on error).
+ */
+export async function sendPreview( toDataURL, designId, apiFetch ) {
+	try {
+		const imageData = toDataURL();
+		if ( ! imageData ) {
+			return;
+		}
+		await apiFetch( {
+			path: `socialframe/v1/designs/${ designId }/preview`,
+			method: 'POST',
+			data: { imageData },
+		} );
+	} catch {
+		// Silent — preview failure must not affect the user experience.
+	}
+}
+
+/**
  * Helper to save current canvas as a template.
  *
  * @param {Object}   options

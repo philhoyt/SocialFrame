@@ -27,6 +27,7 @@ class Plugin {
 
 		( new REST\DesignsController() )->register();
 		( new REST\ExportController() )->register();
+		( new REST\PreviewController() )->register();
 		( new REST\DuplicateController() )->register();
 		( new REST\TemplatesController() )->register();
 		( new REST\PostImportController() )->register();
