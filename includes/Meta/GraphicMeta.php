@@ -87,6 +87,19 @@ class GraphicMeta {
 				'sanitize_callback' => 'absint',
 			]
 		);
+
+		register_post_meta(
+			'socialframe_graphic',
+			'socialframe_preview_path',
+			[
+				'type'              => 'string',
+				'description'       => 'Relative path (from uploads basedir) of the auto-generated preview PNG.',
+				'single'            => true,
+				'default'           => '',
+				'show_in_rest'      => false,
+				'sanitize_callback' => 'sanitize_text_field',
+			]
+		);
 	}
 
 	/**
