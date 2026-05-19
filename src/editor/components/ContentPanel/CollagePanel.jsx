@@ -1,3 +1,4 @@
+import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { useFabric } from '../../EditorApp';
 import './CollagePanel.css';
@@ -204,6 +205,7 @@ const LAYOUTS = [
 
 export function CollagePanel() {
 	const fabric = useFabric();
+	const [ gap, setGap ] = useState( 0 );
 
 	return (
 		<div className="socialframe-panel">
@@ -216,12 +218,36 @@ export function CollagePanel() {
 					'socialframe'
 				) }
 			</p>
+
+			<div className="socialframe-collage-panel__gap-row">
+				<label
+					htmlFor="socialframe-collage-gap"
+					className="socialframe-collage-panel__gap-label"
+				>
+					{ __( 'Gap', 'socialframe' ) }
+				</label>
+				<input
+					id="socialframe-collage-gap"
+					type="range"
+					min="0"
+					max="80"
+					step="2"
+					value={ gap }
+					onChange={ ( e ) => setGap( Number( e.target.value ) ) }
+					className="socialframe-collage-panel__gap-slider"
+				/>
+				<span className="socialframe-collage-panel__gap-value">
+					{ gap }
+					{ __( 'px', 'socialframe' ) }
+				</span>
+			</div>
+
 			<div className="socialframe-panel__grid socialframe-collage-panel__grid">
 				{ LAYOUTS.map( ( { key, icon, label } ) => (
 					<button
 						key={ key }
 						className="socialframe-panel__btn socialframe-collage-panel__btn"
-						onClick={ () => fabric?.addCollageLayout( key ) }
+						onClick={ () => fabric?.addCollageLayout( key, gap ) }
 						aria-label={ label }
 					>
 						<span

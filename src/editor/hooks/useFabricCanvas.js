@@ -1030,7 +1030,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 	);
 
 	const addCollageLayout = useCallback(
-		( layoutKey ) => {
+		( layoutKey, gapPx = 0 ) => {
 			const canvas = fabricRef.current;
 			if ( ! canvas ) {
 				return;
@@ -1042,29 +1042,34 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			const artW = artboardWRef.current;
 			const artH = artboardHRef.current;
 			const layoutId = genId();
+			const half = gapPx / 2;
 
-			const zoneRects = zones.map( ( zone, index ) => {
-				const zLeft = Math.round( zone.x * artW );
-				const zTop = Math.round( zone.y * artH );
-				// Last zone uses remainder to avoid sub-pixel rounding gaps.
-				const isLast = index === zones.length - 1;
-				const zWidth =
-					isLast && zone.x > 0
-						? artW - zLeft
-						: Math.round( zone.w * artW );
-				const zHeight =
-					isLast && zone.y > 0
-						? artH - zTop
-						: Math.round( zone.h * artH );
+			const zoneRects = zones.map( ( zone ) => {
+				// Raw edges in pixels.
+				const rawLeft = zone.x * artW;
+				const rawTop = zone.y * artH;
+				const rawRight = rawLeft + zone.w * artW;
+				const rawBottom = rawTop + zone.h * artH;
+
+				// Inset each edge by half the gap unless it sits on an artboard boundary.
+				const atLeft = zone.x < 0.001;
+				const atTop = zone.y < 0.001;
+				const atRight = zone.x + zone.w > 0.999;
+				const atBottom = zone.y + zone.h > 0.999;
+
+				const left = atLeft ? rawLeft : rawLeft + half;
+				const top = atTop ? rawTop : rawTop + half;
+				const right = atRight ? rawRight : rawRight - half;
+				const bottom = atBottom ? rawBottom : rawBottom - half;
 
 				return new fabric.Rect( {
-					left: zLeft,
-					top: zTop,
-					width: zWidth,
-					height: zHeight,
+					left: Math.round( left ),
+					top: Math.round( top ),
+					width: Math.max( 1, Math.round( right - left ) ),
+					height: Math.max( 1, Math.round( bottom - top ) ),
 					fill: '#d0d0d0',
-					stroke: '#ffffff',
-					strokeWidth: 2,
+					stroke: gapPx > 0 ? null : '#ffffff',
+					strokeWidth: gapPx > 0 ? 0 : 2,
 					selectable: false,
 					evented: true,
 					hoverCursor: 'pointer',
