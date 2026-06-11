@@ -16,7 +16,8 @@
 /* Hide wp-admin chrome when editor is active */
 .socialframe-fullscreen #wpadminbar,
 .socialframe-fullscreen #adminmenuback,
-.socialframe-fullscreen #adminmenuwrap {
+.socialframe-fullscreen #adminmenuwrap,
+.socialframe-fullscreen #wpfooter {
 	display: none !important;
 }
 
