@@ -77,7 +77,7 @@ Yes. Click Save as Template in the editor toolbar to save a design as a reusable
 
 = What user role is required? =
 
-Any user with the edit_posts capability can access SocialFrame and use all editor features.
+Any user with the edit_posts capability can access SocialFrame, view all designs, and use every editor feature, including creating, editing, exporting, and duplicating. Designs are a shared workspace. Deleting a design you did not create requires the delete_others_posts capability (Editor role and above); you can always delete your own designs.
 
 == Screenshots ==
 

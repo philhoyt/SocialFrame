@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
+use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
 
@@ -93,6 +94,21 @@ abstract class AbstractController {
 	}
 
 	/**
+	 * Permission callback for deleting a specific design.
+	 *
+	 * Listing and editing designs is open to any edit_posts user (the shared
+	 * workspace model), but deletion is gated per-post: owners can delete their
+	 * own designs, while deleting another user's design requires
+	 * delete_others_posts (Editor and above). This is resolved by the
+	 * delete_post meta capability via map_meta_cap.
+	 *
+	 * @param WP_REST_Request $request Full request data.
+	 */
+	public function require_delete_graphic( WP_REST_Request $request ): bool {
+		return current_user_can( 'delete_post', (int) $request->get_param( 'id' ) );
+	}
+
+	/**
 	 * Build a standard design object shape from a WP_Post.
 	 *
 	 * @param \WP_Post $post The post object.
@@ -113,6 +129,7 @@ abstract class AbstractController {
 			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : $preview_url,
 			'modified'     => $post->post_modified_gmt,
 			'editUrl'      => admin_url( 'admin.php?page=socialframe-editor&id=' . $post->ID ),
+			'canDelete'    => current_user_can( 'delete_post', $post->ID ),
 		];
 	}
 }

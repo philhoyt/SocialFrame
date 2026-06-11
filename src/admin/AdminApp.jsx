@@ -83,7 +83,17 @@ export function AdminApp() {
 						method: 'DELETE',
 					} )
 				)
-			).then( loadItems );
+			)
+				.catch( ( err ) =>
+					setError(
+						err.message ||
+							__(
+								'Failed to delete one or more designs.',
+								'socialframe'
+							)
+					)
+				)
+				.finally( loadItems );
 		},
 		[ loadItems ]
 	);
@@ -188,6 +198,7 @@ export function AdminApp() {
 			label: __( 'Delete', 'socialframe' ),
 			isDestructive: true,
 			supportsBulk: true,
+			isEligible: ( item ) => item.canDelete,
 			callback: handleDelete,
 		},
 	];

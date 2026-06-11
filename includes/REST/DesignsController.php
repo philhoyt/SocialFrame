@@ -105,7 +105,7 @@ class DesignsController extends AbstractController {
 				[
 					'methods'             => \WP_REST_Server::DELETABLE,
 					'callback'            => [ $this, 'delete_design' ],
-					'permission_callback' => [ $this, 'require_edit_posts' ],
+					'permission_callback' => [ $this, 'require_delete_graphic' ],
 					'args'                => [
 						'id' => [
 							'type'    => 'integer',
