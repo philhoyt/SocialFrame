@@ -77,6 +77,15 @@ class ExportController extends AbstractController {
 			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
 		}
 
+		// Verify the decoded bytes are actually a PNG before trusting them.
+		// base64_decode() only proves the string was valid base64, not that it
+		// is an image — without this an edit_posts user could store arbitrary
+		// bytes under a .png name.
+		$image_info = getimagesizefromstring( $binary );
+		if ( false === $image_info || IMAGETYPE_PNG !== $image_info[2] ) {
+			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
+		}
+
 		// If thumbnail requested, resize via GD.
 		if ( $is_thumb ) {
 			$binary = $this->resize_png( $binary, 400 );
@@ -85,19 +94,20 @@ class ExportController extends AbstractController {
 			}
 		}
 
-		// Write to the uploads directory.
-		$upload_dir = wp_upload_dir();
-		$suffix     = $is_thumb ? '-thumb' : '';
-		$filename   = 'socialframe-' . $id . $suffix . '-' . time() . '.png';
-		$filepath   = $upload_dir['path'] . '/' . $filename;
-		$file_url   = $upload_dir['url'] . '/' . $filename;
+		// Write to the uploads directory via the WordPress filesystem API.
+		// wp_upload_bits() handles the path, unique filename, and extension
+		// validation that a raw file_put_contents() would bypass.
+		$suffix   = $is_thumb ? '-thumb' : '';
+		$filename = 'socialframe-' . $id . $suffix . '-' . time() . '.png';
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		$bytes = file_put_contents( $filepath, $binary );
+		$upload = wp_upload_bits( $filename, null, $binary );
 
-		if ( false === $bytes ) {
+		if ( ! empty( $upload['error'] ) ) {
 			return new WP_Error( 'write_failed', __( 'Could not write image file.', 'socialframe' ), [ 'status' => 500 ] );
 		}
+
+		$filepath = $upload['file'];
+		$file_url = $upload['url'];
 
 		// Create the media library attachment.
 		$attachment_id = wp_insert_attachment(
