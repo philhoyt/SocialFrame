@@ -196,7 +196,6 @@ export function AdminApp() {
 		{
 			id: 'delete',
 			label: __( 'Delete', 'socialframe' ),
-			isDestructive: true,
 			supportsBulk: true,
 			isEligible: ( item ) => item.canDelete,
 			callback: handleDelete,
