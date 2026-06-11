@@ -37,7 +37,7 @@ export function useAutoSave( getJSON, designId, toDataURL = null ) {
 				if ( toDataURL ) {
 					sendPreview( toDataURL, designId, apiFetch );
 				}
-			} catch ( e ) {
+			} catch {
 				// Silent fail — user can manually save.
 			} finally {
 				dispatch.setSaving( false );
