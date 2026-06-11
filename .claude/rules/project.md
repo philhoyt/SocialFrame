@@ -15,7 +15,7 @@ paths:
 - Text domain: `socialframe`
 - PHP minimum: 8.1
 - WP minimum: 6.6
-- Distribution: GitHub (no release workflow)
+- Distribution: GitHub releases via Plugin Update Checker (bundled in `lib/`). Releases are cut by pushing a `v*` tag, which runs `.github/workflows/release.yml` (build → plugin zip → GitHub release). Update checks point at `github.com/philhoyt/SocialFrame` and use release assets.
 - Main file: `socialframe.php`
 - Version constant: `SOCIALFRAME_VERSION`
 
