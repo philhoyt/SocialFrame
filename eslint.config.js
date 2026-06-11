@@ -8,6 +8,8 @@ const defaultConfig = require( '@wordpress/scripts/config/eslint.config.cjs' );
 const globals = require( 'globals' );
 
 module.exports = [
+	// Bundled third-party library (Plugin Update Checker) — not ours to lint.
+	{ ignores: [ 'lib/**' ] },
 	...defaultConfig,
 	{
 		languageOptions: {

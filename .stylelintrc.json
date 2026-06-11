@@ -6,7 +6,8 @@
 	"ignoreFiles": [
 		"build/**",
 		"vendor/**",
-		"node_modules/**"
+		"node_modules/**",
+		"lib/**"
 	],
 	"rules": {
 		"selector-class-pattern": [
