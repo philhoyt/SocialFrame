@@ -85,6 +85,8 @@ function EditorInner( { design } ) {
 	const fabricApi = useFabricCanvas( canvasRef, areaRef, {
 		format: design.format,
 		fabricJson: design.fabricJson,
+		width: design.width,
+		height: design.height,
 	} );
 
 	useKeyboardShortcuts( fabricApi, design.id );

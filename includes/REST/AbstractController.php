@@ -125,6 +125,10 @@ abstract class AbstractController {
 			'format'       => (string) get_post_meta( $post->ID, 'socialframe_format', true ),
 			'type'         => (string) get_post_meta( $post->ID, 'socialframe_type', true ),
 			'fabricJson'   => (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true ),
+			// Custom canvas size in pixels (0 for preset formats; the editor
+			// falls back to the format's preset dimensions).
+			'width'        => (int) get_post_meta( $post->ID, 'socialframe_width', true ),
+			'height'       => (int) get_post_meta( $post->ID, 'socialframe_height', true ),
 			'imageId'      => $image_id,
 			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : $preview_url,
 			'modified'     => $post->post_modified_gmt,

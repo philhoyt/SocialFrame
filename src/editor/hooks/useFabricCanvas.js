@@ -26,14 +26,24 @@ import {
  * @param {import('react').RefObject<HTMLCanvasElement>} canvasRef          Ref attached to the <canvas> element.
  * @param {import('react').RefObject<HTMLDivElement>}    areaRef            Ref attached to the container div.
  * @param {Object}                                       options
- * @param {string}                                       options.format     Format key, e.g. 'instagram-post'.
+ * @param {string}                                       options.format     Format key, e.g. 'instagram-post' or 'custom'.
  * @param {string}                                       options.fabricJson Initial JSON string (may be empty).
+ * @param {number}                                       [options.width]    Explicit canvas width (custom sizes); falls back to the format preset.
+ * @param {number}                                       [options.height]   Explicit canvas height (custom sizes); falls back to the format preset.
  * @return {Object} Stable imperative API consumed via FabricContext.
  */
-export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
+export function useFabricCanvas(
+	canvasRef,
+	areaRef,
+	{ format, fabricJson, width: initialWidth, height: initialHeight }
+) {
 	const fabricRef = useRef( null );
-	const artboardWRef = useRef( FORMATS[ format ]?.width ?? 1080 );
-	const artboardHRef = useRef( FORMATS[ format ]?.height ?? 1080 );
+	const artboardWRef = useRef(
+		initialWidth || FORMATS[ format ]?.width || 1080
+	);
+	const artboardHRef = useRef(
+		initialHeight || FORMATS[ format ]?.height || 1080
+	);
 	const artboardRectRef = useRef( null );
 	const setupArtboardRef = useRef( null );
 	const fitToScreenRef = useRef( null );
