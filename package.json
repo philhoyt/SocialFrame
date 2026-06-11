@@ -18,6 +18,7 @@
 	"files": [
 		"build",
 		"includes",
+		"lib",
 		"templates",
 		"socialframe.php",
 		"uninstall.php",

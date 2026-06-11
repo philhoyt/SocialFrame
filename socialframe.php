@@ -46,6 +46,19 @@ spl_autoload_register(
 
 require_once SOCIALFRAME_DIR . 'includes/Helpers.php';
 
+// GitHub-based update checker (Plugin Update Checker). Bundled in lib/ so the
+// vendor directory does not need to ship. Guarded in case lib/ is absent in dev.
+if ( file_exists( SOCIALFRAME_DIR . 'lib/plugin-update-checker/plugin-update-checker.php' ) ) {
+	require_once SOCIALFRAME_DIR . 'lib/plugin-update-checker/plugin-update-checker.php';
+
+	$socialframe_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+		'https://github.com/philhoyt/SocialFrame/',
+		SOCIALFRAME_FILE,
+		'socialframe'
+	);
+	$socialframe_update_checker->getVcsApi()->enableReleaseAssets();
+}
+
 register_activation_hook(
 	__FILE__,
 	function (): void {
