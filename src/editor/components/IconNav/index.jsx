@@ -5,22 +5,29 @@ import { __ } from '@wordpress/i18n';
 import { STORE_KEY } from '../../store';
 import './IconNav.css';
 
-const IconTemplates = () => (
-	<svg
-		width="18"
-		height="18"
-		viewBox="0 0 18 18"
-		fill="currentColor"
-		aria-hidden="true"
-	>
-		<rect x="1" y="1" width="7" height="7" rx="1.5" />
-		<rect x="10" y="1" width="7" height="3" rx="1.5" />
-		<rect x="10" y="6" width="7" height="2" rx="1" />
-		<rect x="1" y="10" width="7" height="2" rx="1" />
-		<rect x="1" y="14" width="7" height="3" rx="1.5" />
-		<rect x="10" y="10" width="7" height="7" rx="1.5" />
-	</svg>
-);
+/*
+ * Templates panel temporarily hidden from the editor nav — it's a bit wonky
+ * and not needed right now. Restore this icon together with its PANELS entry
+ * below to re-enable it. (TemplatesPanel + its ContentPanel mapping are left
+ * intact, so re-enabling is just uncommenting these two blocks.)
+ *
+ * const IconTemplates = () => (
+ * 	<svg
+ * 		width="18"
+ * 		height="18"
+ * 		viewBox="0 0 18 18"
+ * 		fill="currentColor"
+ * 		aria-hidden="true"
+ * 	>
+ * 		<rect x="1" y="1" width="7" height="7" rx="1.5" />
+ * 		<rect x="10" y="1" width="7" height="3" rx="1.5" />
+ * 		<rect x="10" y="6" width="7" height="2" rx="1" />
+ * 		<rect x="1" y="10" width="7" height="2" rx="1" />
+ * 		<rect x="1" y="14" width="7" height="3" rx="1.5" />
+ * 		<rect x="10" y="10" width="7" height="7" rx="1.5" />
+ * 	</svg>
+ * );
+ */
 
 const IconText = () => (
 	<svg
@@ -113,11 +120,13 @@ const IconLayers = () => (
 );
 
 const PANELS = [
-	{
-		id: 'templates',
-		icon: <IconTemplates />,
-		label: __( 'Templates', 'socialframe' ),
-	},
+	// Temporarily hidden — see the commented IconTemplates above. Restore both
+	// blocks to bring the Templates panel back into the nav.
+	// {
+	// 	id: 'templates',
+	// 	icon: <IconTemplates />,
+	// 	label: __( 'Templates', 'socialframe' ),
+	// },
 	{ id: 'text', icon: <IconText />, label: __( 'Text', 'socialframe' ) },
 	{
 		id: 'elements',
