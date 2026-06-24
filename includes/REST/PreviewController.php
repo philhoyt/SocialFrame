@@ -82,6 +82,17 @@ class PreviewController extends AbstractController {
 			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
 		}
 
+		// Verify the decoded bytes are actually a PNG before trusting them.
+		// resize_png() returns sub-width images verbatim, so without this an
+		// edit_posts user could store a valid non-PNG image (e.g. a small JPEG)
+		// under a .png name. Mirrors the SEC-02 guard in ExportController.
+		// The leading @ suppresses the read-error notice getimagesizefromstring()
+		// emits on malformed/truncated data; the false return is handled below.
+		$image_info = @getimagesizefromstring( $binary ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		if ( false === $image_info || IMAGETYPE_PNG !== $image_info[2] ) {
+			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
+		}
+
 		$binary = $this->resize_png( $binary, self::PREVIEW_WIDTH );
 		if ( ! $binary ) {
 			return new WP_Error( 'resize_failed', __( 'Could not generate preview.', 'socialframe' ), [ 'status' => 500 ] );

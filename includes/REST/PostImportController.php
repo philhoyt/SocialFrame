@@ -159,6 +159,20 @@ class PostImportController extends AbstractController {
 			$meta[ $key ] = $this->classify_meta_value( $value );
 		}
 
+		/**
+		 * Filters the public post meta exposed through the post-import endpoint.
+		 *
+		 * Only non-underscore-prefixed (public) scalar meta is included by
+		 * default. Site owners can use this filter to unset specific keys, or
+		 * return an empty array to expose no meta at all.
+		 *
+		 * @param array<string, mixed> $meta    Meta keyed by meta key, each value a
+		 *                                       classified { type, value, ... } array.
+		 * @param int                  $post_id The source post ID.
+		 * @param \WP_Post             $post    The source post object.
+		 */
+		$meta = apply_filters( 'socialframe_import_post_meta', $meta, $post_id, $post );
+
 		// Taxonomy terms — all taxonomies attached to the post type that have terms on this post.
 		$terms = $this->get_post_terms( $post_id, $post->post_type );
 

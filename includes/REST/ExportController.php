@@ -81,7 +81,9 @@ class ExportController extends AbstractController {
 		// base64_decode() only proves the string was valid base64, not that it
 		// is an image — without this an edit_posts user could store arbitrary
 		// bytes under a .png name.
-		$image_info = getimagesizefromstring( $binary );
+		// The leading @ suppresses the read-error notice getimagesizefromstring()
+		// emits on malformed/truncated data; the false return is handled below.
+		$image_info = @getimagesizefromstring( $binary ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		if ( false === $image_info || IMAGETYPE_PNG !== $image_info[2] ) {
 			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
 		}
