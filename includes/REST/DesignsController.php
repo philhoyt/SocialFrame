@@ -54,7 +54,7 @@ class DesignsController extends AbstractController {
 						'format'     => [
 							'type'     => 'string',
 							'required' => true,
-							'enum'     => array_keys( socialframe_get_formats() ),
+							'enum'     => array_merge( array_keys( socialframe_get_formats() ), [ 'custom' ] ),
 						],
 						'type'       => [
 							'type'    => 'string',
@@ -64,6 +64,14 @@ class DesignsController extends AbstractController {
 						'fabricJson' => [
 							'type'    => 'string',
 							'default' => '',
+						],
+						'width'      => [
+							'type'    => 'integer',
+							'default' => 0,
+						],
+						'height'     => [
+							'type'    => 'integer',
+							'default' => 0,
 						],
 					],
 				],
@@ -173,6 +181,12 @@ class DesignsController extends AbstractController {
 
 		update_post_meta( $post_id, 'socialframe_format', $format );
 		update_post_meta( $post_id, 'socialframe_type', $type );
+
+		if ( 'custom' === $format ) {
+			// Stored via meta, which clamps to GraphicMeta's allowed range.
+			update_post_meta( $post_id, 'socialframe_width', (int) $request->get_param( 'width' ) );
+			update_post_meta( $post_id, 'socialframe_height', (int) $request->get_param( 'height' ) );
+		}
 
 		if ( ! empty( $fabric_json ) ) {
 			update_post_meta( $post_id, 'socialframe_fabric_json', wp_slash( $fabric_json ) );

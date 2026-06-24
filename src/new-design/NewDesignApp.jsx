@@ -5,6 +5,11 @@ import { __ } from '@wordpress/i18n';
 
 const { formats } = window.socialFrameNewConfig ?? {};
 
+// Custom canvas bounds — must match GraphicMeta::MIN_DIMENSION / MAX_DIMENSION.
+const MIN_DIM = 100;
+const MAX_DIM = 5000;
+const DEFAULT_DIM = 1080;
+
 const ASPECT_LABELS = {
 	'instagram-post': '1:1',
 	'instagram-story': '9:16',
@@ -17,8 +22,20 @@ const ASPECT_LABELS = {
 export function NewDesignApp() {
 	const [ selectedFormat, setSelectedFormat ] = useState( null );
 	const [ title, setTitle ] = useState( '' );
+	const [ customWidth, setCustomWidth ] = useState( String( DEFAULT_DIM ) );
+	const [ customHeight, setCustomHeight ] = useState( String( DEFAULT_DIM ) );
 	const [ isCreating, setCreating ] = useState( false );
 	const [ error, setError ] = useState( null );
+
+	const isCustom = selectedFormat === 'custom';
+
+	const clamp = ( raw ) => {
+		const n = parseInt( raw, 10 );
+		if ( Number.isNaN( n ) ) {
+			return DEFAULT_DIM;
+		}
+		return Math.max( MIN_DIM, Math.min( MAX_DIM, n ) );
+	};
 
 	const handleCreate = async () => {
 		if ( ! selectedFormat ) {
@@ -28,18 +45,25 @@ export function NewDesignApp() {
 		setCreating( true );
 		setError( null );
 
+		const data = {
+			title:
+				title.trim() ||
+				formats?.[ selectedFormat ]?.label ||
+				__( 'Untitled', 'socialframe' ),
+			format: selectedFormat,
+			type: 'design',
+		};
+
+		if ( isCustom ) {
+			data.width = clamp( customWidth );
+			data.height = clamp( customHeight );
+		}
+
 		try {
 			const design = await apiFetch( {
 				path: 'socialframe/v1/designs',
 				method: 'POST',
-				data: {
-					title:
-						title.trim() ||
-						formats?.[ selectedFormat ]?.label ||
-						__( 'Untitled', 'socialframe' ),
-					format: selectedFormat,
-					type: 'design',
-				},
+				data,
 			} );
 
 			// Redirect to the editor.
@@ -76,6 +100,20 @@ export function NewDesignApp() {
 					</Notice>
 				) }
 
+				<div className="socialframe-new__title-field">
+					<TextControl
+						label={ __( 'Design Title (optional)', 'socialframe' ) }
+						value={ title }
+						onChange={ setTitle }
+						placeholder={ __( 'Untitled', 'socialframe' ) }
+						onKeyDown={ ( e ) => {
+							if ( e.key === 'Enter' ) {
+								handleCreate();
+							}
+						} }
+					/>
+				</div>
+
 				<div className="socialframe-new__grid">
 					{ Object.entries( formats ?? {} ).map( ( [ key, fmt ] ) => (
 						<button
@@ -101,27 +139,51 @@ export function NewDesignApp() {
 							</span>
 						</button>
 					) ) }
+
+					<button
+						key="custom"
+						className={ `socialframe-new__format-card${
+							isCustom ? ' is-selected' : ''
+						}` }
+						onClick={ () => setSelectedFormat( 'custom' ) }
+					>
+						<FormatPreview
+							formatKey="custom"
+							width={ clamp( customWidth ) }
+							height={ clamp( customHeight ) }
+						/>
+						<span className="socialframe-new__format-label">
+							{ __( 'Custom', 'socialframe' ) }
+						</span>
+						<span className="socialframe-new__format-dims">
+							{ __( 'Any size', 'socialframe' ) }
+						</span>
+						<span className="socialframe-new__format-ratio" />
+					</button>
 				</div>
 
 				{ selectedFormat && (
 					<div className="socialframe-new__form">
-						<TextControl
-							label={ __(
-								'Design Title (optional)',
-								'socialframe'
-							) }
-							value={ title }
-							onChange={ setTitle }
-							placeholder={
-								formats?.[ selectedFormat ]?.label ||
-								__( 'Untitled', 'socialframe' )
-							}
-							onKeyDown={ ( e ) => {
-								if ( e.key === 'Enter' ) {
-									handleCreate();
-								}
-							} }
-						/>
+						{ isCustom && (
+							<div className="socialframe-new__custom-size">
+								<TextControl
+									label={ __( 'Width (px)', 'socialframe' ) }
+									type="number"
+									min={ MIN_DIM }
+									max={ MAX_DIM }
+									value={ customWidth }
+									onChange={ setCustomWidth }
+								/>
+								<TextControl
+									label={ __( 'Height (px)', 'socialframe' ) }
+									type="number"
+									min={ MIN_DIM }
+									max={ MAX_DIM }
+									value={ customHeight }
+									onChange={ setCustomHeight }
+								/>
+							</div>
+						) }
 						<Button
 							variant="primary"
 							onClick={ handleCreate }
