@@ -10,6 +10,11 @@ const globals = require( 'globals' );
 module.exports = [
 	// Bundled third-party library (Plugin Update Checker) — not ours to lint.
 	{ ignores: [ 'lib/**' ] },
+	{
+		// ESLint flat config discovers only *.js, *.cjs, *.mjs on its own.
+		// Name every other extension here or the rules below never see it.
+		files: [ '**/*.jsx', '**/*.ts', '**/*.tsx' ],
+	},
 	...defaultConfig,
 	{
 		languageOptions: {
