@@ -32,7 +32,7 @@ export function TemplatesPanel() {
 					? JSON.parse( template.fabricJson )
 					: template.fabricJson;
 			fabric.loadFromJSON( json );
-		} catch ( e ) {
+		} catch {
 			// Invalid JSON — skip.
 		}
 	};

@@ -68,7 +68,7 @@ export function Header() {
 			} );
 			dispatch.markClean();
 			sendPreview( fabric.toDataURL, designId, apiFetch );
-		} catch ( e ) {
+		} catch {
 			// Errors surface via notices if needed.
 		} finally {
 			dispatch.setSaving( false );
@@ -87,7 +87,7 @@ export function Header() {
 				apiFetch
 			);
 			setShareUrl( result.url );
-		} catch ( e ) {
+		} catch {
 			createErrorNotice(
 				__( 'Export failed. Please try again.', 'socialframe' )
 			);
@@ -109,7 +109,7 @@ export function Header() {
 				apiFetch,
 			} );
 			createSuccessNotice( __( 'Saved as template.', 'socialframe' ) );
-		} catch ( e ) {
+		} catch {
 			createErrorNotice(
 				__( 'Could not save template.', 'socialframe' )
 			);
