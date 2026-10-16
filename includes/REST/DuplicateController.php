@@ -78,7 +78,9 @@ class DuplicateController extends AbstractController {
 		foreach ( $meta_to_copy as $key ) {
 			$value = get_post_meta( $id, $key, true );
 			if ( '' !== $value ) {
-				update_post_meta( $new_post_id, $key, $value );
+				// update_post_meta() unslashes its input; slash first so JSON
+				// escapes (\" \n \uXXXX) survive the copy (ARC-01).
+				update_post_meta( $new_post_id, $key, wp_slash( $value ) );
 			}
 		}
 

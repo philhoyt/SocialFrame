@@ -99,7 +99,7 @@ class PreviewController extends AbstractController {
 		}
 
 		$upload   = wp_upload_dir();
-		$rel_path = 'socialframe/previews/sf-' . $id . '-preview.png';
+		$rel_path = self::preview_rel_path( $id );
 		$abs_path = $upload['basedir'] . '/' . $rel_path;
 
 		// Ensure the directory exists.
@@ -121,6 +121,19 @@ class PreviewController extends AbstractController {
 	}
 
 	/**
+	 * Relative path (from the uploads basedir) of a design's preview PNG.
+	 *
+	 * The path is always derived from the post ID — never read back from
+	 * meta — so a tampered socialframe_preview_path value cannot redirect a
+	 * write or delete outside the previews directory (SEC-01).
+	 *
+	 * @param int $id Design post ID.
+	 */
+	public static function preview_rel_path( int $id ): string {
+		return 'socialframe/previews/sf-' . $id . '-preview.png';
+	}
+
+	/**
 	 * Clean up the preview file when a design post is permanently deleted.
 	 *
 	 * @param int $post_id The post being deleted.
@@ -131,12 +144,7 @@ class PreviewController extends AbstractController {
 			return;
 		}
 
-		$rel_path = get_post_meta( $post_id, 'socialframe_preview_path', true );
-		if ( empty( $rel_path ) ) {
-			return;
-		}
-
-		$abs_path = wp_upload_dir()['basedir'] . '/' . $rel_path;
+		$abs_path = wp_upload_dir()['basedir'] . '/' . self::preview_rel_path( $post_id );
 		if ( file_exists( $abs_path ) ) {
 			wp_delete_file( $abs_path );
 		}

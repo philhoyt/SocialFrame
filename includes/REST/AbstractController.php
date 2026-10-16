@@ -115,9 +115,11 @@ abstract class AbstractController {
 	 * @return array<string, mixed>
 	 */
 	protected function format_design( \WP_Post $post ): array {
-		$image_id     = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
-		$preview_path = (string) get_post_meta( $post->ID, 'socialframe_preview_path', true );
-		$preview_url  = $preview_path ? wp_upload_dir()['baseurl'] . '/' . $preview_path : '';
+		$image_id = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
+		// The meta only flags that a preview exists; the path itself is always
+		// derived from the ID (see PreviewController::preview_rel_path()).
+		$has_preview = (bool) get_post_meta( $post->ID, 'socialframe_preview_path', true );
+		$preview_url = $has_preview ? wp_upload_dir()['baseurl'] . '/' . PreviewController::preview_rel_path( $post->ID ) : '';
 
 		return [
 			'id'           => $post->ID,

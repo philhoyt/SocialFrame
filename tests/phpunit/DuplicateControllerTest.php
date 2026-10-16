@@ -48,6 +48,23 @@ class DuplicateControllerTest extends RestTestCase {
 	}
 
 	/**
+	 * ARC-01: JSON escape sequences (quotes, newlines, non-ASCII) survive the
+	 * copy. Without wp_slash() the duplicate's JSON was corrupted or blanked.
+	 */
+	public function test_duplicate_preserves_escaped_json(): void {
+		$json   = '{"objects":[{"type":"textbox","text":"He said \"hi\"\nline2 café","fontFamily":"\"Inter\", sans-serif"}]}';
+		$source = $this->make_design( [ 'fabric_json' => $json ] );
+
+		$res = $this->request( 'POST', '/designs/' . $source . '/duplicate' );
+
+		$this->assertSame( 201, $res->get_status() );
+		$copied = json_decode( get_post_meta( $res->get_data()['id'], 'socialframe_fabric_json', true ), true );
+		$this->assertIsArray( $copied );
+		$this->assertSame( "He said \"hi\"\nline2 café", $copied['objects'][0]['text'] );
+		$this->assertSame( '"Inter", sans-serif', $copied['objects'][0]['fontFamily'] );
+	}
+
+	/**
 	 * Duplicating a template yields a design, not another template.
 	 */
 	public function test_duplicate_template_becomes_design(): void {

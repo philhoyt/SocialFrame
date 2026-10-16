@@ -109,4 +109,52 @@ class PreviewControllerTest extends RestTestCase {
 		wp_delete_post( $id, true );
 		$this->assertFileDoesNotExist( $path );
 	}
+
+	/**
+	 * SEC-01: a tampered preview-path meta value must not steer the delete
+	 * cleanup outside the previews directory.
+	 */
+	public function test_tampered_preview_path_does_not_delete_outside_previews(): void {
+		$sentinel = dirname( wp_upload_dir()['basedir'] ) . '/sf-sentinel-' . wp_generate_password( 8, false ) . '.txt';
+		file_put_contents( $sentinel, 'keep me' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		$id = $this->make_design();
+		update_post_meta( $id, 'socialframe_preview_path', '../' . basename( $sentinel ) );
+
+		wp_delete_post( $id, true );
+
+		$this->assertFileExists( $sentinel );
+		unlink( $sentinel ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+	}
+
+	/**
+	 * SEC-01: the preview URL is derived from the ID, not the stored meta.
+	 */
+	public function test_preview_url_ignores_tampered_meta(): void {
+		$id = $this->make_design();
+		update_post_meta( $id, 'socialframe_preview_path', '../../evil.png' );
+
+		$res = $this->request( 'GET', '/designs/' . $id );
+
+		$this->assertSame(
+			wp_upload_dir()['baseurl'] . '/socialframe/previews/sf-' . $id . '-preview.png',
+			$res->get_data()['thumbnailUrl']
+		);
+	}
+
+	/**
+	 * SEC-01: plugin meta cannot be added or edited through core's Custom
+	 * Fields / add-meta path, even by a user who can edit the design.
+	 */
+	public function test_plugin_meta_not_editable_via_custom_fields(): void {
+		$author = self::factory()->user->create( [ 'role' => 'author' ] );
+		wp_set_current_user( $author );
+		$id = $this->make_design( [ 'author' => $author ] );
+
+		$this->assertTrue( current_user_can( 'edit_post', $id ) );
+		foreach ( [ 'socialframe_preview_path', 'socialframe_fabric_json', 'socialframe_image_id' ] as $key ) {
+			$this->assertFalse( current_user_can( 'add_post_meta', $id, $key ), $key );
+			$this->assertFalse( current_user_can( 'edit_post_meta', $id, $key ), $key );
+		}
+	}
 }

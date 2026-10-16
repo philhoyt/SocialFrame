@@ -38,6 +38,10 @@ class GraphicMeta {
 
 	/**
 	 * Register all meta keys for socialframe_graphic.
+	 *
+	 * Every key uses auth_callback => __return_false so it cannot be added or
+	 * edited through core's Custom Fields UI / add-meta AJAX. The plugin writes
+	 * these keys itself via update_post_meta(), which is not capability-checked.
 	 */
 	public function register_meta(): void {
 		$allowed_formats   = array_keys( socialframe_get_formats() );
@@ -52,6 +56,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => '',
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => [ $this, 'sanitize_fabric_json' ],
 			]
 		);
@@ -65,6 +70,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => '',
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => function ( string $value ) use ( $allowed_formats ): string {
 					return in_array( $value, $allowed_formats, true ) ? $value : '';
 				},
@@ -80,6 +86,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => 0,
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => [ $this, 'sanitize_dimension' ],
 			]
 		);
@@ -93,6 +100,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => 0,
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => [ $this, 'sanitize_dimension' ],
 			]
 		);
@@ -106,6 +114,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => 'design',
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => function ( string $value ): string {
 					return in_array( $value, [ 'design', 'template' ], true ) ? $value : 'design';
 				},
@@ -121,6 +130,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => 0,
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => 'absint',
 			]
 		);
@@ -134,6 +144,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => '',
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => 'sanitize_text_field',
 			]
 		);
