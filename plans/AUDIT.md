@@ -13,8 +13,8 @@
 | Severity | Count | Open |
 |----------|-------|------|
 | Critical | 1 | 0 |
-| Warning  | 13 | 12 |
-| Info     | 8 | 8 |
+| Warning  | 13 | 1 (DEP-01: fabric 7 only) |
+| Info     | 8 | 1 (TST-03) |
 
 **Baseline**
 - `npm run build` passes, with webpack bundle-size warnings only.
@@ -33,27 +33,27 @@
 | ID | Issue | Status |
 |----|-------|--------|
 | SEC-01 | Preview cleanup deletes an unvalidated path from user-writable meta | ✅ Fixed |
-| SEC-02 | Post-import reads any published post (non-public CPTs, password-protected) | open |
-| SEC-03 | Export lets users without `upload_files` add media | open |
+| SEC-02 | Post-import reads any published post (non-public CPTs, password-protected) | ✅ Fixed |
+| SEC-03 | Export lets users without `upload_files` add media | ✅ Fixed |
 | ARC-01 | Duplicate corrupts or erases Fabric JSON (missing `wp_slash`) | ✅ Fixed |
-| ARC-02 | Uninstall leaves preview PNGs and trashed designs behind | open |
-| ARC-03 | Design/template lists silently capped at 100 | open |
-| ADM-01 | `core/notices` used with no renderer and no declared dependency | open |
-| ADM-02 | Manual save and autosave swallow errors | open |
-| A11Y-01 | Global keyboard shortcuts hijack inputs and browser zoom | open |
-| A11Y-02 | Layers panel: nested interactive, glyph-named buttons, hidden focus | open |
-| A11Y-03 | Toggle buttons don't expose state or a clear name | open |
-| STD-01 | Untranslated, concatenated user-facing strings | open |
-| PRF-01 | List endpoints return full Fabric JSON plus N+1 attachment lookups | open |
-| DEP-01 | Several `@wordpress/*` packages and `fabric` are majors behind | open |
-| STD-02 | `Tested up to: 6.9` (stable is 7.1) | open |
-| PRV-01 | Previews served from a predictable public URL | open |
-| ARC-04 | Duplicate drops custom width/height; templates drop custom size | open |
-| ARC-05 | Preview write uses raw `file_put_contents` | open |
-| TST-01 | No CI running lint/tests on PRs | open |
-| TST-02 | Duplicate test does not cover escaped JSON | ✅ Fixed (SEC-02 test still open) |
+| ARC-02 | Uninstall leaves preview PNGs and trashed designs behind | ✅ Fixed |
+| ARC-03 | Design/template lists silently capped at 100 | ✅ Fixed |
+| ADM-01 | `core/notices` used with no renderer and no declared dependency | ✅ Fixed |
+| ADM-02 | Manual save and autosave swallow errors | ✅ Fixed |
+| A11Y-01 | Global keyboard shortcuts hijack inputs and browser zoom | ✅ Fixed |
+| A11Y-02 | Layers panel: nested interactive, glyph-named buttons, hidden focus | ✅ Fixed |
+| A11Y-03 | Toggle buttons don't expose state or a clear name | ✅ Fixed |
+| STD-01 | Untranslated, concatenated user-facing strings | ✅ Fixed |
+| PRF-01 | List endpoints return full Fabric JSON plus N+1 attachment lookups | ✅ Fixed |
+| DEP-01 | Several `@wordpress/*` packages and `fabric` are majors behind | ⚠️ Partly fixed — fabric 7 deferred |
+| STD-02 | `Tested up to: 6.9` (stable is 7.1) | ✅ Fixed |
+| PRV-01 | Previews served from a predictable public URL | ✅ Fixed |
+| ARC-04 | Duplicate drops custom width/height; templates drop custom size | ✅ Fixed |
+| ARC-05 | Preview write uses raw `file_put_contents` | Won't fix (matches core) |
+| TST-01 | No CI running lint/tests on PRs | ✅ Fixed |
+| TST-02 | Duplicate test does not cover escaped JSON | ✅ Fixed |
 | TST-03 | No component tests or E2E for the editor | open |
-| INF-01 | Release workflow pins Node 20 | open |
+| INF-01 | Release workflow pins Node 20 | ✅ Fixed |
 
 ---
 
@@ -90,6 +90,8 @@ if ( file_exists( $abs_path ) ) { wp_delete_file( $abs_path ); }
 ## Warnings
 
 ### [SEC-02] Post-import exposes non-public and password-protected posts
+
+> **✅ Fixed (2026-10-16):** The by-ID route now requires a public, REST-visible post type and `read_post`, and hides password-protected posts from users who can't edit them. Covered by 4 tests.
 **File:** `includes/REST/PostImportController.php:116-122`
 **Code:** `if ( ! $post || 'publish' !== $post->post_status ) { … 404 }`
 **Issue:**
@@ -104,6 +106,8 @@ if ( file_exists( $abs_path ) ) { wp_delete_file( $abs_path ); }
 Also return 404 (or omit content and excerpt) when `post_password_required( $post )` is true and the user can't `edit_post` it.
 
 ### [SEC-03] Export bypasses `upload_files`
+
+> **✅ Fixed (2026-10-16):** Added a `require_upload_files` permission callback, and the editor hides Export PNG when `canUpload` is false. Covered by a Contributor 403 test.
 **File:** `includes/REST/ExportController.php:38`, `:104-126`
 **Issue:**
 - The route requires only `edit_posts`, yet it writes to uploads and creates a Media Library attachment.
@@ -129,6 +133,8 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 **Fix:** `update_post_meta( $new_post_id, $key, wp_slash( $value ) );`. Add a test with escaped content (see TST-02).
 
 ### [ARC-02] Uninstall leaves files and some posts behind
+
+> **✅ Fixed (2026-10-16):** Uninstall now deletes designs in every status and the `socialframe/previews` directory. Covered by `UninstallTest`.
 **File:** `uninstall.php:16-32`
 **Issue:**
 - Plugin hooks aren't loaded during uninstall, so `PreviewController::delete_preview_file` never runs. `uploads/socialframe/previews/*.png` and the directory remain.
@@ -140,11 +146,15 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 - Decide and document whether exported Media Library attachments stay (keeping them is reasonable).
 
 ### [ARC-03] Lists silently truncate at 100 items
+
+> **✅ Fixed (2026-10-16):** `GET /designs` takes `page`/`per_page` and returns `X-WP-Total`/`X-WP-TotalPages`. The admin grid and Templates panel use a shared `fetchAllPages()` with unit tests. `/templates` now lists only bundled templates; user templates come from `/designs?type=template`.
 **File:** `includes/REST/DesignsController.php:139`, `includes/REST/TemplatesController.php:124`; consumer `src/admin/AdminApp.jsx:206`
 **Issue:** The REST list returns at most 100 posts and the admin paginates client-side. Design #101 and older never appear in All Designs. The UI gives no hint.
 **Fix:** Add `page`/`per_page` args and `X-WP-Total` headers, then switch DataViews to server-side pagination. As a stopgap, at least raise the cap and show a notice when it is hit.
 
 ### [ADM-01] Editor notices never display, and the `core/notices` dependency is undeclared
+
+> **✅ Fixed (2026-10-16):** The notices store is now imported from `@wordpress/notices`, so `wp-notices` appears in the asset dependencies, and the editor renders a `SnackbarList`.
 **File:** `src/editor/components/Header/index.jsx:21-22`
 **Issue:**
 - `useDispatch( 'core/notices' )` passes a string store name, so dependency extraction can't add `wp-notices`. `build/editor/index.asset.php` lists no `wp-notices`.
@@ -156,6 +166,8 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 - Render `<SnackbarList>` (or `NoticeList`) in `EditorInner`, fed from `useSelect( noticesStore )`.
 
 ### [ADM-02] Save failures are invisible
+
+> **✅ Fixed (2026-10-16):** Manual save, autosave (under a fixed notice id) and duplicate now report failures.
 **File:** `src/editor/components/Header/index.jsx:71-72`, `src/editor/hooks/useAutoSave.js:40-41`
 **Issue:**
 - Both catch blocks are empty. A failed manual save looks the same as a successful one, apart from the dirty flag. The comment says "Errors surface via notices if needed", but no notice is created.
@@ -164,6 +176,8 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 **Fix:** After ADM-01, call `createErrorNotice()` on manual-save failure, and on autosave failure show it once rather than on every retry. Add a `.catch` → `setError` to duplicate.
 
 ### [A11Y-01] Global shortcuts hijack text editing and browser zoom
+
+> **✅ Fixed (2026-10-16):** Shortcuts skip inputs, selects and dialogs, compare keys case-insensitively, and zoom moved to unmodified + / - / 0. `resolveShortcut()` is unit-tested.
 **File:** `src/editor/hooks/useKeyboardShortcuts.js:20-73`
 **Issue:**
 - Undo, redo, duplicate and zoom are handled document-wide before any focus check. Ctrl/Cmd+Z in the title field undoes the canvas, not the text.
@@ -178,6 +192,8 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 - Compare `e.key.toLowerCase()`.
 
 ### [A11Y-02] Layers panel keyboard and screen-reader problems
+
+> **✅ Fixed (2026-10-16):** The layers panel is now a plain list with a real select button per row (F2 renames, and focus returns afterwards). Buttons are labelled, the rename input is labelled, and actions show on `:focus-within` with a focus ring.
 **File:** `src/editor/components/ContentPanel/LayersPanel.jsx:84-216`, `ContentPanel.css:403-414`
 **Issue:**
 - `role="option"` rows contain buttons, which is nested interactive content.
@@ -194,6 +210,8 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 - Add `.socialframe-layers__item:focus-within .socialframe-layers__actions { opacity: 1; }`.
 
 ### [A11Y-03] Toggle buttons don't expose state or a clear name
+
+> **✅ Fixed (2026-10-16):** B/I/U have labels, and all class-styled toggles plus the admin filter tabs expose `aria-pressed`.
 **File:** `src/editor/components/PropertiesPanel/TextProperties.jsx:126-180`, `PropertiesPanel/FlipSection.jsx:17-44`, `src/admin/AdminApp.jsx:230-243`
 **Issue:**
 - The Bold/Italic/Underline buttons are announced as "B", "I", "U" and don't expose `aria-pressed`.
@@ -205,6 +223,8 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 - Use `aria-pressed`, or a `TabPanel`, for the filter tabs.
 
 ### [STD-01] Untranslated or concatenated user-facing strings
+
+> **✅ Fixed (2026-10-16):** History labels are wrapped in `__()`, Undo/Redo tooltips use `sprintf`, and the generated titles are translatable patterns with translator comments.
 **File:**
 - `includes/REST/DuplicateController.php:64`: `' (Copy)'`
 - `includes/REST/ExportController.php:118`: `' Thumbnail'` / `' Export'`
@@ -217,6 +237,8 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 - Build "Undo %s" with `sprintf` instead of concatenating.
 
 ### [PRF-01] List endpoints are heavier than needed
+
+> **✅ Fixed (2026-10-16):** List items omit `fabricJson`, and exported attachments are primed with `_prime_post_caches()`.
 **File:** `includes/REST/AbstractController.php:117-138` (used by `DesignsController::get_designs`), `TemplatesController.php:138-151`
 **Issue:**
 - Every list item includes the full `fabricJson`, which the admin grid never uses: up to 100 full canvases per page load.
@@ -227,6 +249,13 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 - Prime with `_prime_post_caches( array_filter( $image_ids ) )` before mapping.
 
 ### [DEP-01] Outdated dependencies
+
+> **⚠️ Partly fixed (2026-10-16):**
+> - `@wordpress/scripts` is now 36. Unit tests moved to Vitest, as scripts 36 requires.
+> - The `@wordpress/*` runtime packages are on their latest versions.
+> - `@wordpress/dataviews` is now 17.3, the newest release whose externals core registers. 18 and later need `wp-kebab-case`, which no WP release ships.
+> - DataViews 17 needs `wp-theme` (WP 7.0+), so **Requires at least is now 7.0**.
+> - `fabric` 7 is still deferred because of its origin-default change.
 **File:** `package.json:31-41`
 
 | Package | Installed | Latest |
@@ -251,27 +280,41 @@ Nothing in npm or Packagist is deprecated or abandoned.
 ## Info
 
 ### [STD-02] `Tested up to` is behind stable
+
+> **✅ Fixed (2026-10-16):** `Tested up to: 7.1`. PHPUnit passes against WP 7.1.3.
 **Recommendation:** `socialframe.php:8` and `readme.txt:5` say 6.9, while stable is 7.1.3. Header rules allow this, since it is not more than one major behind. Bump both to `7.1` after a test pass on 7.1.
 
 ### [PRV-01] Previews live at a guessable public URL
+
+> **✅ Fixed (2026-10-16):** Preview filenames now carry a validated random token stored in protected meta. Legacy previews are removed when a preview is regenerated, and the directory has an `index.php`.
 **Recommendation:** `PreviewController.php:102` writes `uploads/socialframe/previews/sf-{id}-preview.png`, which anyone who guesses IDs can fetch even though the CPT is non-public. Low risk, because exports already go to the public Media Library. Consider adding a random suffix stored in meta (combine this with the SEC-01 fix), or a `.htaccess` deny where supported.
 
 ### [ARC-04] Custom dimensions are lost on duplicate and on save-as-template
+
+> **✅ Fixed (2026-10-16):** Duplicate copies the width and height, and save-as-template sends the artboard size (`getArtboardSize()`).
 **Recommendation:** `DuplicateController.php:76` copies only JSON and format. `exportHelpers.js:59-74` sends no `width`/`height`. The result is `format: 'custom'` with 0×0, and the editor recovers the size from the artboard rect only when JSON exists. Copy `socialframe_width`/`socialframe_height`, and pass them from `saveAsTemplate`.
 
 ### [ARC-05] Raw `file_put_contents` for previews
+
+> **Won't fix (2026-10-16):** Core's own `wp_upload_bits()` writes to uploads with `file_put_contents`. `WP_Filesystem` can need FTP credentials, which a REST request cannot provide. The code comment explains this.
 **Recommendation:** `PreviewController.php:108-109` suppresses the phpcs rule. Use `WP_Filesystem` (`$wp_filesystem->put_contents`) for consistency with the old ARCH-01 fix and with non-direct filesystem hosts.
 
 ### [TST-01] No CI on pull requests
+
+> **✅ Fixed (2026-10-16):** `.github/workflows/ci.yml` runs ESLint, Stylelint, Vitest and the build, plus phpcs and PHPUnit on PHP 8.1 and 8.5. The Composer platform is pinned to 8.1.
 **Recommendation:** `.github/workflows/` has only `release.yml`. Add a PR workflow that runs phpcs, `lint-js`, `lint-style`, Jest, and PHPUnit (see `/wp-ci`).
 
 ### [TST-02] Duplicate test misses the escaping case
+
+> **✅ Fixed (2026-10-16):** Added tests for escaped JSON, the SEC-01 traversal, the SEC-02 type, read and password checks, the SEC-03 Contributor case, pagination, PRV-01 and uninstall. PHPUnit now runs 53 tests.
 **Recommendation:** `tests/phpunit/DuplicateControllerTest.php:28-33` uses `{"objects":[1]}`, which has no escapes, so ARC-01 slipped through. Add a fixture containing `\"`, `\n` and non-ASCII text. Also add tests for SEC-01 (traversal path ignored) and SEC-02 (non-public or protected post → 404).
 
 ### [TST-03] No editor component tests or E2E
 **Recommendation:** Jest covers only the store reducer and selectors. A Playwright smoke test (create → edit → save → duplicate → export) would have caught ARC-01 and ADM-01.
 
 ### [INF-01] Release workflow pins Node 20
+
+> **✅ Fixed (2026-10-16):** The release workflow now uses Node 24 LTS with checkout/setup-node v7.
 **Recommendation:** `.github/workflows/release.yml` uses `node-version: '20'`. Node 20 reached end-of-life in April 2026. Move to the current LTS, checked live with `/wp-versions`.
 
 ---
@@ -315,5 +358,6 @@ Nothing in npm or Packagist is deprecated or abandoned.
 
 | Date | Changes |
 |------|---------|
+| 2026-10-16 | Worked through the rest of the audit: fixed SEC-02/03, ARC-02/03/04, ADM-01/02, A11Y-01/02/03, STD-01/02, PRF-01, PRV-01, TST-01/02 and INF-01. Upgraded DEP-01 apart from fabric. Closed ARC-05 as won't fix. Raised Requires at least to 7.0 for DataViews 17. Open: fabric 7 (DEP-01) and E2E tests (TST-03). Checks: PHPUnit 53/53, Vitest 24/24, phpcs, ESLint and Stylelint clean, build passes. |
 | 2026-10-16 | Fixed SEC-01 and ARC-01 (plus the escaped-JSON part of TST-02) with 4 regression tests. Each test was shown to fail without its fix. PHPUnit passes 41/41 and phpcs is clean. |
 | 2026-10-16 | Full re-audit on `audit/2026-10-16`. Upgraded WPCS 3.3.0 → 3.4.1 (with phpcsutils 1.2.3, phpcsextra 1.5.1, phpcs 3.13.6). Found 1 Critical, 13 Warning and 8 Info. |
