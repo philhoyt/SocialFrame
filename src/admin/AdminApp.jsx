@@ -56,7 +56,17 @@ export function AdminApp() {
 			apiFetch( {
 				path: `socialframe/v1/designs/${ item.id }/duplicate`,
 				method: 'POST',
-			} ).then( loadItems );
+			} )
+				.then( loadItems )
+				.catch( ( err ) =>
+					setError(
+						err.message ||
+							__(
+								'Failed to duplicate the design.',
+								'socialframe'
+							)
+					)
+				);
 		},
 		[ loadItems ]
 	);

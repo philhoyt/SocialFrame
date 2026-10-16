@@ -3,6 +3,7 @@ import { useSelect, useDispatch } from '@wordpress/data';
 import { Button, TextControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
+import { store as noticesStore } from '@wordpress/notices';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
@@ -19,7 +20,7 @@ import './Header.css';
 export function Header() {
 	const dispatch = useDispatch( STORE_KEY );
 	const { createSuccessNotice, createErrorNotice } =
-		useDispatch( 'core/notices' );
+		useDispatch( noticesStore );
 
 	const [ shareUrl, setShareUrl ] = useState( null );
 
@@ -69,7 +70,13 @@ export function Header() {
 			dispatch.markClean();
 			sendPreview( fabric.toDataURL, designId, apiFetch );
 		} catch {
-			// Errors surface via notices if needed.
+			createErrorNotice(
+				__(
+					'Could not save the design. Please try again.',
+					'socialframe'
+				),
+				{ type: 'snackbar' }
+			);
 		} finally {
 			dispatch.setSaving( false );
 		}
@@ -89,7 +96,8 @@ export function Header() {
 			setShareUrl( result.url );
 		} catch {
 			createErrorNotice(
-				__( 'Export failed. Please try again.', 'socialframe' )
+				__( 'Export failed. Please try again.', 'socialframe' ),
+				{ type: 'snackbar' }
 			);
 		} finally {
 			dispatch.setSaving( false );
@@ -109,10 +117,13 @@ export function Header() {
 				size: fabric.getArtboardSize(),
 				apiFetch,
 			} );
-			createSuccessNotice( __( 'Saved as template.', 'socialframe' ) );
+			createSuccessNotice( __( 'Saved as template.', 'socialframe' ), {
+				type: 'snackbar',
+			} );
 		} catch {
 			createErrorNotice(
-				__( 'Could not save template.', 'socialframe' )
+				__( 'Could not save template.', 'socialframe' ),
+				{ type: 'snackbar' }
 			);
 		} finally {
 			dispatch.setSaving( false );

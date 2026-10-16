@@ -5,10 +5,11 @@ import {
 	createContext,
 	useContext,
 } from '@wordpress/element';
-import { useDispatch } from '@wordpress/data';
+import { useDispatch, useSelect } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
-import { Spinner } from '@wordpress/components';
+import { Spinner, SnackbarList } from '@wordpress/components';
+import { store as noticesStore } from '@wordpress/notices';
 
 import { STORE_KEY } from './store';
 import { useFabricCanvas } from './hooks/useFabricCanvas';
@@ -101,7 +102,26 @@ function EditorInner( { design } ) {
 					<Canvas canvasRef={ canvasRef } areaRef={ areaRef } />
 					<PropertiesPanel />
 				</div>
+				<EditorNotices />
 			</div>
 		</FabricContext.Provider>
+	);
+}
+
+// ── Notices: wp-admin does not render the notices store on custom pages ──────
+
+function EditorNotices() {
+	const notices = useSelect(
+		( select ) => select( noticesStore ).getNotices(),
+		[]
+	);
+	const { removeNotice } = useDispatch( noticesStore );
+
+	return (
+		<SnackbarList
+			notices={ notices }
+			onRemove={ removeNotice }
+			className="socialframe-editor__notices"
+		/>
 	);
 }

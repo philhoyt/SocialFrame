@@ -1,11 +1,14 @@
 import { useEffect, useRef } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
+import { store as noticesStore } from '@wordpress/notices';
 
 import { STORE_KEY } from '../store';
 import { sendPreview } from '../utils/exportHelpers';
 
 const DEBOUNCE_MS = 2000;
+const FAILED_NOTICE_ID = 'socialframe-autosave-failed';
 
 /**
  * Debounced auto-save: fires a PUT /designs/:id when the editor is dirty,
@@ -18,6 +21,7 @@ const DEBOUNCE_MS = 2000;
 export function useAutoSave( getJSON, designId, toDataURL = null ) {
 	const isDirty = useSelect( ( select ) => select( STORE_KEY ).isDirty() );
 	const dispatch = useDispatch( STORE_KEY );
+	const { createErrorNotice, removeNotice } = useDispatch( noticesStore );
 	const timerRef = useRef( null );
 
 	useEffect( () => {
@@ -34,16 +38,32 @@ export function useAutoSave( getJSON, designId, toDataURL = null ) {
 					data: { fabricJson: JSON.stringify( getJSON() ) },
 				} );
 				dispatch.markClean();
+				removeNotice( FAILED_NOTICE_ID );
 				if ( toDataURL ) {
 					sendPreview( toDataURL, designId, apiFetch );
 				}
 			} catch {
-				// Silent fail — user can manually save.
+				// A fixed id replaces rather than stacks repeat failures.
+				createErrorNotice(
+					__(
+						'Autosave failed. Your changes are not saved yet.',
+						'socialframe'
+					),
+					{ id: FAILED_NOTICE_ID, type: 'snackbar' }
+				);
 			} finally {
 				dispatch.setSaving( false );
 			}
 		}, DEBOUNCE_MS );
 
 		return () => clearTimeout( timerRef.current );
-	}, [ isDirty, designId, getJSON, toDataURL, dispatch ] );
+	}, [
+		isDirty,
+		designId,
+		getJSON,
+		toDataURL,
+		dispatch,
+		createErrorNotice,
+		removeNotice,
+	] );
 }
