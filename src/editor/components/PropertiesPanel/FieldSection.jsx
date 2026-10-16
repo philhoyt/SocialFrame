@@ -31,8 +31,11 @@ export function FieldSection( { kind } ) {
 	} ) );
 	const fabric = useFabric();
 
-	const [ source, setSource ] = useState( '' );
-	const [ key, setKey ] = useState( '' );
+	// Start from the stored field so the picker never flashes "None".
+	const [ source, setSource ] = useState(
+		() => parseFieldName( fieldName ).source
+	);
+	const [ key, setKey ] = useState( () => parseFieldName( fieldName ).key );
 
 	// Re-read when the selection or its field changes, dropping any
 	// half-picked source from the previous object.
