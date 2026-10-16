@@ -54,6 +54,8 @@
 | TST-02 | Duplicate test does not cover escaped JSON | ✅ Fixed |
 | TST-03 | No component tests or E2E for the editor | open |
 | INF-01 | Release workflow pins Node 20 | ✅ Fixed |
+| QA-01 | Undo/redo threw Redux error #3 and never ran (found in browser QA) | ✅ Fixed |
+| QA-02 | Layer names, ids and artboard marker never saved: Fabric 6 `toJSON()` ignores props (found in browser QA) | ✅ Fixed |
 
 ---
 
@@ -319,6 +321,43 @@ Nothing in npm or Packagist is deprecated or abandoned.
 
 ---
 
+## Browser QA (2026-10-16)
+
+Checked in Chrome on social-frame.local (WP 7.1.3) against a duplicate of an existing design, which was deleted afterwards.
+
+**Confirmed working:**
+- **Admin grid:** loads on DataViews 17. The filter tabs expose `aria-pressed`. List items have no `fabricJson`. `X-WP-Total` and `X-WP-TotalPages` headers are present. Thumbnails use the tokenized preview path.
+- **Duplicate:** keeps the JSON unchanged.
+- **Layers panel:**
+  - It's a plain list with labelled actions.
+  - F2 opens a labelled rename input, and focus returns to the row after rename.
+  - Actions show on `:focus-within`.
+  - Backspace in the rename input doesn't delete the layer.
+- **Shortcuts:** unmodified `-` zooms. Cmd/Ctrl `=`, `-` and `0` are left to the browser.
+- **Notices:**
+  - Snackbars render.
+  - `wp-notices` is enqueued.
+  - A forced autosave failure shows "Autosave failed…" and leaves the design dirty.
+  - "Saved as template." appears.
+- **Templates:** user templates appear under My Templates and load their JSON on apply.
+- **Delete:** deleting a design removes its tokenized preview (404 afterwards).
+
+**Bugs found and fixed:**
+
+### [QA-01] Undo/redo broken
+**File:** `src/editor/store/reducer.js` (UNDO/REDO), `src/editor/store/actions.js`
+
+> **✅ Fixed (2026-10-16):** The reducer called history callbacks that dispatch, so Redux threw error #3 and nothing was undone. This predates the audit branch. `undoAction` and `redoAction` are now thunks, and the reducer only moves the index. Covered by unit tests. Re-tested in the browser: Cmd+Z and Cmd+Shift+Z undo and redo a rename.
+
+### [QA-02] Custom object properties never persisted
+**File:** `src/editor/hooks/useFabricCanvas.js` (`getJSON`)
+
+> **✅ Fixed (2026-10-16):** Fabric 6's `canvas.toJSON()` takes no arguments, so `id`, `isArtboard` and `sfShapeType` were dropped on every save, and `name` wasn't listed at all. It now uses `toObject([...])` with `name` included. Re-tested: a rename survives a reload.
+
+**Not covered:** Export PNG, deleting from the grid in the UI (the API was used), and contributor and author role views. These are in the proposed E2E task (TST-03).
+
+---
+
 ## Quick Wins
 
 1. ✅ **SEC-01:** stop trusting `socialframe_preview_path`. Rebuild the path from the post ID in `delete_preview_file()` and protect the meta keys. This takes a few lines and closes a file-deletion bug that Authors can trigger.
@@ -358,6 +397,7 @@ Nothing in npm or Packagist is deprecated or abandoned.
 
 | Date | Changes |
 |------|---------|
+| 2026-10-16 | Browser QA in Chrome (WP 7.1.3): found and fixed QA-01 (undo/redo threw Redux #3) and QA-02 (Fabric 6 `toJSON()` dropped custom props). Manual save now clears a stale autosave-failure notice. Vitest passes 26/26. |
 | 2026-10-16 | Worked through the rest of the audit: fixed SEC-02/03, ARC-02/03/04, ADM-01/02, A11Y-01/02/03, STD-01/02, PRF-01, PRV-01, TST-01/02 and INF-01. Upgraded DEP-01 apart from fabric. Closed ARC-05 as won't fix. Raised Requires at least to 7.0 for DataViews 17. Open: fabric 7 (DEP-01) and E2E tests (TST-03). Checks: PHPUnit 53/53, Vitest 24/24, phpcs, ESLint and Stylelint clean, build passes. |
 | 2026-10-16 | Fixed SEC-01 and ARC-01 (plus the escaped-JSON part of TST-02) with 4 regression tests. Each test was shown to fail without its fix. PHPUnit passes 41/41 and phpcs is clean. |
 | 2026-10-16 | Full re-audit on `audit/2026-10-16`. Upgraded WPCS 3.3.0 → 3.4.1 (with phpcsutils 1.2.3, phpcsextra 1.5.1, phpcs 3.13.6). Found 1 Critical, 13 Warning and 8 Info. |
