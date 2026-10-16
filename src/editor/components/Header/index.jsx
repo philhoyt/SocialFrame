@@ -115,13 +115,16 @@ export function Header() {
 		}
 		dispatch.setSaving( true );
 		try {
-			await saveAsTemplate( {
+			const template = await saveAsTemplate( {
 				title,
 				format,
 				fabricJson: fabric.getJSON(),
 				size: fabric.getArtboardSize(),
 				apiFetch,
 			} );
+			// Give the new template a thumbnail for the Templates panel; it
+			// renders the same canvas, so the current preview is accurate.
+			sendPreview( fabric.toDataURL, template.id, apiFetch );
 			createSuccessNotice( __( 'Saved as template.', 'socialframe' ), {
 				type: 'snackbar',
 			} );

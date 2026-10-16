@@ -55,6 +55,7 @@
 | TST-03 | No component tests or E2E for the editor | open |
 | INF-01 | Release workflow pins Node 20 | ✅ Fixed |
 | QA-01 | Undo/redo threw Redux error #3 and never ran (found in browser QA) | ✅ Fixed |
+| QA-03 | Templates saved from the editor had no thumbnail (found in browser QA) | ✅ Fixed |
 | QA-02 | Layer names, ids and artboard marker never saved: Fabric 6 `toJSON()` ignores props (found in browser QA) | ✅ Fixed |
 
 ---
@@ -354,6 +355,11 @@ Checked in Chrome on social-frame.local (WP 7.1.3) against a duplicate of an exi
 
 > **✅ Fixed (2026-10-16):** Fabric 6's `canvas.toJSON()` takes no arguments, so `id`, `isArtboard` and `sfShapeType` were dropped on every save, and `name` wasn't listed at all. It now uses `toObject([...])` with `name` included. Re-tested: a rename survives a reload.
 
+### [QA-03] Saved templates had no thumbnail
+**File:** `src/editor/components/Header/index.jsx` (`handleSaveAsTemplate`)
+
+> **✅ Fixed (2026-10-16):** Save as Template created the post but never generated a preview, so My Templates showed a text placeholder. It now sends a preview for the new template id. Re-tested: the template gets a 400px tokenized preview (HTTP 200) that renders in the panel.
+
 **Not covered:** Export PNG, deleting from the grid in the UI (the API was used), and contributor and author role views. These are in the proposed E2E task (TST-03).
 
 ---
@@ -397,6 +403,7 @@ Checked in Chrome on social-frame.local (WP 7.1.3) against a duplicate of an exi
 
 | Date | Changes |
 |------|---------|
+| 2026-10-16 | Fixed QA-03: Save as Template now generates the template's preview thumbnail. Verified in Chrome. |
 | 2026-10-16 | Browser QA in Chrome (WP 7.1.3): found and fixed QA-01 (undo/redo threw Redux #3) and QA-02 (Fabric 6 `toJSON()` dropped custom props). Manual save now clears a stale autosave-failure notice. Vitest passes 26/26. |
 | 2026-10-16 | Worked through the rest of the audit: fixed SEC-02/03, ARC-02/03/04, ADM-01/02, A11Y-01/02/03, STD-01/02, PRF-01, PRV-01, TST-01/02 and INF-01. Upgraded DEP-01 apart from fabric. Closed ARC-05 as won't fix. Raised Requires at least to 7.0 for DataViews 17. Open: fabric 7 (DEP-01) and E2E tests (TST-03). Checks: PHPUnit 53/53, Vitest 24/24, phpcs, ESLint and Stylelint clean, build passes. |
 | 2026-10-16 | Fixed SEC-01 and ARC-01 (plus the escaped-JSON part of TST-02) with 4 regression tests. Each test was shown to fail without its fix. PHPUnit passes 41/41 and phpcs is clean. |
