@@ -35,18 +35,28 @@ export function TextProperties() {
 						label="X"
 						value={ Math.round( props.left ?? 0 ) }
 						onChange={ ( v ) =>
-							update( { left: v }, 'Position X' )
+							update(
+								{ left: v },
+								__( 'Position X', 'socialframe' )
+							)
 						}
 					/>
 					<NumField
 						label="Y"
 						value={ Math.round( props.top ?? 0 ) }
-						onChange={ ( v ) => update( { top: v }, 'Position Y' ) }
+						onChange={ ( v ) =>
+							update(
+								{ top: v },
+								__( 'Position Y', 'socialframe' )
+							)
+						}
 					/>
 					<NumField
 						label="W"
 						value={ Math.round( props.width ?? 0 ) }
-						onChange={ ( v ) => update( { width: v }, 'Width' ) }
+						onChange={ ( v ) =>
+							update( { width: v }, __( 'Width', 'socialframe' ) )
+						}
 					/>
 					<NumField
 						label="H"
@@ -56,7 +66,12 @@ export function TextProperties() {
 					<NumField
 						label="°"
 						value={ Math.round( props.angle ?? 0 ) }
-						onChange={ ( v ) => update( { angle: v }, 'Rotation' ) }
+						onChange={ ( v ) =>
+							update(
+								{ angle: v },
+								__( 'Rotation', 'socialframe' )
+							)
+						}
 					/>
 					<NumField
 						label="%"
@@ -64,7 +79,10 @@ export function TextProperties() {
 						min={ 0 }
 						max={ 100 }
 						onChange={ ( v ) =>
-							update( { opacity: v / 100 }, 'Opacity' )
+							update(
+								{ opacity: v / 100 },
+								__( 'Opacity', 'socialframe' )
+							)
 						}
 					/>
 				</div>
@@ -77,7 +95,10 @@ export function TextProperties() {
 						value={ props.fontFamily ?? '' }
 						options={ fontOptions }
 						onChange={ ( v ) =>
-							update( { fontFamily: v }, 'Font family' )
+							update(
+								{ fontFamily: v },
+								__( 'Font family', 'socialframe' )
+							)
 						}
 					/>
 				) }
@@ -92,7 +113,10 @@ export function TextProperties() {
 						min={ 8 }
 						max={ 300 }
 						onChange={ ( v ) =>
-							update( { fontSize: v }, 'Font size' )
+							update(
+								{ fontSize: v },
+								__( 'Font size', 'socialframe' )
+							)
 						}
 					/>
 					<NumField
@@ -102,7 +126,10 @@ export function TextProperties() {
 						min={ 0.5 }
 						max={ 4 }
 						onChange={ ( v ) =>
-							update( { lineHeight: v }, 'Line height' )
+							update(
+								{ lineHeight: v },
+								__( 'Line height', 'socialframe' )
+							)
 						}
 					/>
 					<NumField
@@ -111,7 +138,10 @@ export function TextProperties() {
 						min={ -200 }
 						max={ 800 }
 						onChange={ ( v ) =>
-							update( { charSpacing: v }, 'Letter spacing' )
+							update(
+								{ charSpacing: v },
+								__( 'Letter spacing', 'socialframe' )
+							)
 						}
 					/>
 				</div>
@@ -321,7 +351,10 @@ export function TextProperties() {
 				<ColorRow
 					value={ typeof props.fill === 'string' ? props.fill : null }
 					onChange={ ( hex ) =>
-						update( { fill: hex }, 'Text color' )
+						update(
+							{ fill: hex },
+							__( 'Text color', 'socialframe' )
+						)
 					}
 				/>
 			</Accordion>
@@ -333,7 +366,10 @@ export function TextProperties() {
 				<ColorRow
 					value={ props.backgroundColor || null }
 					onChange={ ( hex ) =>
-						update( { backgroundColor: hex }, 'Text background' )
+						update(
+							{ backgroundColor: hex },
+							__( 'Text background', 'socialframe' )
+						)
 					}
 					showNone
 					noneValue=""

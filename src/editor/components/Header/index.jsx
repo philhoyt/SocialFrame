@@ -2,7 +2,7 @@ import { useState } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { Button, TextControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 import { STORE_KEY } from '../../store';
@@ -172,7 +172,11 @@ export function Header() {
 					onClick={ () => dispatch.undoAction() }
 					label={
 						undoLabel
-							? `${ __( 'Undo', 'socialframe' ) } ${ undoLabel }`
+							? sprintf(
+									/* translators: %s: name of the action to undo, e.g. "Font size" */
+									__( 'Undo %s', 'socialframe' ),
+									undoLabel
+							  )
 							: __( 'Undo', 'socialframe' )
 					}
 					showTooltip
@@ -185,7 +189,11 @@ export function Header() {
 					onClick={ () => dispatch.redoAction() }
 					label={
 						redoLabel
-							? `${ __( 'Redo', 'socialframe' ) } ${ redoLabel }`
+							? sprintf(
+									/* translators: %s: name of the action to redo, e.g. "Font size" */
+									__( 'Redo %s', 'socialframe' ),
+									redoLabel
+							  )
 							: __( 'Redo', 'socialframe' )
 					}
 					showTooltip

@@ -1,3 +1,5 @@
+import { __, sprintf } from '@wordpress/i18n';
+
 /**
  * Helper to run a canvas export through the REST endpoint.
  *
@@ -68,7 +70,11 @@ export async function saveAsTemplate( {
 		path: 'socialframe/v1/designs',
 		method: 'POST',
 		data: {
-			title: title + ' Template',
+			title: sprintf(
+				/* translators: %s: design title */
+				__( '%s Template', 'socialframe' ),
+				title
+			),
 			format,
 			type: 'template',
 			fabricJson: JSON.stringify( fabricJson ),

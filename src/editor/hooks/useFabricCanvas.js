@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import * as fabric from 'fabric';
 import { initAligningGuidelines } from 'fabric/extensions';
@@ -402,7 +403,7 @@ export function useFabricCanvas(
 			if ( naturalWidth !== prevWidth ) {
 				dispatch.markDirty();
 				dispatch.pushHistory( {
-					label: 'Fit text to content',
+					label: __( 'Fit text to content', 'socialframe' ),
 					undo: () => {
 						obj.set( 'width', prevWidth );
 						obj.initDimensions();
@@ -722,7 +723,7 @@ export function useFabricCanvas(
 			canvas.renderAll();
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Background color',
+				label: __( 'Background color', 'socialframe' ),
 				undo: () => {
 					artboard.set( 'fill', prev );
 					artboard.dirty = true;
@@ -748,7 +749,7 @@ export function useFabricCanvas(
 			canvas.setActiveObject( shape );
 			canvas.renderAll();
 			dispatch.pushHistory( {
-				label: `Add ${ type }`,
+				label: __( 'Add shape', 'socialframe' ),
 				undo: () => {
 					canvas.remove( shape );
 					canvas.discardActiveObject();
@@ -778,7 +779,7 @@ export function useFabricCanvas(
 			text.selectAll();
 			canvas.renderAll();
 			dispatch.pushHistory( {
-				label: `Add ${ role } text`,
+				label: __( 'Add text', 'socialframe' ),
 				undo: () => {
 					canvas.remove( text );
 					canvas.discardActiveObject();
@@ -820,7 +821,7 @@ export function useFabricCanvas(
 					canvas.setActiveObject( img );
 					canvas.renderAll();
 					dispatch.pushHistory( {
-						label: 'Add image',
+						label: __( 'Add image', 'socialframe' ),
 						undo: () => {
 							canvas.remove( img );
 							canvas.discardActiveObject();
@@ -896,7 +897,7 @@ export function useFabricCanvas(
 		dispatch.clearSelection();
 
 		dispatch.pushHistory( {
-			label: 'Delete object',
+			label: __( 'Delete object', 'socialframe' ),
 			undo: () => {
 				canvas.add( obj );
 				canvas.setActiveObject( obj );
@@ -946,7 +947,7 @@ export function useFabricCanvas(
 			dispatch.markDirty();
 
 			dispatch.pushHistory( {
-				label: 'Fill shape with image',
+				label: __( 'Fill shape with image', 'socialframe' ),
 				undo: () => {
 					shape.set( 'fill', prevFill );
 					shape.dirty = true;
@@ -1035,7 +1036,7 @@ export function useFabricCanvas(
 			dispatch.markDirty();
 
 			dispatch.pushHistory( {
-				label: 'Set background image',
+				label: __( 'Set background image', 'socialframe' ),
 				undo: () => {
 					artboard.set( 'fill', prev );
 					artboard.dirty = true;
@@ -1100,7 +1101,7 @@ export function useFabricCanvas(
 		dispatch.markDirty();
 
 		dispatch.pushHistory( {
-			label: 'Remove background image',
+			label: __( 'Remove background image', 'socialframe' ),
 			undo: () => {
 				artboard.set( 'fill', prev );
 				artboard.dirty = true;
@@ -1207,7 +1208,7 @@ export function useFabricCanvas(
 			syncSelection( obj, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: `Align ${ direction }`,
+				label: __( 'Align', 'socialframe' ),
 				undo: () => {
 					obj.set( { left: prevLeft, top: prevTop } );
 					obj.setCoords();
@@ -1253,7 +1254,7 @@ export function useFabricCanvas(
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Move layer up',
+				label: __( 'Move layer up', 'socialframe' ),
 				undo: () => {
 					canvas.sendObjectBackwards( obj );
 					canvas.renderAll();
@@ -1293,7 +1294,7 @@ export function useFabricCanvas(
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Move layer down',
+				label: __( 'Move layer down', 'socialframe' ),
 				undo: () => {
 					canvas.bringObjectForward( obj );
 					canvas.renderAll();
@@ -1333,7 +1334,7 @@ export function useFabricCanvas(
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Duplicate layer',
+				label: __( 'Duplicate layer', 'socialframe' ),
 				undo: () => {
 					canvas.remove( clone );
 					canvas.renderAll();
@@ -1366,7 +1367,7 @@ export function useFabricCanvas(
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Delete layer',
+				label: __( 'Delete layer', 'socialframe' ),
 				undo: () => {
 					canvas.add( obj );
 					canvas.renderAll();
@@ -1397,7 +1398,7 @@ export function useFabricCanvas(
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Rename layer',
+				label: __( 'Rename layer', 'socialframe' ),
 				undo: () => {
 					obj.name = prev;
 					syncLayersToStore( canvas, dispatch );
@@ -1435,7 +1436,7 @@ export function useFabricCanvas(
 		syncLayersToStore( canvas, dispatch );
 		dispatch.markDirty();
 		dispatch.pushHistory( {
-			label: 'Duplicate',
+			label: __( 'Duplicate', 'socialframe' ),
 			undo: () => {
 				canvas.remove( clone );
 				canvas.renderAll();
@@ -1468,7 +1469,9 @@ export function useFabricCanvas(
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: locked ? 'Lock layer' : 'Unlock layer',
+				label: locked
+					? __( 'Lock layer', 'socialframe' )
+					: __( 'Unlock layer', 'socialframe' ),
 				undo: () => {
 					obj.set( {
 						selectable: ! prevLocked,
@@ -1506,7 +1509,9 @@ export function useFabricCanvas(
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: visible ? 'Show layer' : 'Hide layer',
+				label: visible
+					? __( 'Show layer', 'socialframe' )
+					: __( 'Hide layer', 'socialframe' ),
 				undo: () => {
 					obj.set( 'visible', prevVisible );
 					syncLayersToStore( canvas, dispatch );
@@ -1538,7 +1543,7 @@ export function useFabricCanvas(
 			canvas.renderAll();
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Replace image',
+				label: __( 'Replace image', 'socialframe' ),
 				undo: () => {
 					obj.setElement( prevElement );
 					canvas.renderAll();

@@ -61,7 +61,8 @@ class DuplicateController extends AbstractController {
 
 		$new_post_id = wp_insert_post(
 			[
-				'post_title'  => $source_post->post_title . ' (Copy)',
+				/* translators: %s: title of the design being duplicated. */
+				'post_title'  => sprintf( __( '%s (Copy)', 'socialframe' ), $source_post->post_title ),
 				'post_type'   => 'socialframe_graphic',
 				'post_status' => 'publish',
 			],

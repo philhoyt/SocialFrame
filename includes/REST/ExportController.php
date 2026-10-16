@@ -115,7 +115,14 @@ class ExportController extends AbstractController {
 		$attachment_id = wp_insert_attachment(
 			[
 				'post_mime_type' => 'image/png',
-				'post_title'     => $post->post_title . ( $is_thumb ? ' Thumbnail' : ' Export' ),
+				'post_title'     => sprintf(
+					$is_thumb
+						/* translators: %s: design title. */
+						? __( '%s Thumbnail', 'socialframe' )
+						/* translators: %s: design title. */
+						: __( '%s Export', 'socialframe' ),
+					$post->post_title
+				),
 				'post_status'    => 'inherit',
 				'post_parent'    => $id,
 				'guid'           => $file_url,

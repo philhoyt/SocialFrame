@@ -28,7 +28,7 @@ export function ShadowSection() {
 			{
 				shadow: new fabric.Shadow( { ...shadow, ...overrides } ),
 			},
-			'Shadow'
+			__( 'Shadow', 'socialframe' )
 		);
 	}
 
@@ -44,7 +44,7 @@ export function ShadowSection() {
 					if ( hasShadow ) {
 						fabricApi?.updateSelected(
 							{ shadow: null },
-							'Remove shadow'
+							__( 'Remove shadow', 'socialframe' )
 						);
 					} else {
 						applyShadow( {} );

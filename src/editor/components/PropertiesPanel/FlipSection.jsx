@@ -23,7 +23,7 @@ export function FlipSection() {
 				onClick={ () =>
 					fabric?.updateSelected(
 						{ flipX: ! props.flipX },
-						'Flip horizontal'
+						__( 'Flip horizontal', 'socialframe' )
 					)
 				}
 				title={ __( 'Flip Horizontal', 'socialframe' ) }
@@ -38,7 +38,7 @@ export function FlipSection() {
 				onClick={ () =>
 					fabric?.updateSelected(
 						{ flipY: ! props.flipY },
-						'Flip vertical'
+						__( 'Flip vertical', 'socialframe' )
 					)
 				}
 				title={ __( 'Flip Vertical', 'socialframe' ) }
