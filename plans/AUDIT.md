@@ -1,24 +1,30 @@
 # SocialFrame — Audit Report
 
-**Date:** 2026-06-11
-**WordPress latest stable:** 7.0
-**Scanned:** 15 PHP files · 0 blocks · 41 JS/JSX files
-**Branch:** `audit/2026-06-11`
+**Date:** 2026-10-16
+**WordPress latest stable:** 7.1.3 (no RC/beta in the API response)
+**Scanned:** 17 PHP files (+8 test files) · 0 blocks · 49 JS/JSX/CSS files under `src/`
+**Branch:** `audit/2026-10-16`
+**Scan mode:** single session (17 PHP files, no blocks)
 
-> ⚠️ **Scope note (added 2026-06-11):** This audit ran on the `feat/collage-layouts`-based branch, which predated the `auto-preview` merge on `main`. After the fixes, the branch was rebased onto `main` — collage was dropped (still parked on `feat/collage-layouts`) and auto-preview was picked up. The auto-preview surface (`includes/REST/PreviewController.php`, `socialframe_preview_path` meta, `format_design()` preview fallback, and the JS preview-send path) was **scanned separately on 2026-06-11** — see the PreviewController scan below. Result: clean except one low-severity item (PRV-01).
+> Supersedes the 2026-06-11 / 2026-06-24 report (still in git history). Every item from that report stays fixed except DEP-03 (fabric 6 → 7), which is now part of DEP-01 below.
 
 ## Summary
 
 | Severity | Count | Open |
 |----------|-------|------|
-| Critical | 0     | 0    |
-| Warning  | 6     | 1    |
-| Info     | 5     | 0    |
+| Critical | 1 | 0 |
+| Warning  | 13 | 12 |
+| Info     | 8 | 8 |
 
-_Resolved 2026-06-11: ACL-01, SEC-02, ARCH-01, STD-01, DEP-02, DEP-01. PRV-01 added from the PreviewController scan (2026-06-11)._
-_Resolved 2026-06-24: TST-01, TST-02, INF-01, PRV-01. Only DEP-03 (fabric 6 → 7) remains open — intentionally deferred to its own branch because the v7 origin-default change re-renders saved designs and requires manual visual QA._
+**Baseline**
+- `npm run build` passes, with webpack bundle-size warnings only.
+- `phpcs` (WPCS 3.4.1, upgraded from 3.3.0 for this audit) reports 0 issues.
+- `wp-scripts lint-js` and `lint-style` are clean.
+- Jest passes 18 of 18 tests. PHPUnit was not run during the audit; it passes 41 of 41 after the fixes.
 
-Baseline: `npm run build` passes (bundle-size warnings only). `phpcs` reports **0 errors / 0 warnings** across all 15 PHP files. No XSS, SQL injection, missing-nonce, hardcoded-secret, or debug-code findings.
+**Verification**
+- Every Critical and Warning finding was re-read and then checked by a separate read-only agent that tried to refute it.
+- The Codex second-model review did not run. Codex refused the model, returning `"status":400` for `gpt-6.1-sol` on a ChatGPT account. `codex doctor` also reports that 0.163.0 is available (installed: 0.162.1).
 
 ---
 
@@ -26,161 +32,282 @@ Baseline: `npm run build` passes (bundle-size warnings only). `phpcs` reports **
 
 | ID | Issue | Status |
 |----|-------|--------|
-| ACL-01 | REST endpoints check generic `edit_posts`, not per-post capability | ✅ Fixed |
-| SEC-02 | Export writes base64 to `.png` without verifying it is a real image | ✅ Fixed |
-| STD-01 | WP minimum version inconsistent across phpcs.xml / header / project.md | ✅ Fixed |
-| DEP-01 | `@wordpress/dataviews` 3 major versions behind (13 → 16) | ✅ Fixed (visual QA pending) |
-| DEP-02 | `@wordpress/scripts` 2 major versions behind (30 → 32) | ✅ Fixed |
-| DEP-03 | `fabric` 1 major version behind (6 → 7) | open (deferred — see note) |
-| TST-01 | No test suite (PHPUnit or JS) | ✅ Fixed |
-| TST-02 | Security-sensitive REST controllers untested | ✅ Fixed |
-| ARCH-01 | Export uses raw `file_put_contents` instead of WP_Filesystem | ✅ Fixed |
-| INF-01 | Post-import exposes any published post's public meta to `edit_posts` users | ✅ Fixed |
-| PRV-01 | Preview write does not explicitly verify PNG type (low risk; resize_png guards) | ✅ Fixed |
+| SEC-01 | Preview cleanup deletes an unvalidated path from user-writable meta | ✅ Fixed |
+| SEC-02 | Post-import reads any published post (non-public CPTs, password-protected) | open |
+| SEC-03 | Export lets users without `upload_files` add media | open |
+| ARC-01 | Duplicate corrupts or erases Fabric JSON (missing `wp_slash`) | ✅ Fixed |
+| ARC-02 | Uninstall leaves preview PNGs and trashed designs behind | open |
+| ARC-03 | Design/template lists silently capped at 100 | open |
+| ADM-01 | `core/notices` used with no renderer and no declared dependency | open |
+| ADM-02 | Manual save and autosave swallow errors | open |
+| A11Y-01 | Global keyboard shortcuts hijack inputs and browser zoom | open |
+| A11Y-02 | Layers panel: nested interactive, glyph-named buttons, hidden focus | open |
+| A11Y-03 | Toggle buttons don't expose state or a clear name | open |
+| STD-01 | Untranslated, concatenated user-facing strings | open |
+| PRF-01 | List endpoints return full Fabric JSON plus N+1 attachment lookups | open |
+| DEP-01 | Several `@wordpress/*` packages and `fabric` are majors behind | open |
+| STD-02 | `Tested up to: 6.9` (stable is 7.1) | open |
+| PRV-01 | Previews served from a predictable public URL | open |
+| ARC-04 | Duplicate drops custom width/height; templates drop custom size | open |
+| ARC-05 | Preview write uses raw `file_put_contents` | open |
+| TST-01 | No CI running lint/tests on PRs | open |
+| TST-02 | Duplicate test does not cover escaped JSON | ✅ Fixed (SEC-02 test still open) |
+| TST-03 | No component tests or E2E for the editor | open |
+| INF-01 | Release workflow pins Node 20 | open |
 
 ---
 
 ## Critical
 
-None found. Output escaping, input sanitization, nonce verification, SQL safety, and secrets handling are all clean (see *Already Fixed / Clean*).
+### [SEC-01] Preview cleanup can delete arbitrary files (path traversal via post meta) — ✅ Fixed (2026-10-16)
+
+> **Resolution:**
+> - `PreviewController::preview_rel_path()` builds the path from the post ID. The preview write, the delete cleanup and `format_design()`'s preview URL all use it, and the meta now only flags that a preview exists.
+> - All seven `socialframe_*` meta keys are registered with `auth_callback => '__return_false'`, so Custom Fields and `add-meta` can no longer add or edit them.
+> - Regression tests are in `PreviewControllerTest` (tampered-path delete, tampered-path URL, Author meta caps).
+> - Before the fix, the tampered-path test really deleted a sentinel file outside uploads, which confirms the bug in practice.
+
+**File:** `includes/REST/PreviewController.php:134-141`, `includes/Meta/GraphicMeta.php:128-138`
+**Code:**
+```php
+$rel_path = get_post_meta( $post_id, 'socialframe_preview_path', true );
+$abs_path = wp_upload_dir()['basedir'] . '/' . $rel_path;
+if ( file_exists( $abs_path ) ) { wp_delete_file( $abs_path ); }
+```
+**Issue:**
+- `socialframe_preview_path` is not underscore-prefixed. It is registered with `sanitize_text_field`, which keeps `../`, and it has no `auth_callback`. For unprotected meta, WordPress then defaults `auth_callback` to allow.
+- Core's `wp_ajax_add_meta` checks only three things: the generic `add-meta` nonce (any post edit screen with Custom Fields provides it), `edit_post`, and `add_post_meta`.
+- That means an **Author** can create a design through REST, then add `socialframe_preview_path = ../../wp-config.php` to it through `admin-ajax.php?action=add-meta`.
+- When the Author then deletes their own design (which `require_delete_graphic` allows), `before_delete_post` unlinks a file outside uploads. Deleting `wp-config.php` sends the site back to the install screen.
+- Traced in core source (`ajax-actions.php`, `post.php::add_meta`, `wp_delete_file`). Not yet reproduced on a live site.
+
+**Fix:** Do both of these:
+1. Never trust the stored path. Rebuild it from the ID (`'socialframe/previews/sf-' . $post_id . '-preview.png'`), or check that `realpath()` of the resolved path starts with `realpath( $basedir . '/socialframe/previews/' )`.
+2. Protect the key. Rename it to `_socialframe_preview_path` with a migration, or register it with `'auth_callback' => '__return_false'`. Give the other `socialframe_*` keys the same treatment so no meta can be edited through Custom Fields.
 
 ---
 
 ## Warnings
 
-### [ACL-01] REST endpoints authorize on generic `edit_posts`, not the specific post — ✅ Fixed (2026-06-11)
+### [SEC-02] Post-import exposes non-public and password-protected posts
+**File:** `includes/REST/PostImportController.php:116-122`
+**Code:** `if ( ! $post || 'publish' !== $post->post_status ) { … 404 }`
+**Issue:**
+- The search endpoint limits results to public, `show_in_rest` post types (`:274-286`). The by-ID endpoint does not.
+- Any `edit_posts` user, including a Contributor, can fetch rendered content and public meta for any published post by ID. That covers non-public CPTs from other plugins and password-protected posts.
+- `post_password_required()` is never checked.
 
-> **Resolution (shared-workspace, gated):** Listing, reading, editing, exporting, and duplicating remain open at `edit_posts` (collaborative shared workspace). Deletion is now gated per-post via a new `require_delete_graphic` permission callback (`AbstractController.php:57`) that checks `current_user_can( 'delete_post', $id )` — owners delete their own designs, deleting another user's requires `delete_others_posts` (Editor+). `format_design()` now returns a `canDelete` flag (`AbstractController.php`), the DELETE route uses the new callback (`DesignsController.php:108`), and the admin UI hides the delete action for ineligible designs via `isEligible` plus surfaces failures with a `.catch` (`AdminApp.jsx`). Model documented in `readme.txt` FAQ and `.claude/rules/project.md`. Original finding below.
+**Fix:** Return 404 unless both checks pass:
+- `in_array( $post->post_type, $this->get_public_post_types(), true )`
+- `current_user_can( 'read_post', $post_id )`
 
-**File:** `includes/REST/AbstractController.php:52` (`require_edit_posts`), consumed by:
-- `includes/REST/DesignsController.php:91,107` — `update_design` / `delete_design`
-- `includes/REST/ExportController.php:38` — `handle_export` (writes a file + creates an attachment)
-- `includes/REST/DuplicateController.php:38` — `handle_duplicate`
+Also return 404 (or omit content and excerpt) when `post_password_required( $post )` is true and the user can't `edit_post` it.
 
-**Issue:** Every write/delete route uses `current_user_can( 'edit_posts' )` only. It never checks `current_user_can( 'edit_post', $id )` for the targeted design. Any user with `edit_posts` — including a **Contributor**, who cannot even publish — can read, update, delete, export, and duplicate *any* user's design, including an administrator's. This is broken access control / IDOR for the design objects.
+### [SEC-03] Export bypasses `upload_files`
+**File:** `includes/REST/ExportController.php:38`, `:104-126`
+**Issue:**
+- The route requires only `edit_posts`, yet it writes to uploads and creates a Media Library attachment.
+- Contributors don't have `upload_files`. The PNG type check limits what they can upload, but not whether they can.
 
-The `readme.txt` (FAQ, line 80) documents an intentional shared-workspace model ("Any user with the `edit_posts` capability can access SocialFrame and use all editor features"), so this may be by design. But destructive cross-user actions (delete/overwrite another user's design by a lower-privilege role) are rarely the intent.
+**Fix:** Use a permission callback that requires `edit_posts && upload_files`. Hide the Export button in the editor when the user lacks it (pass a `canUpload` flag in `socialFrameConfig`).
 
-**Fix:** Decide the access model explicitly. If designs are per-user, add a per-post check in `get_graphic_post()` and the export/duplicate handlers:
-```php
-if ( ! current_user_can( 'edit_post', $post->ID ) ) {
-    return new WP_Error( 'forbidden', __( 'You cannot edit this design.', 'socialframe' ), [ 'status' => 403 ] );
-}
-```
-If the shared workspace is intentional, consider gating create/delete behind a stronger capability (e.g. `publish_posts` or a custom `manage_socialframe` cap) and document the decision in `project.md`.
+### [ARC-01] Duplicating a design erases or corrupts its content — ✅ Fixed (2026-10-16)
 
-### [SEC-02] Export writes decoded base64 to a `.png` without verifying it is an image — ✅ Fixed (2026-06-11)
+> **Resolution:**
+> - `DuplicateController` now passes the copied meta through `wp_slash()`.
+> - Regression test `test_duplicate_preserves_escaped_json` covers quotes, `\n` and non-ASCII text. It failed before the fix and passes after.
 
-> **Resolution:** `handle_export` now validates the decoded bytes with `getimagesizefromstring()` and rejects anything that is not `IMAGETYPE_PNG` before writing. The write itself moved from raw `file_put_contents()` to `wp_upload_bits()` (which also resolves ARCH-01 — see below), so WordPress now handles the path, unique filename, and extension validation. `ExportController.php:76-118`. Original finding below.
+**File:** `includes/REST/DuplicateController.php:78-83`
+**Code:** `update_post_meta( $new_post_id, $key, $value );`
+**Issue:**
+- `update_metadata()` runs `wp_unslash()` on the value, and the copy is not slashed first (the create and update paths at `DesignsController.php:192,238` do slash).
+- A `\"` inside the JSON makes it invalid, and that is common: it appears in any quoted font family such as `"\"Inter\", sans-serif"` and in any text containing a quote. `sanitize_fabric_json()` then stores `''`, so the duplicate is blank.
+- `\n` becomes `n`, and `é` becomes `u00e9`, which corrupts multi-line and non-ASCII text.
+- This also breaks template-to-design instantiation.
+- Reproduced with PHP `stripslashes()`.
 
-**File:** `includes/REST/ExportController.php:73-96`
-**Code:** `base64_decode()` → `file_put_contents( $filepath, $binary )` with a hardcoded `.png` name.
-**Issue:** On the non-thumbnail path the decoded bytes are written directly to the uploads directory with no check that they are a valid PNG (only base64 *decodability* is validated; the thumbnail path happens to validate via `imagecreatefromstring`). A user with `edit_posts` could store arbitrary bytes as a `.png`. Risk is limited (forced `.png` extension and `image/png` mime, not executable), but it bypasses the normal `wp_handle_upload` / `wp_check_filetype` safeguards.
-**Fix:** Validate before writing — e.g. `if ( false === getimagesizefromstring( $binary ) ) { return new WP_Error(...); }` — or route the bytes through `wp_upload_bits()` so core handles filename/mime validation.
+**Fix:** `update_post_meta( $new_post_id, $key, wp_slash( $value ) );`. Add a test with escaped content (see TST-02).
 
-### [STD-01] WordPress minimum-version is inconsistent across files — ✅ Fixed (2026-06-11)
+### [ARC-02] Uninstall leaves files and some posts behind
+**File:** `uninstall.php:16-32`
+**Issue:**
+- Plugin hooks aren't loaded during uninstall, so `PreviewController::delete_preview_file` never runs. `uploads/socialframe/previews/*.png` and the directory remain.
+- `post_status => 'any'` skips posts in `trash` and `auto-draft`.
 
-> **Resolution:** Standardized on **6.6** (the value already advertised in the plugin header and `readme.txt`). Bumped `phpcs.xml` (`minimum_supported_wp_version`) and `.claude/rules/project.md` from 6.5 to 6.6. All four sources now agree. Original finding below.
+**Fix:**
+- Query with `'post_status' => array_keys( get_post_stati() )`.
+- After deleting posts, remove the `socialframe/previews` directory with `WP_Filesystem` and `rmdir( $dir, true )`.
+- Decide and document whether exported Media Library attachments stay (keeping them is reasonable).
 
-**Files:** `phpcs.xml:38` (`minimum_supported_wp_version` = `6.5`) vs. `socialframe.php:7` & `readme.txt:4` (`Requires at least: 6.6`) vs. `.claude/rules/project.md` (`WP minimum: 6.5`).
-**Issue:** Three sources disagree (6.5 vs 6.6). PHPCS will check against 6.5 while the plugin advertises 6.6 as the floor.
-**Fix:** Pick one floor and align all three. (`Tested up to: 6.9` is valid against stable 7.0 — within one major — so no change needed there.)
+### [ARC-03] Lists silently truncate at 100 items
+**File:** `includes/REST/DesignsController.php:139`, `includes/REST/TemplatesController.php:124`; consumer `src/admin/AdminApp.jsx:206`
+**Issue:** The REST list returns at most 100 posts and the admin paginates client-side. Design #101 and older never appear in All Designs. The UI gives no hint.
+**Fix:** Add `page`/`per_page` args and `X-WP-Total` headers, then switch DataViews to server-side pagination. As a stopgap, at least raise the cap and show a notice when it is hit.
 
-### [DEP-01] `@wordpress/dataviews` is 3 major versions behind — ✅ Fixed (2026-06-11, visual QA pending)
+### [ADM-01] Editor notices never display, and the `core/notices` dependency is undeclared
+**File:** `src/editor/components/Header/index.jsx:21-22`
+**Issue:**
+- `useDispatch( 'core/notices' )` passes a string store name, so dependency extraction can't add `wp-notices`. `build/editor/index.asset.php` lists no `wp-notices`.
+- Nothing in `src/` renders a `SnackbarList` or `NoticeList`, so "Export failed" and "Saved as template" are never shown.
+- If no other admin script registers the store, the destructuring throws and the header crashes. That happens on older WP; newer WP may load the store through the command palette. Not tested live.
 
-> **Resolution:** Bumped 13.1.0 → 16.0.0 (bundled, so the version is pinned here — not a WP runtime external). Verified against the v16 type defs that every prop `AdminApp.jsx` uses is intact: View (`type/perPage/page/search/fields/filters/sort/titleField/mediaField/layout`), Field (`getValue/render/enableSorting/enableHiding/enableGlobalSearch/elements/filterBy/type`), and Action (`isPrimary/isEligible/supportsBulk/callback`). `filterSortAndPaginate(data, view, fields)` signature unchanged. React churn nets out (v15→React 19, v16→React 18). **One breaking change touched the code:** the `isDestructive` action prop was removed with no replacement, so it was dropped from the Delete action (the `window.confirm()` still conveys intent; only the red menu styling is lost). `style.css` is still at the same path. `lint:js` + `build` pass. Committed on `chore/dataviews-16`.
->
-> **⚠️ Manual visual QA still needed** (can't verify headlessly): the v14 card-layout migration to `@wordpress/ui` shifts grid spacing/typography, and the design-tokens stylesheet is no longer embedded. Load the SocialFrame admin list in wp-admin and confirm the grid thumbnails, spacing, and the (now un-tinted) Delete action look right. `wp-components` styles are already enqueued as a dependency, which should supply the base tokens.
+**Fix:**
+- Import it with `import { store as noticesStore } from '@wordpress/notices'`. This adds the dependency and makes the import explicit.
+- Render `<SnackbarList>` (or `NoticeList`) in `EditorInner`, fed from `useSelect( noticesStore )`.
 
-**File:** `package.json` — declared `^13.1.0`, installed `13.1.0`, latest `16.0.0`. Used only in `src/admin/AdminApp.jsx` + the `build-style/style.css` import.
-**Issue:** Low–moderate, self-contained. React churn cancels out (v15→React 19, v16→React 18, so 16.0.0 is back on React 18, compatible with `@wordpress/element`). v14 migrated card layout to `@wordpress/ui` (minor visual shifts in the grid) and stopped embedding the design-tokens stylesheet (must be included explicitly). Infinite-scroll API change is N/A (uses pagination). No custom CSS targets DataViews internals (verified), so that breakage doesn't apply.
-**Fix:** Bump to 16, add the design-tokens stylesheet, verify the `view`/`fields`/`actions` props against the 16 API, and eyeball the admin grid.
+### [ADM-02] Save failures are invisible
+**File:** `src/editor/components/Header/index.jsx:71-72`, `src/editor/hooks/useAutoSave.js:40-41`
+**Issue:**
+- Both catch blocks are empty. A failed manual save looks the same as a successful one, apart from the dirty flag. The comment says "Errors surface via notices if needed", but no notice is created.
+- Also, `handleDuplicate` in `src/admin/AdminApp.jsx:54-57` has no `.catch`.
 
-### [DEP-02] `@wordpress/scripts` is 2 major versions behind — ✅ Fixed (2026-06-11)
+**Fix:** After ADM-01, call `createErrorNotice()` on manual-save failure, and on autosave failure show it once rather than on every retry. Add a `.catch` → `setError` to duplicate.
 
-> **Resolution:** Bumped `@wordpress/scripts` 30.27.0 → 32.4.0 (ESLint 9.39.4). Replaced `.eslintrc.js` with `eslint.config.js` (flat config) extending the wp-scripts default + browser globals. The upgrade's stricter `eslint-plugin-import` rules surfaced undeclared imports, so the `@wordpress/*` packages actually used in `src/` (`api-fetch`, `components`, `data`, `element`, `i18n`) plus `globals` were declared in `devDependencies` (externalized at build — no bundle impact). One genuine `no-unused-vars` fixed (optional catch binding in `useAutoSave.js`). The custom `webpack.config.js` and `.stylelintrc.json` needed no changes. Verified: `lint:js`, `lint:css`, `build` all pass; asset dependency extraction still emits the correct `wp-*` handles. Committed on `chore/wp-scripts-32`. Original finding below.
+### [A11Y-01] Global shortcuts hijack text editing and browser zoom
+**File:** `src/editor/hooks/useKeyboardShortcuts.js:20-73`
+**Issue:**
+- Undo, redo, duplicate and zoom are handled document-wide before any focus check. Ctrl/Cmd+Z in the title field undoes the canvas, not the text.
+- Ctrl/Cmd `+` `-` `0` override browser zoom (WCAG 1.4.4).
+- Backspace/Delete deletes the selected canvas object whenever focus isn't in an INPUT, TEXTAREA or contentEditable element, for example on a `<select>`, a button, or inside a modal.
+- The redo check compares `e.key === 'z'` while Shift is held. Many browsers report `'Z'` there, so Ctrl+Shift+Z redo fails.
 
-**File:** `package.json` — declared `^30.0.0`, installed `30.27.0`, latest `32.4.0`.
-**Issue:** v32 bundles ESLint **v10** (up from v8) and `lint-js` defaults to flat config (`eslint.config.*`). The legacy `.eslintrc.js` this project uses still works as a *deprecated fallback*, so the build won't break immediately, but it should migrate to flat config. v31 also expanded `lint-js` to cover `.cjs/.mjs/.cts/.mts`, which may surface new lint errors. The custom `webpack.config.js` and `.stylelintrc.json` should be re-verified against v32. Node 22 already satisfies the v32 minimum. Not urgent — the current `.eslintrc.js` + ESLint 8.57.1 pairing is correct for wp-scripts 30.
-**Fix:** When upgrading to wp-scripts 32, migrate `.eslintrc.js` to `eslint.config.js` (flat config) extending `@wordpress/eslint-plugin`, in the same PR as the bump.
+**Fix:**
+- Skip every shortcut when focus is in an editable field or a select, or inside `.components-modal__frame`.
+- Better still, scope the handler to the canvas area or bind it with `useKeyboardShortcut` from `@wordpress/compose`.
+- Drop the zoom overrides or move them to unmodified keys.
+- Compare `e.key.toLowerCase()`.
 
-### [DEP-03] `fabric` is 1 major version behind — open (deferred 2026-06-24)
+### [A11Y-02] Layers panel keyboard and screen-reader problems
+**File:** `src/editor/components/ContentPanel/LayersPanel.jsx:84-216`, `ContentPanel.css:403-414`
+**Issue:**
+- `role="option"` rows contain buttons, which is nested interactive content.
+- Every row has `tabIndex={0}`, so there is no roving tabindex.
+- Lock/hide/move/duplicate/delete buttons get their accessible name from glyphs ("🔓", "↑", "✕"). `title` is ignored when there is content.
+- The rename `<input>` has no label, and rename is reachable only by double-click.
+- The action buttons are `opacity: 0` unless the row is hovered or selected, so keyboard focus lands on invisible buttons in rows that aren't selected.
 
-> **Deferred (2026-06-24):** Reviewed the fabric v7 changelog against this codebase. The v7 payoff here is thin — text-positioning/line-height bug fixes, library-internal security hardening (text char-cache prototype-pollution + `Text.ts` ReDoS regexes), and optional multi-touch gestures — none of which this app currently depends on. The cost is the breaking `originX/originY` default flip (`left/top` → `center/center`), which shifts every object and re-renders **all already-saved designs** until normalized, plus a text-position fix that can move saved text. Because the upgrade can't be verified headlessly (it needs manual visual QA against real saved designs), it was split out of this round and parked for a dedicated branch. The remaining four open findings (TST-01, TST-02, INF-01, PRV-01) were resolved without it.
+**Fix:**
+- Use a plain list (or `role="grid"`) instead of listbox/option.
+- Give each icon button an `aria-label` (or use `<Button icon label>`) and wrap the glyphs in `aria-hidden`.
+- Label the input.
+- Add F2/Enter to rename.
+- Add `.socialframe-layers__item:focus-within .socialframe-layers__actions { opacity: 1; }`.
 
-**File:** `package.json` — declared `^6.0.0`, installed `6.9.1`, latest `7.4.0`.
-**Issue:** Highest-risk upgrade. fabric is the core editor dependency (`useFabricCanvas.js`, `fabricHelpers.js`, `ShadowSection.jsx`). v7 breaking changes that hit this codebase:
-- **`originX`/`originY` default flips from `left`/`top` → `center`/`center`.** The code never sets an explicit origin (0 hits), so every object relies on the v6 default — under v7 all objects shift by half their size, **and every design already saved as fabric JSON re-renders misaligned** (stored-data impact).
-- **Text positioning fix (BREAKING)** — saved text objects can shift on reload.
-- Node 20 min: non-issue (Node 22). `getPointer→getScenePoint`, `fireRightClick`, SVG-parser/request-util removals: not used here.
-**Fix:** Pin `originX:'left'`/`originY:'top'` (globally or per-factory), add a normalization step so v6-era JSON renders identically, and do manual visual QA against real saved designs. Own branch; do not bundle with DEP-01/02.
+### [A11Y-03] Toggle buttons don't expose state or a clear name
+**File:** `src/editor/components/PropertiesPanel/TextProperties.jsx:126-180`, `PropertiesPanel/FlipSection.jsx:17-44`, `src/admin/AdminApp.jsx:230-243`
+**Issue:**
+- The Bold/Italic/Underline buttons are announced as "B", "I", "U" and don't expose `aria-pressed`.
+- The flip toggles and the Designs/Templates filter tabs show their active state only through a CSS class.
+
+**Fix:**
+- Add `aria-label={ __( 'Bold', 'socialframe' ) }` and `aria-pressed` to each B/I/U button.
+- Add `aria-pressed` to the flip toggles.
+- Use `aria-pressed`, or a `TabPanel`, for the filter tabs.
+
+### [STD-01] Untranslated or concatenated user-facing strings
+**File:**
+- `includes/REST/DuplicateController.php:64`: `' (Copy)'`
+- `includes/REST/ExportController.php:118`: `' Thumbnail'` / `' Export'`
+- `src/editor/utils/exportHelpers.js:69`: `' Template'`
+- history labels like `'Bold'`, `'Italic'` and `'Flip horizontal'` (`TextProperties.jsx:140,160,175`, `FlipSection.jsx:25,39`, and similar `updateSelected` calls), shown as `Undo ${label}` at `Header/index.jsx:162-176`
+
+**Fix:**
+- Use `sprintf( __( '%s (Copy)', 'socialframe' ), $title )` and the matching patterns elsewhere, with translator comments.
+- Wrap history labels in `__()` at the call site.
+- Build "Undo %s" with `sprintf` instead of concatenating.
+
+### [PRF-01] List endpoints are heavier than needed
+**File:** `includes/REST/AbstractController.php:117-138` (used by `DesignsController::get_designs`), `TemplatesController.php:138-151`
+**Issue:**
+- Every list item includes the full `fabricJson`, which the admin grid never uses: up to 100 full canvases per page load.
+- Each item calls `wp_get_attachment_url()`, but `get_posts()` doesn't prime the attachment posts, so this is N+1.
+
+**Fix:**
+- Add a `context` arg (or a separate `format_design_summary()`) that leaves `fabricJson` out of list responses. The editor fetches the single design anyway.
+- Prime with `_prime_post_caches( array_filter( $image_ids ) )` before mapping.
+
+### [DEP-01] Outdated dependencies
+**File:** `package.json:31-41`
+
+| Package | Installed | Latest |
+|---|---|---|
+| `@wordpress/components` | 32.4.0 | 42.0.0 |
+| `@wordpress/dataviews` | 13.1.0 | 20.0.0 |
+| `@wordpress/element` | 6.42.0 | 9.0.0 |
+| `@wordpress/scripts` | 32.4.0 | 36.1.0 |
+| `fabric` | 6.9.1 | 7.4.0 |
+
+Nothing in npm or Packagist is deprecated or abandoned.
+
+**Issue:**
+- `components` and `element` are externals at runtime, so their lag mostly affects the build and tests.
+- `@wordpress/dataviews` is **bundled**. Its asset depends on `wp-private-apis`, which pairs a 13.x DataViews with WP 7.1's core components. This is the riskiest drift.
+- `fabric` 7 is still deferred (the old DEP-03): its origin default changed, and saved designs need visual QA.
+
+**Fix:** Run `/wp-compat` against 7.1 and update `@wordpress/scripts` and `dataviews` first, then QA the admin grid. Keep `fabric` 7 on its own branch.
 
 ---
 
 ## Info
 
-### [TST-01] No test suite — ✅ Fixed (2026-06-24)
+### [STD-02] `Tested up to` is behind stable
+**Recommendation:** `socialframe.php:8` and `readme.txt:5` say 6.9, while stable is 7.1.3. Header rules allow this, since it is not more than one major behind. Bump both to `7.1` after a test pass on 7.1.
 
-> **Resolution:** Stood up both harnesses. **PHPUnit** runs against the real WordPress test suite (no Docker): `bin/install-wp-tests.sh` installs WP core + the test library against the local MySQL, `tests/bootstrap.php` loads the plugin, and `phpunit.xml.dist` wires the `tests/phpunit` suite. Runs on PHP 8.5 with PHPUnit 9.6 + `yoast/phpunit-polyfills`. **Jest** uses `wp-scripts test-unit-js` (added `jest-environment-jsdom`) covering the editor store. Scripts: `composer test`, `npm run test:php`, `npm run test:js`. 37 PHP tests / 74 assertions and 18 JS tests all green.
+### [PRV-01] Previews live at a guessable public URL
+**Recommendation:** `PreviewController.php:102` writes `uploads/socialframe/previews/sf-{id}-preview.png`, which anyone who guesses IDs can fetch even though the CPT is non-public. Low risk, because exports already go to the public Media Library. Consider adding a random suffix stored in meta (combine this with the SEC-01 fix), or a `.htaccess` deny where supported.
 
-### [TST-02] Security-sensitive REST logic is untested — ✅ Fixed (2026-06-24)
+### [ARC-04] Custom dimensions are lost on duplicate and on save-as-template
+**Recommendation:** `DuplicateController.php:76` copies only JSON and format. `exportHelpers.js:59-74` sends no `width`/`height`. The result is `format: 'custom'` with 0×0, and the editor recovers the size from the artboard rect only when JSON exists. Copy `socialframe_width`/`socialframe_height`, and pass them from `saveAsTemplate`.
 
-> **Resolution:** Added integration tests dispatching real REST requests through `rest_get_server()->dispatch()` for every `socialframe/v1` route, covering exactly the regression-into-vulnerability paths:
-> - **Delete capability gating (ACL-01):** owner can delete own; a different non-editor user gets 403; an editor (`delete_others_posts`) can delete another's; `canDelete` flag matches caps. (`DesignsControllerTest`)
-> - **Export image validation (SEC-02):** valid PNG creates the attachment; non-image bytes and a valid JPEG are both rejected 400. (`ExportControllerTest`)
-> - **Preview PNG guard (PRV-01):** valid PNG written; small valid JPEG and garbage rejected 400; delete-cleanup hook removes the file. (`PreviewControllerTest`)
-> - **Fabric-JSON sanitize round-trip + dimension clamping** (`GraphicMetaTest`), **duplicate semantics** (`DuplicateControllerTest`), and **post-import meta exposure + filter** (`PostImportControllerTest`).
+### [ARC-05] Raw `file_put_contents` for previews
+**Recommendation:** `PreviewController.php:108-109` suppresses the phpcs rule. Use `WP_Filesystem` (`$wp_filesystem->put_contents`) for consistency with the old ARCH-01 fix and with non-direct filesystem hosts.
 
-### [ARCH-01] Export uses raw `file_put_contents` — ✅ Fixed (2026-06-11)
+### [TST-01] No CI on pull requests
+**Recommendation:** `.github/workflows/` has only `release.yml`. Add a PR workflow that runs phpcs, `lint-js`, `lint-style`, Jest, and PHPUnit (see `/wp-ci`).
 
-> **Resolution:** Replaced with `wp_upload_bits()` as part of the SEC-02 fix. `ExportController.php:88-101`.
+### [TST-02] Duplicate test misses the escaping case
+**Recommendation:** `tests/phpunit/DuplicateControllerTest.php:28-33` uses `{"objects":[1]}`, which has no escapes, so ARC-01 slipped through. Add a fixture containing `\"`, `\n` and non-ASCII text. Also add tests for SEC-01 (traversal path ignored) and SEC-02 (non-public or protected post → 404).
 
-**Recommendation:** `ExportController.php:96` writes via `file_put_contents` (phpcs-ignored). Functional, but `wp_upload_bits()` or the `WP_Filesystem` API is more portable across hosts with restricted filesystem access and pairs naturally with the SEC-02 validation fix.
+### [TST-03] No editor component tests or E2E
+**Recommendation:** Jest covers only the store reducer and selectors. A Playwright smoke test (create → edit → save → duplicate → export) would have caught ARC-01 and ADM-01.
 
-### [INF-01] Post-import exposes any published post's public meta — ✅ Fixed (2026-06-24)
-
-> **Resolution:** Added a `socialframe_import_post_meta` filter (`PostImportController::get_post_data`) so site owners can unset specific keys or return `[]` to expose no meta at all. The default behavior is unchanged (public, non-underscore scalar meta of already-published posts — protected meta was and remains skipped), which the audit deemed acceptable; the filter turns it into an explicit, documented extension point rather than a fixed exposure. Covered by `PostImportControllerTest` (public-meta-only assertion + filter-removes-key assertion).
-
-**Recommendation:** `PostImportController::get_post_data` returns content, excerpt, terms, and all non-underscore meta of any published post to any `edit_posts` user. Published content is already public, and underscore-prefixed (protected) meta is correctly skipped — so this is acceptable. Just be aware that any public custom field becomes readable through this endpoint.
-
-### [PRV-01] Preview write does not explicitly verify PNG type — ✅ Fixed (2026-06-24)
-
-> **Resolution:** Added an explicit `getimagesizefromstring()` / `IMAGETYPE_PNG` guard in `handle_preview` before `resize_png()`, mirroring the SEC-02 fix in `ExportController` — so the sub-400px early-return path can no longer write a valid non-PNG image (e.g. a small JPEG) under a `.png` name. Both controllers' guards now `@`-suppress the read-error notice `getimagesizefromstring()` emits on malformed/truncated input (handled explicitly, phpcs-ignored) to keep the debug log clean. Covered by `PreviewControllerTest::test_preview_rejects_small_jpeg`.
-
-**File:** `includes/REST/PreviewController.php:78-98`
-**Recommendation:** `handle_preview` decodes the base64 `imageData` and writes it to `socialframe/previews/sf-{id}-preview.png` — the same class of gap SEC-02 closed in `ExportController`, but materially lower risk here: the bytes always pass through `resize_png()` → `imagecreatefromstring()`, which rejects anything that is not a decodable image, so arbitrary/non-image bytes cannot be written. The only edge case is a *valid* sub-400px non-PNG image (e.g. JPEG), which hits `resize_png()`'s `$orig_w <= $max_width` early-return and is written verbatim into a `.png` file. The editor only ever sends its own PNG canvas export, so real-world exposure is negligible. Optional hardening for consistency with SEC-02: add a `getimagesizefromstring()`/`IMAGETYPE_PNG` guard, or make `resize_png()` always re-encode via `imagepng()` rather than returning the original bytes.
-
-#### PreviewController scan — clean (2026-06-11)
-
-Scanned separately after the rebase brought auto-preview into scope. No Critical/Warning findings. Verified clean:
-- **Path traversal:** write path built from an `(int)`-cast `$id` (route-constrained to `\d+`) — safe.
-- **Access model:** `require_edit_posts` on preview generation is consistent with the gated shared-workspace decision (only delete is gated; ACL-01).
-- **Meta:** `socialframe_preview_path` is `show_in_rest => false` with a `sanitize_callback`, written only with a server-computed value.
-- **Cleanup:** `before_delete_post` hook removes the preview file (validates post type, uses `wp_delete_file`) — no orphaned files.
-- **i18n / escaping / nonce / SQL / debug code:** all clean; WPCS-clean (phpcs 16/16). JS preview-send uses nonce-protected `apiFetch`, fire-and-forget.
+### [INF-01] Release workflow pins Node 20
+**Recommendation:** `.github/workflows/release.yml` uses `node-version: '20'`. Node 20 reached end-of-life in April 2026. Move to the current LTS, checked live with `/wp-versions`.
 
 ---
 
 ## Quick Wins
 
-All quick wins resolved as of 2026-06-24.
+1. ✅ **SEC-01:** stop trusting `socialframe_preview_path`. Rebuild the path from the post ID in `delete_preview_file()` and protect the meta keys. This takes a few lines and closes a file-deletion bug that Authors can trigger.
+2. ✅ **ARC-01:** wrap the duplicate copy in `wp_slash()`. It is a one-line fix for silent data loss, plus a regression test.
+3. **SEC-02 / SEC-03:** add the post-type, `read_post` and password checks to post-import, and require `upload_files` for export.
 
 ---
 
 ## Already Fixed / Clean
 
-- **Security — output escaping:** All PHP `echo` output is wrapped (`esc_html__`, `esc_url`, `wp_json_encode`); JSX auto-escapes and no `dangerouslySetInnerHTML` is used anywhere in `src/`.
-- **Security — SQL injection:** No `$wpdb` usage; all queries go through `get_posts()` / `WP_Query`. No string-interpolated SQL, no direct table names.
-- **Security — input sanitization:** `$_GET['id']` is run through `absint()`; REST args declare `type`/`enum`/`sanitize_callback`; meta has `sanitize_callback` on every key.
-- **Security — nonce / REST auth:** REST nonce is delivered via `wp_add_inline_script` (not `wp_localize_script`) and consumed through `apiFetch.createNonceMiddleware`. No `permission_callback => '__return_true'` on any route.
-- **Security — capability checks:** Every admin render callback re-checks `current_user_can( 'edit_posts' )` (`AdminPage.php:67,77`, `EditorPage.php:50`). (Granularity caveat tracked separately as ACL-01.)
-- **Security — secrets & debug code:** No hardcoded keys/tokens. No `var_dump`/`print_r`/`error_log`/`dd`/`dump`. No `console.log` in `src/`.
-- **Coding standards:** `phpcs` (WordPress ruleset) passes 15/15 files with zero issues. All files have an `ABSPATH`/`WP_UNINSTALL_PLUGIN` guard. No closing `?>` tags. All user-facing strings use `__()`/`esc_html__()` with the `socialframe` text domain.
-- **Architecture:** CPT and post meta register on `init`. The `WP_Query` in `PostImportController` iterates `$query->posts` directly (no global loop), so `wp_reset_postdata()` is correctly unnecessary. No `query_posts()`. No direct HTTP via cURL/`file_get_contents` (the one `file_get_contents` reads bundled local template JSON, not a URL).
-- **Blocks (Section D):** N/A — no `block.json` in the project; the UI is a custom React/Fabric.js app, not Gutenberg blocks.
-- **Admin UI:** React mounted via `@wordpress/element` `createRoot` (not the `react` package). REST nonce wiring follows best practice. No `admin-ajax` handlers (all REST), so AJAX-specific checks are N/A.
-- **Tooling:** phpcs 3.13.5 + WPCS 3.x installed; wp-scripts 30.27.0 installed; ESLint 8.57.1 with `.eslintrc.js` is the correct pairing for wp-scripts 30. `qrcode` (1.5.4) is current. No abandoned composer dev dependencies.
-- **Version headers:** `Stable tag` (1.0.0) matches the plugin version; `Tested up to: 6.9` is valid against stable 7.0.
+- **Security:**
+  - All PHP output is escaped, and no JSX uses `dangerouslySetInnerHTML`.
+  - Input is sanitized: `absint` on `$_GET['id']`, and typed or enum REST args.
+  - The REST nonce goes through `wp_add_inline_script` and the `apiFetch` middleware.
+  - No `__return_true` permission callbacks, no `$wpdb` or raw SQL, no secrets, and no debug code (one deliberate `console.warn` on a JSON load failure).
+- **Coding standards:** phpcs (WPCS 3.4.1) is clean, every file has an ABSPATH or `WP_UNINSTALL_PLUGIN` guard, no closing `?>`, and text domain usage is consistent.
+- **Architecture:** the CPT and meta register on `init`, every meta key has a `sanitize_callback`, there is no `query_posts`, and no direct HTTP calls.
+- **Blocks (D):** N/A, since the project has no `block.json`.
+- **Admin UI (E):**
+  - React mounts through `@wordpress/element`.
+  - Assets are gated by `$hook`.
+  - Render callbacks re-check `current_user_can`.
+  - There are no admin-ajax handlers.
+  - The `__experimental*` component check is N/A because none are imported.
+- **Performance:** assets are enqueued only on the plugin's own screens, nothing heavy runs on `init`, and no transients go uninvalidated.
+- **Privacy (I):** no personal data is stored beyond core post authorship, so no exporter or eraser is needed (PRV-01 is about exposure, not collection).
+- **Tooling:**
+  - `eslint.config.js` is a flat config, which suits wp-scripts 32.
+  - `.gitignore` does not ignore `*.md`.
+  - Composer packages are all maintained.
+- **Note:** `plans/` is tracked in git in this repo. The audit template assumes it is gitignored, so this report will show up as a diff.
+- **Prior report:** ACL-01, SEC-02 (export PNG check), ARCH-01, STD-01, DEP-01, DEP-02, TST-01, TST-02, INF-01 and PRV-01 from 2026-06 are still fixed.
 
 ---
 
@@ -188,5 +315,5 @@ All quick wins resolved as of 2026-06-24.
 
 | Date | Changes |
 |------|---------|
-| 2026-06-24 | Re-checked 5 open findings: 0 fixed, 5 still open, 0 deployment tasks. DEP-03 (fabric still ^6.0.0), TST-01/TST-02 (no test suite), INF-01 (post-import meta unchanged), PRV-01 (no explicit PNG guard) all unchanged. `npm run build` passes (bundle-size warnings only). Quick wins from prior round all confirmed fixed. |
-| 2026-06-24 | Fixed 4 of the 5 open findings on `audit/2026-06-24`. **TST-01:** added PHPUnit (WP test suite + local MySQL, `bin/install-wp-tests.sh`, `phpunit.xml.dist`, `tests/bootstrap.php`) and Jest (`wp-scripts test-unit-js`). **TST-02:** 37 PHP integration tests across all REST controllers + meta, focused on the capability/validation paths; 18 Jest tests for the store. **INF-01:** added `socialframe_import_post_meta` filter. **PRV-01:** added an `IMAGETYPE_PNG` guard to the preview write (and hardened the matching ExportController guard against notice noise). **DEP-03** deferred (fabric v7 needs manual visual QA). phpcs 16/16, build, and full test suite all green. Info open count → 0; only DEP-03 (Warning) remains open. |
+| 2026-10-16 | Fixed SEC-01 and ARC-01 (plus the escaped-JSON part of TST-02) with 4 regression tests. Each test was shown to fail without its fix. PHPUnit passes 41/41 and phpcs is clean. |
+| 2026-10-16 | Full re-audit on `audit/2026-10-16`. Upgraded WPCS 3.3.0 → 3.4.1 (with phpcsutils 1.2.3, phpcsextra 1.5.1, phpcs 3.13.6). Found 1 Critical, 13 Warning and 8 Info. |
