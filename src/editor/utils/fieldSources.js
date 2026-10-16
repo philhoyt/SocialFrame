@@ -123,3 +123,32 @@ export function buildFieldName( source, key = '' ) {
 	const trimmed = key.trim();
 	return trimmed ? def.prefix + trimmed : '';
 }
+
+/**
+ * Whether a serialized canvas has at least one text or image field.
+ *
+ * Mirrors FieldFiller::has_fields(), including objects inside groups.
+ *
+ * @param {Object|null} json Canvas from getJSON().
+ * @return {boolean} True when a fill would change something.
+ */
+export function canvasHasFields( json ) {
+	const queue = [ ...( json?.objects ?? [] ) ];
+	while ( queue.length ) {
+		const obj = queue.shift();
+		const type = String( obj?.type ?? '' ).toLowerCase();
+		const name = String( obj?.fieldName ?? '' ).trim();
+		const fillable = [
+			'text',
+			'i-text',
+			'itext',
+			'textbox',
+			'image',
+		].includes( type );
+		if ( fillable && FIELD_NAME_PATTERN.test( name ) ) {
+			return true;
+		}
+		queue.push( ...( obj?.objects ?? [] ) );
+	}
+	return false;
+}

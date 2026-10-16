@@ -4,6 +4,7 @@ import {
 	FIELD_SOURCES,
 	FIELD_NAME_PATTERN,
 	buildFieldName,
+	canvasHasFields,
 	parseFieldName,
 	sourcesFor,
 } from '../fieldSources';
@@ -52,5 +53,24 @@ describe( 'fieldSources', () => {
 		expect( FIELD_NAME_PATTERN.test( 'meta.my-key_1' ) ).toBe( true );
 		expect( FIELD_NAME_PATTERN.test( 'has space' ) ).toBe( false );
 		expect( FIELD_NAME_PATTERN.test( 'x'.repeat( 101 ) ) ).toBe( false );
+	} );
+
+	it( 'detects fields, including inside groups, and ignores shapes', () => {
+		expect( canvasHasFields( null ) ).toBe( false );
+		expect(
+			canvasHasFields( {
+				objects: [ { type: 'Rect', fieldName: 'post.title' } ],
+			} )
+		).toBe( false );
+		expect(
+			canvasHasFields( {
+				objects: [
+					{
+						type: 'Group',
+						objects: [ { type: 'Image', fieldName: 'logo' } ],
+					},
+				],
+			} )
+		).toBe( true );
 	} );
 } );
