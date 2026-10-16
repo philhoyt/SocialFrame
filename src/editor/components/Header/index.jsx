@@ -197,7 +197,7 @@ export function Header() {
 					<Button
 						variant="tertiary"
 						onClick={ () => fabric?.fitView?.() }
-						label={ __( 'Fit to screen (Ctrl+0)', 'socialframe' ) }
+						label={ __( 'Fit to screen (0)', 'socialframe' ) }
 						showTooltip
 					>
 						{ __( 'Fit', 'socialframe' ) }
@@ -205,7 +205,7 @@ export function Header() {
 					<Button
 						variant="tertiary"
 						onClick={ () => fabric?.zoomOut?.() }
-						label={ __( 'Zoom out (Ctrl+−)', 'socialframe' ) }
+						label={ __( 'Zoom out (−)', 'socialframe' ) }
 						showTooltip
 					>
 						{ '−' }
@@ -216,7 +216,7 @@ export function Header() {
 					<Button
 						variant="tertiary"
 						onClick={ () => fabric?.zoomIn?.() }
-						label={ __( 'Zoom in (Ctrl++)', 'socialframe' ) }
+						label={ __( 'Zoom in (+)', 'socialframe' ) }
 						showTooltip
 					>
 						{ '+' }

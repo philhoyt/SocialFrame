@@ -129,6 +129,7 @@ export function TextProperties() {
 								? ' socialframe-props__toggle-btn--active'
 								: ''
 						}` }
+						aria-pressed={ props.fontWeight === 'bold' }
 						onClick={ () =>
 							update(
 								{
@@ -137,9 +138,10 @@ export function TextProperties() {
 											? 'normal'
 											: 'bold',
 								},
-								'Bold'
+								__( 'Bold', 'socialframe' )
 							)
 						}
+						aria-label={ __( 'Bold', 'socialframe' ) }
 					>
 						<strong>B</strong>
 					</button>
@@ -149,6 +151,7 @@ export function TextProperties() {
 								? ' socialframe-props__toggle-btn--active'
 								: ''
 						}` }
+						aria-pressed={ props.fontStyle === 'italic' }
 						onClick={ () =>
 							update(
 								{
@@ -157,9 +160,10 @@ export function TextProperties() {
 											? 'normal'
 											: 'italic',
 								},
-								'Italic'
+								__( 'Italic', 'socialframe' )
 							)
 						}
+						aria-label={ __( 'Italic', 'socialframe' ) }
 					>
 						<em>I</em>
 					</button>
@@ -169,12 +173,14 @@ export function TextProperties() {
 								? ' socialframe-props__toggle-btn--active'
 								: ''
 						}` }
+						aria-pressed={ !! props.underline }
 						onClick={ () =>
 							update(
 								{ underline: ! props.underline },
-								'Underline'
+								__( 'Underline', 'socialframe' )
 							)
 						}
+						aria-label={ __( 'Underline', 'socialframe' ) }
 					>
 						<u>U</u>
 					</button>
@@ -298,6 +304,7 @@ export function TextProperties() {
 									? ' socialframe-props__toggle-btn--active'
 									: ''
 							}` }
+							aria-pressed={ props.textAlign === value }
 							title={ label }
 							aria-label={ label }
 							onClick={ () =>

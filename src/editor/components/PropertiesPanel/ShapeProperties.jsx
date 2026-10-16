@@ -164,6 +164,7 @@ export function ShapeProperties() {
 									? ' socialframe-props__toggle-btn--active'
 									: ''
 							}` }
+							aria-pressed={ fitMode === value }
 							onClick={ () => {
 								setFitMode( value );
 								if ( props.fill === null ) {

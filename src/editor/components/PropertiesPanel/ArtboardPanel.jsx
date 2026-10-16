@@ -120,6 +120,7 @@ export function ArtboardPanel() {
 									? ' socialframe-props__toggle-btn--active'
 									: ''
 							}` }
+							aria-pressed={ fitMode === value }
 							onClick={ () => handleFitModeChange( value ) }
 						>
 							{ label }
@@ -161,6 +162,7 @@ export function ArtboardPanel() {
 							? ' socialframe-props__toggle-btn--active'
 							: ''
 					}` }
+					aria-pressed={ !! snapEnabled }
 					style={ { width: '100%' } }
 					onClick={ handleSnapToggle }
 				>
@@ -181,6 +183,7 @@ export function ArtboardPanel() {
 										? ' socialframe-props__toggle-btn--active'
 										: ''
 								}` }
+								aria-pressed={ gridSize === size }
 								style={ { flex: 1 } }
 								onClick={ () => handleGridSizeChange( size ) }
 							>

@@ -38,6 +38,7 @@ export function ShadowSection() {
 				className={ `socialframe-props__toggle-btn${
 					hasShadow ? ' socialframe-props__toggle-btn--active' : ''
 				}` }
+				aria-pressed={ !! hasShadow }
 				style={ { width: '100%', marginBottom: hasShadow ? 12 : 0 } }
 				onClick={ () => {
 					if ( hasShadow ) {

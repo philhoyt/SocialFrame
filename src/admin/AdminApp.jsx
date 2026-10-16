@@ -246,6 +246,7 @@ export function AdminApp() {
 								? ' socialframe-admin__filter-tab--active'
 								: ''
 						}` }
+						aria-pressed={ filter === type }
 						onClick={ () => setFilter( type ) }
 					>
 						{ type === 'design'

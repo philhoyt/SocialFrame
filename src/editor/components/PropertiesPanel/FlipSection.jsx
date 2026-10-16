@@ -19,6 +19,7 @@ export function FlipSection() {
 				className={ `socialframe-props__toggle-btn${
 					props.flipX ? ' socialframe-props__toggle-btn--active' : ''
 				}` }
+				aria-pressed={ !! props.flipX }
 				onClick={ () =>
 					fabric?.updateSelected(
 						{ flipX: ! props.flipX },
@@ -33,6 +34,7 @@ export function FlipSection() {
 				className={ `socialframe-props__toggle-btn${
 					props.flipY ? ' socialframe-props__toggle-btn--active' : ''
 				}` }
+				aria-pressed={ !! props.flipY }
 				onClick={ () =>
 					fabric?.updateSelected(
 						{ flipY: ! props.flipY },
