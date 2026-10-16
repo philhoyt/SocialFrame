@@ -5,8 +5,8 @@
  * the X-WP-TotalPages header (like core's REST collections), so this follows
  * pages until it has them all.
  *
- * @param {Function} apiFetch @wordpress/api-fetch.
- * @param {string}   path     Collection path, with or without a query string.
+ * @param {(options: Object) => Promise<Response>} apiFetch `@wordpress/api-fetch`.
+ * @param {string}                                 path     Collection path, with or without a query string.
  * @return {Promise<Array>} Items from every page, in order.
  */
 export async function fetchAllPages( apiFetch, path ) {

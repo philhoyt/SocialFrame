@@ -176,7 +176,7 @@ export function Header() {
 									/* translators: %s: name of the action to undo, e.g. "Font size" */
 									__( 'Undo %s', 'socialframe' ),
 									undoLabel
-							  )
+								)
 							: __( 'Undo', 'socialframe' )
 					}
 					showTooltip
@@ -193,7 +193,7 @@ export function Header() {
 									/* translators: %s: name of the action to redo, e.g. "Font size" */
 									__( 'Redo %s', 'socialframe' ),
 									redoLabel
-							  )
+								)
 							: __( 'Redo', 'socialframe' )
 					}
 					showTooltip

@@ -1,6 +1,7 @@
 /**
  * Unit tests for the editor store reducer.
  */
+import { describe, it, expect, vi } from 'vitest';
 import { reducer } from '../reducer';
 import {
 	setActivePanel,
@@ -122,8 +123,8 @@ describe( 'editor reducer', () => {
 	describe( 'history', () => {
 		const entry = ( label ) => ( {
 			label,
-			undo: jest.fn(),
-			redo: jest.fn(),
+			undo: vi.fn(),
+			redo: vi.fn(),
 		} );
 
 		it( 'pushes entries and advances the index', () => {

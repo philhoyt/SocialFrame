@@ -1601,9 +1601,9 @@ export function useFabricCanvas(
 /**
  * Create the artboard sentinel rect.
  *
- * @param {number} artW Artboard width in canvas pixels.
- * @param {number} artH Artboard height in canvas pixels.
- * @param {*}      fill Fabric fill value (color string or Pattern).
+ * @param {number}        artW Artboard width in canvas pixels.
+ * @param {number}        artH Artboard height in canvas pixels.
+ * @param {string|Object} fill Fabric fill value (color string or Pattern).
  * @return {fabric.Rect} The artboard rectangle object.
  */
 function createArtboardRect( artW, artH, fill ) {

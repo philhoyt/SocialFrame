@@ -1,6 +1,7 @@
 /**
  * Unit tests for fetchAllPages.
  */
+import { describe, it, expect, vi } from 'vitest';
 import { fetchAllPages } from '../fetchAllPages';
 
 const pageResponse = ( items, totalPages ) => ( {
@@ -13,7 +14,7 @@ const pageResponse = ( items, totalPages ) => ( {
 
 describe( 'fetchAllPages', () => {
 	it( 'follows X-WP-TotalPages and concatenates every page', async () => {
-		const apiFetch = jest
+		const apiFetch = vi
 			.fn()
 			.mockResolvedValueOnce( pageResponse( [ 1, 2 ], 3 ) )
 			.mockResolvedValueOnce( pageResponse( [ 3 ], 3 ) )
@@ -30,7 +31,7 @@ describe( 'fetchAllPages', () => {
 	} );
 
 	it( 'stops after one page when the header is missing', async () => {
-		const apiFetch = jest.fn().mockResolvedValue( {
+		const apiFetch = vi.fn().mockResolvedValue( {
 			json: () => Promise.resolve( [ 'a' ] ),
 			headers: { get: () => null },
 		} );

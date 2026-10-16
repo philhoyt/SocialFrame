@@ -14,9 +14,9 @@ const FAILED_NOTICE_ID = 'socialframe-autosave-failed';
  * Debounced auto-save: fires a PUT /designs/:id when the editor is dirty,
  * then sends a preview thumbnail in the background.
  *
- * @param {Function}      getJSON   Function returning the current Fabric JSON.
- * @param {number}        designId  The design post ID.
- * @param {Function|null} toDataURL Optional canvas toDataURL function for preview generation.
+ * @param {() => Object}        getJSON   Function returning the current Fabric JSON.
+ * @param {number}              designId  The design post ID.
+ * @param {(() => string)|null} toDataURL Optional canvas toDataURL function for preview generation.
  */
 export function useAutoSave( getJSON, designId, toDataURL = null ) {
 	const isDirty = useSelect( ( select ) => select( STORE_KEY ).isDirty() );

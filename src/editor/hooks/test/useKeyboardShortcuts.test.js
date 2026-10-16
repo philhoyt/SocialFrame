@@ -1,6 +1,7 @@
 /**
  * Unit tests for the editor shortcut mapping.
  */
+import { describe, it, expect } from 'vitest';
 import { resolveShortcut } from '../useKeyboardShortcuts';
 
 const key = ( k, opts = {}, target = document.body ) => ( {

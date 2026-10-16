@@ -4,10 +4,10 @@ import { __ } from '@wordpress/i18n';
 /**
  * A color swatch button that opens a Dropdown with a full hex ColorPicker.
  *
- * @param {Object}   props
- * @param {string}   props.color    Current color value (hex string or null).
- * @param {Function} props.onChange Called with the new hex string.
- * @param {string}   [props.label]  Accessible label for the swatch button.
+ * @param {Object}                props
+ * @param {string}                props.color    Current color value (hex string or null).
+ * @param {(hex: string) => void} props.onChange Called with the new hex string.
+ * @param {string}                [props.label]  Accessible label for the swatch button.
  */
 export function ColorPickerButton( {
 	color,

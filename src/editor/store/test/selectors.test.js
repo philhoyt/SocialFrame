@@ -1,6 +1,7 @@
 /**
  * Unit tests for the editor store selectors.
  */
+import { describe, it, expect } from 'vitest';
 import {
 	canUndo,
 	canRedo,

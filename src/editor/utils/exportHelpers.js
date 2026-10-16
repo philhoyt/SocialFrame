@@ -3,9 +3,9 @@ import { __, sprintf } from '@wordpress/i18n';
 /**
  * Helper to run a canvas export through the REST endpoint.
  *
- * @param {Function} toDataURL Canvas toDataURL function.
- * @param {number}   designId  Design post ID.
- * @param {Function} apiFetch  @wordpress/api-fetch.
+ * @param {() => string}                         toDataURL Canvas toDataURL function.
+ * @param {number}                               designId  Design post ID.
+ * @param {(options: Object) => Promise<Object>} apiFetch  `@wordpress/api-fetch`.
  * @return {Promise<{attachmentId: number, url: string, libraryUrl: string}>} The uploaded attachment data.
  */
 export async function exportDesign( toDataURL, designId, apiFetch ) {
@@ -27,9 +27,9 @@ export async function exportDesign( toDataURL, designId, apiFetch ) {
  * Errors are intentionally swallowed — preview generation must not interrupt
  * the save flow or surface anything to the user.
  *
- * @param {Function} toDataURL Canvas toDataURL function.
- * @param {number}   designId  Design post ID.
- * @param {Function} apiFetch  @wordpress/api-fetch.
+ * @param {() => string}                         toDataURL Canvas toDataURL function.
+ * @param {number}                               designId  Design post ID.
+ * @param {(options: Object) => Promise<Object>} apiFetch  `@wordpress/api-fetch`.
  * @return {Promise<void>} Resolves when the preview is sent (or silently on error).
  */
 export async function sendPreview( toDataURL, designId, apiFetch ) {
@@ -51,12 +51,12 @@ export async function sendPreview( toDataURL, designId, apiFetch ) {
 /**
  * Helper to save current canvas as a template.
  *
- * @param {Object}   options
- * @param {string}   options.title      Template title.
- * @param {string}   options.format     Format key.
- * @param {Object}   options.fabricJson Fabric JSON object.
- * @param {Object}   [options.size]     Artboard { width, height }; stored for custom formats.
- * @param {Function} options.apiFetch   @wordpress/api-fetch.
+ * @param {Object}                               options
+ * @param {string}                               options.title      Template title.
+ * @param {string}                               options.format     Format key.
+ * @param {Object}                               options.fabricJson Fabric JSON object.
+ * @param {Object}                               [options.size]     Artboard { width, height }; stored for custom formats.
+ * @param {(options: Object) => Promise<Object>} options.apiFetch   `@wordpress/api-fetch`.
  * @return {Promise<Object>} New template post data.
  */
 export async function saveAsTemplate( {
