@@ -187,6 +187,7 @@ class AdminPage {
 					'formats'    => socialframe_get_formats(),
 					'editorBase' => esc_url( admin_url( 'admin.php?page=socialframe-editor' ) ),
 					'fromPost'   => $this->from_post(),
+					'blankUrl'   => esc_url_raw( admin_url( 'admin.php?page=socialframe-new' ) ),
 				]
 			) . ';',
 			'before'
