@@ -35,5 +35,6 @@ class Plugin {
 
 		( new Admin\AdminPage() )->register();
 		( new Admin\EditorPage() )->register();
+		( new Admin\PostRowActions() )->register();
 	}
 }

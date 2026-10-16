@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use SocialFrame\Fields\PostSource;
+
 
 /**
  * Registers the primary SocialFrame menu and management screen.
@@ -184,9 +186,30 @@ class AdminPage {
 					'nonce'      => wp_create_nonce( 'wp_rest' ),
 					'formats'    => socialframe_get_formats(),
 					'editorBase' => esc_url( admin_url( 'admin.php?page=socialframe-editor' ) ),
+					'fromPost'   => $this->from_post(),
 				]
 			) . ';',
 			'before'
 		);
+	}
+
+	/**
+	 * The post a "Create graphic" row action came from, if the user may read it.
+	 *
+	 * @return array{id: int, title: string}|null
+	 */
+	private function from_post(): ?array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only lookup; the fill itself goes through the REST nonce.
+		$post_id = isset( $_GET['from_post'] ) ? absint( wp_unslash( $_GET['from_post'] ) ) : 0;
+		$post    = $post_id ? get_post( $post_id ) : null;
+
+		if ( ! $post || ! PostSource::can_read( $post ) ) {
+			return null;
+		}
+
+		return [
+			'id'    => $post->ID,
+			'title' => PostSource::title( $post ),
+		];
 	}
 }
