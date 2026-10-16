@@ -8,7 +8,7 @@ import { STORE_KEY } from '../store';
 import { sendPreview } from '../utils/exportHelpers';
 
 const DEBOUNCE_MS = 2000;
-const FAILED_NOTICE_ID = 'socialframe-autosave-failed';
+export const AUTOSAVE_FAILED_NOTICE_ID = 'socialframe-autosave-failed';
 
 /**
  * Debounced auto-save: fires a PUT /designs/:id when the editor is dirty,
@@ -38,7 +38,7 @@ export function useAutoSave( getJSON, designId, toDataURL = null ) {
 					data: { fabricJson: JSON.stringify( getJSON() ) },
 				} );
 				dispatch.markClean();
-				removeNotice( FAILED_NOTICE_ID );
+				removeNotice( AUTOSAVE_FAILED_NOTICE_ID );
 				if ( toDataURL ) {
 					sendPreview( toDataURL, designId, apiFetch );
 				}
@@ -49,7 +49,7 @@ export function useAutoSave( getJSON, designId, toDataURL = null ) {
 						'Autosave failed. Your changes are not saved yet.',
 						'socialframe'
 					),
-					{ id: FAILED_NOTICE_ID, type: 'snackbar' }
+					{ id: AUTOSAVE_FAILED_NOTICE_ID, type: 'snackbar' }
 				);
 			} finally {
 				dispatch.setSaving( false );

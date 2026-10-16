@@ -7,7 +7,10 @@ import { store as noticesStore } from '@wordpress/notices';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
-import { useAutoSave } from '../../hooks/useAutoSave';
+import {
+	useAutoSave,
+	AUTOSAVE_FAILED_NOTICE_ID,
+} from '../../hooks/useAutoSave';
 import {
 	exportDesign,
 	saveAsTemplate,
@@ -19,7 +22,7 @@ import './Header.css';
 
 export function Header() {
 	const dispatch = useDispatch( STORE_KEY );
-	const { createSuccessNotice, createErrorNotice } =
+	const { createSuccessNotice, createErrorNotice, removeNotice } =
 		useDispatch( noticesStore );
 
 	const [ shareUrl, setShareUrl ] = useState( null );
@@ -68,6 +71,8 @@ export function Header() {
 				data: { title, fabricJson: JSON.stringify( fabric.getJSON() ) },
 			} );
 			dispatch.markClean();
+			// A successful manual save supersedes an earlier autosave failure.
+			removeNotice( AUTOSAVE_FAILED_NOTICE_ID );
 			sendPreview( fabric.toDataURL, designId, apiFetch );
 		} catch {
 			createErrorNotice(

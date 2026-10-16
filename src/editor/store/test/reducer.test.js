@@ -137,7 +137,7 @@ describe( 'editor reducer', () => {
 		it( 'truncates forward history when pushing after an undo', () => {
 			let state = fromDefault( pushHistory( entry( 'one' ) ) );
 			state = reducer( state, pushHistory( entry( 'two' ) ) );
-			state = reducer( state, undoAction() ); // index -> 0
+			state = reducer( state, { type: 'UNDO' } ); // index -> 0
 			state = reducer( state, pushHistory( entry( 'three' ) ) );
 			expect( state.undoStack ).toHaveLength( 2 );
 			expect( state.undoStack[ 1 ].label ).toBe( 'three' );
@@ -154,23 +154,52 @@ describe( 'editor reducer', () => {
 			expect( state.undoIndex ).toBe( 49 );
 		} );
 
-		it( 'invokes undo()/redo() callbacks and moves the index', () => {
+		it( 'moves the index without running callbacks', () => {
 			const e1 = entry( 'one' );
 			let state = fromDefault( pushHistory( e1 ) );
 
-			state = reducer( state, undoAction() );
-			expect( e1.undo ).toHaveBeenCalledTimes( 1 );
+			state = reducer( state, { type: 'UNDO' } );
 			expect( state.undoIndex ).toBe( -1 );
 
-			state = reducer( state, redoAction() );
-			expect( e1.redo ).toHaveBeenCalledTimes( 1 );
+			state = reducer( state, { type: 'REDO' } );
 			expect( state.undoIndex ).toBe( 0 );
+			// Callbacks dispatch, so they must never run inside the reducer.
+			expect( e1.undo ).not.toHaveBeenCalled();
+			expect( e1.redo ).not.toHaveBeenCalled();
+		} );
+
+		it( 'undo/redo thunks run the entry callback, then move the index', () => {
+			const e1 = entry( 'one' );
+			const dispatch = vi.fn();
+			const select = ( index ) => ( {
+				getUndoStack: () => [ e1 ],
+				getUndoIndex: () => index,
+			} );
+
+			undoAction()( { select: select( 0 ), dispatch } );
+			expect( e1.undo ).toHaveBeenCalledTimes( 1 );
+			expect( dispatch ).toHaveBeenLastCalledWith( { type: 'UNDO' } );
+
+			redoAction()( { select: select( -1 ), dispatch } );
+			expect( e1.redo ).toHaveBeenCalledTimes( 1 );
+			expect( dispatch ).toHaveBeenLastCalledWith( { type: 'REDO' } );
+		} );
+
+		it( 'undo/redo thunks do nothing past either end', () => {
+			const dispatch = vi.fn();
+			const select = {
+				getUndoStack: () => [],
+				getUndoIndex: () => -1,
+			};
+			undoAction()( { select, dispatch } );
+			redoAction()( { select, dispatch } );
+			expect( dispatch ).not.toHaveBeenCalled();
 		} );
 
 		it( 'is a no-op when undoing past the start or redoing past the end', () => {
 			const empty = fromDefault( { type: '@@INIT' } );
-			expect( reducer( empty, undoAction() ) ).toBe( empty );
-			expect( reducer( empty, redoAction() ) ).toBe( empty );
+			expect( reducer( empty, { type: 'UNDO' } ) ).toBe( empty );
+			expect( reducer( empty, { type: 'REDO' } ) ).toBe( empty );
 		} );
 	} );
 } );

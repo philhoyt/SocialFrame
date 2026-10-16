@@ -603,10 +603,14 @@ export function useFabricCanvas(
 	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
 		return (
-			fabricRef.current?.toJSON( [
+			// toObject(), not toJSON(): Fabric 6's toJSON() takes no arguments
+			// and silently drops these custom properties, which lost layer
+			// names, ids and the artboard marker on every save.
+			fabricRef.current?.toObject( [
 				'id',
 				'isArtboard',
 				'sfShapeType',
+				'name',
 			] ) ?? null
 		);
 	}, [] );
