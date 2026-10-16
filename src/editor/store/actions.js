@@ -32,9 +32,41 @@ export const setSaving = ( saving ) => ( { type: 'SET_SAVING', saving } );
 
 export const pushHistory = ( entry ) => ( { type: 'PUSH_HISTORY', entry } );
 
-export const undoAction = () => ( { type: 'UNDO' } );
+/**
+ * Undo the current history entry.
+ *
+ * A thunk, not a plain action: entry callbacks dispatch (sync layers, mark
+ * dirty), and Redux forbids dispatching from inside a reducer, so the callback
+ * runs here and the reducer only moves the history index.
+ *
+ * @return {(registry: {select: Object, dispatch: (action: Object) => void}) => void} Thunk.
+ */
+export const undoAction =
+	() =>
+	( { select, dispatch } ) => {
+		const entry = select.getUndoStack()[ select.getUndoIndex() ];
+		if ( ! entry ) {
+			return;
+		}
+		entry.undo();
+		dispatch( { type: 'UNDO' } );
+	};
 
-export const redoAction = () => ( { type: 'REDO' } );
+/**
+ * Redo the next history entry. See undoAction() for why this is a thunk.
+ *
+ * @return {(registry: {select: Object, dispatch: (action: Object) => void}) => void} Thunk.
+ */
+export const redoAction =
+	() =>
+	( { select, dispatch } ) => {
+		const entry = select.getUndoStack()[ select.getUndoIndex() + 1 ];
+		if ( ! entry ) {
+			return;
+		}
+		entry.redo();
+		dispatch( { type: 'REDO' } );
+	};
 
 export const setLayers = ( layers ) => ( { type: 'SET_LAYERS', layers } );
 

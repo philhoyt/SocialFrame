@@ -59,32 +59,55 @@ export function ShapeProperties() {
 						label="X"
 						value={ Math.round( props.left ?? 0 ) }
 						onChange={ ( v ) =>
-							update( { left: v }, 'Position X' )
+							update(
+								{ left: v },
+								__( 'Position X', 'socialframe' )
+							)
 						}
 					/>
 					<NumField
 						label="Y"
 						value={ Math.round( props.top ?? 0 ) }
-						onChange={ ( v ) => update( { top: v }, 'Position Y' ) }
+						onChange={ ( v ) =>
+							update(
+								{ top: v },
+								__( 'Position Y', 'socialframe' )
+							)
+						}
 					/>
 					<LinkedNumFields
 						stateKey="wh"
 						aLabel="W"
 						aValue={ Math.round( props.width ?? 0 ) }
 						aMin={ 1 }
-						onChangeA={ ( v ) => update( { width: v }, 'Width' ) }
+						onChangeA={ ( v ) =>
+							update( { width: v }, __( 'Width', 'socialframe' ) )
+						}
 						bLabel="H"
 						bValue={ Math.round( props.height ?? 0 ) }
 						bMin={ 1 }
-						onChangeB={ ( v ) => update( { height: v }, 'Height' ) }
+						onChangeB={ ( v ) =>
+							update(
+								{ height: v },
+								__( 'Height', 'socialframe' )
+							)
+						}
 						onChangeBoth={ ( w, h ) =>
-							update( { width: w, height: h }, 'Size' )
+							update(
+								{ width: w, height: h },
+								__( 'Size', 'socialframe' )
+							)
 						}
 					/>
 					<NumField
 						label="°"
 						value={ Math.round( props.angle ?? 0 ) }
-						onChange={ ( v ) => update( { angle: v }, 'Rotation' ) }
+						onChange={ ( v ) =>
+							update(
+								{ angle: v },
+								__( 'Rotation', 'socialframe' )
+							)
+						}
 					/>
 					<NumField
 						label="%"
@@ -92,7 +115,10 @@ export function ShapeProperties() {
 						min={ 0 }
 						max={ 100 }
 						onChange={ ( v ) =>
-							update( { opacity: v / 100 }, 'Opacity' )
+							update(
+								{ opacity: v / 100 },
+								__( 'Opacity', 'socialframe' )
+							)
 						}
 					/>
 				</div>
@@ -104,7 +130,10 @@ export function ShapeProperties() {
 						min={ 0 }
 						max={ 200 }
 						onChange={ ( v ) =>
-							update( { rx: v, ry: v }, 'Corner radius' )
+							update(
+								{ rx: v, ry: v },
+								__( 'Corner radius', 'socialframe' )
+							)
 						}
 						style={ { marginTop: 8 } }
 					/>
@@ -115,7 +144,10 @@ export function ShapeProperties() {
 				<ColorRow
 					value={ typeof props.fill === 'string' ? props.fill : null }
 					onChange={ ( hex ) =>
-						update( { fill: hex }, 'Fill color' )
+						update(
+							{ fill: hex },
+							__( 'Fill color', 'socialframe' )
+						)
 					}
 					showNone
 					noneValue="transparent"
@@ -130,7 +162,10 @@ export function ShapeProperties() {
 				<ColorRow
 					value={ props.stroke || null }
 					onChange={ ( hex ) =>
-						update( { stroke: hex }, 'Stroke color' )
+						update(
+							{ stroke: hex },
+							__( 'Stroke color', 'socialframe' )
+						)
 					}
 					style={ { marginBottom: 12 } }
 				/>
@@ -140,7 +175,10 @@ export function ShapeProperties() {
 					min={ 0 }
 					max={ 50 }
 					onChange={ ( v ) =>
-						update( { strokeWidth: v }, 'Stroke width' )
+						update(
+							{ strokeWidth: v },
+							__( 'Stroke width', 'socialframe' )
+						)
 					}
 				/>
 			</Accordion>
@@ -164,6 +202,7 @@ export function ShapeProperties() {
 									? ' socialframe-props__toggle-btn--active'
 									: ''
 							}` }
+							aria-pressed={ fitMode === value }
 							onClick={ () => {
 								setFitMode( value );
 								if ( props.fill === null ) {

@@ -87,3 +87,17 @@
 	gap: 16px;
 	max-width: 440px;
 }
+
+.socialframe-new__title-field {
+	max-width: 440px;
+	margin-bottom: 24px;
+}
+
+.socialframe-new__custom-size {
+	display: flex;
+	gap: 12px;
+}
+
+.socialframe-new__custom-size .components-base-control {
+	flex: 1;
+}

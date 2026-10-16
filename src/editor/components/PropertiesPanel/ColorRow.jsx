@@ -9,13 +9,13 @@ const { themeColors } = window.socialFrameConfig ?? {};
  * The picker button shows the current color when it is a custom (non-theme) value,
  * making it clear which color is active even when it isn't in the theme palette.
  *
- * @param {Object}   props
- * @param {string}   props.value         Current color value (hex string, 'transparent', '' or null).
- * @param {Function} props.onChange      Called with the new color string.
- * @param {boolean}  [props.showNone]    Render a "no color" swatch at the end.
- * @param {string}   [props.noneValue]   Value emitted when none is selected (default '').
- * @param {string}   [props.noneLabel]   Aria-label for the none swatch.
- * @param {string}   [props.pickerLabel] Aria-label for the picker button.
+ * @param {Object}                  props
+ * @param {string}                  props.value         Current color value (hex string, 'transparent', '' or null).
+ * @param {(color: string) => void} props.onChange      Called with the new color string.
+ * @param {boolean}                 [props.showNone]    Render a "no color" swatch at the end.
+ * @param {string}                  [props.noneValue]   Value emitted when none is selected (default '').
+ * @param {string}                  [props.noneLabel]   Aria-label for the none swatch.
+ * @param {string}                  [props.pickerLabel] Aria-label for the picker button.
  */
 export function ColorRow( {
 	value,

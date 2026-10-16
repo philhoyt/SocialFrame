@@ -2,11 +2,15 @@ import { useState } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { Button, TextControl } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
+import { store as noticesStore } from '@wordpress/notices';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
-import { useAutoSave } from '../../hooks/useAutoSave';
+import {
+	useAutoSave,
+	AUTOSAVE_FAILED_NOTICE_ID,
+} from '../../hooks/useAutoSave';
 import {
 	exportDesign,
 	saveAsTemplate,
@@ -18,8 +22,8 @@ import './Header.css';
 
 export function Header() {
 	const dispatch = useDispatch( STORE_KEY );
-	const { createSuccessNotice, createErrorNotice } =
-		useDispatch( 'core/notices' );
+	const { createSuccessNotice, createErrorNotice, removeNotice } =
+		useDispatch( noticesStore );
 
 	const [ shareUrl, setShareUrl ] = useState( null );
 
@@ -67,9 +71,17 @@ export function Header() {
 				data: { title, fabricJson: JSON.stringify( fabric.getJSON() ) },
 			} );
 			dispatch.markClean();
+			// A successful manual save supersedes an earlier autosave failure.
+			removeNotice( AUTOSAVE_FAILED_NOTICE_ID );
 			sendPreview( fabric.toDataURL, designId, apiFetch );
-		} catch ( e ) {
-			// Errors surface via notices if needed.
+		} catch {
+			createErrorNotice(
+				__(
+					'Could not save the design. Please try again.',
+					'socialframe'
+				),
+				{ type: 'snackbar' }
+			);
 		} finally {
 			dispatch.setSaving( false );
 		}
@@ -87,9 +99,10 @@ export function Header() {
 				apiFetch
 			);
 			setShareUrl( result.url );
-		} catch ( e ) {
+		} catch {
 			createErrorNotice(
-				__( 'Export failed. Please try again.', 'socialframe' )
+				__( 'Export failed. Please try again.', 'socialframe' ),
+				{ type: 'snackbar' }
 			);
 		} finally {
 			dispatch.setSaving( false );
@@ -102,23 +115,30 @@ export function Header() {
 		}
 		dispatch.setSaving( true );
 		try {
-			await saveAsTemplate( {
+			const template = await saveAsTemplate( {
 				title,
 				format,
 				fabricJson: fabric.getJSON(),
+				size: fabric.getArtboardSize(),
 				apiFetch,
 			} );
-			createSuccessNotice( __( 'Saved as template.', 'socialframe' ) );
-		} catch ( e ) {
+			// Give the new template a thumbnail for the Templates panel; it
+			// renders the same canvas, so the current preview is accurate.
+			sendPreview( fabric.toDataURL, template.id, apiFetch );
+			createSuccessNotice( __( 'Saved as template.', 'socialframe' ), {
+				type: 'snackbar',
+			} );
+		} catch {
 			createErrorNotice(
-				__( 'Could not save template.', 'socialframe' )
+				__( 'Could not save template.', 'socialframe' ),
+				{ type: 'snackbar' }
 			);
 		} finally {
 			dispatch.setSaving( false );
 		}
 	};
 
-	const { adminUrl } = window.socialFrameConfig ?? {};
+	const { adminUrl, canUpload } = window.socialFrameConfig ?? {};
 
 	return (
 		<div className="socialframe-header">
@@ -160,7 +180,11 @@ export function Header() {
 					onClick={ () => dispatch.undoAction() }
 					label={
 						undoLabel
-							? `${ __( 'Undo', 'socialframe' ) } ${ undoLabel }`
+							? sprintf(
+									/* translators: %s: name of the action to undo, e.g. "Font size" */
+									__( 'Undo %s', 'socialframe' ),
+									undoLabel
+								)
 							: __( 'Undo', 'socialframe' )
 					}
 					showTooltip
@@ -173,7 +197,11 @@ export function Header() {
 					onClick={ () => dispatch.redoAction() }
 					label={
 						redoLabel
-							? `${ __( 'Redo', 'socialframe' ) } ${ redoLabel }`
+							? sprintf(
+									/* translators: %s: name of the action to redo, e.g. "Font size" */
+									__( 'Redo %s', 'socialframe' ),
+									redoLabel
+								)
 							: __( 'Redo', 'socialframe' )
 					}
 					showTooltip
@@ -185,7 +213,7 @@ export function Header() {
 					<Button
 						variant="tertiary"
 						onClick={ () => fabric?.fitView?.() }
-						label={ __( 'Fit to screen (Ctrl+0)', 'socialframe' ) }
+						label={ __( 'Fit to screen (0)', 'socialframe' ) }
 						showTooltip
 					>
 						{ __( 'Fit', 'socialframe' ) }
@@ -193,7 +221,7 @@ export function Header() {
 					<Button
 						variant="tertiary"
 						onClick={ () => fabric?.zoomOut?.() }
-						label={ __( 'Zoom out (Ctrl+−)', 'socialframe' ) }
+						label={ __( 'Zoom out (−)', 'socialframe' ) }
 						showTooltip
 					>
 						{ '−' }
@@ -204,7 +232,7 @@ export function Header() {
 					<Button
 						variant="tertiary"
 						onClick={ () => fabric?.zoomIn?.() }
-						label={ __( 'Zoom in (Ctrl++)', 'socialframe' ) }
+						label={ __( 'Zoom in (+)', 'socialframe' ) }
 						showTooltip
 					>
 						{ '+' }
@@ -230,14 +258,16 @@ export function Header() {
 						? __( 'Saving…', 'socialframe' )
 						: __( 'Save', 'socialframe' ) }
 				</Button>
-				<Button
-					variant="primary"
-					onClick={ handleExport }
-					disabled={ isSaving }
-					isBusy={ isSaving }
-				>
-					{ __( 'Export PNG', 'socialframe' ) }
-				</Button>
+				{ canUpload && (
+					<Button
+						variant="primary"
+						onClick={ handleExport }
+						disabled={ isSaving }
+						isBusy={ isSaving }
+					>
+						{ __( 'Export PNG', 'socialframe' ) }
+					</Button>
+				) }
 			</div>
 
 			{ shareUrl && (

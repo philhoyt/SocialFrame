@@ -1,0 +1,199 @@
+<?php
+/**
+ * Tests for the Preview REST controller (PRV-01 PNG guard + cleanup hook).
+ *
+ * @package SocialFrame
+ */
+
+declare( strict_types=1 );
+
+/**
+ * Covers preview generation, the PNG-type guard, and delete cleanup.
+ */
+class PreviewControllerTest extends RestTestCase {
+
+	/**
+	 * Use an editor for all preview requests.
+	 */
+	public function set_up(): void {
+		parent::set_up();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
+	}
+
+	/**
+	 * Resolve the absolute path of a design's preview file.
+	 *
+	 * @param int $id Design ID.
+	 * @return string
+	 */
+	private function preview_path( int $id ): string {
+		$rel = get_post_meta( $id, 'socialframe_preview_path', true );
+		return wp_upload_dir()['basedir'] . '/' . $rel;
+	}
+
+	/**
+	 * A valid PNG is resized, written, and recorded in meta.
+	 */
+	public function test_preview_valid_png_written(): void {
+		$id  = $this->make_design();
+		$res = $this->request(
+			'POST',
+			'/designs/' . $id . '/preview',
+			[ 'imageData' => $this->png_data_uri( 800, 600 ) ]
+		);
+
+		$this->assertSame( 201, $res->get_status() );
+		$rel = get_post_meta( $id, 'socialframe_preview_path', true );
+		$this->assertMatchesRegularExpression( '#^socialframe/previews/sf-' . $id . '-[a-z0-9]{16}-preview\.png$#', $rel );
+		$this->assertFileExists( $this->preview_path( $id ) );
+	}
+
+	/**
+	 * A small but valid JPEG is rejected — the PRV-01 guard, since resize_png
+	 * would otherwise return sub-width input verbatim.
+	 */
+	public function test_preview_rejects_small_jpeg(): void {
+		$id  = $this->make_design();
+		$res = $this->request(
+			'POST',
+			'/designs/' . $id . '/preview',
+			[ 'imageData' => $this->jpeg_base64( 100, 100 ) ]
+		);
+
+		$this->assertSame( 400, $res->get_status() );
+		$this->assertSame( 'invalid_image', $res->get_data()['code'] );
+		$this->assertSame( '', get_post_meta( $id, 'socialframe_preview_path', true ) );
+	}
+
+	/**
+	 * Non-image bytes are rejected.
+	 */
+	public function test_preview_rejects_non_image(): void {
+		$id  = $this->make_design();
+		$res = $this->request(
+			'POST',
+			'/designs/' . $id . '/preview',
+			[ 'imageData' => base64_encode( 'nope' ) ]
+		);
+
+		$this->assertSame( 400, $res->get_status() );
+	}
+
+	/**
+	 * Previewing a non-graphic post returns 404.
+	 */
+	public function test_preview_404_for_non_graphic(): void {
+		$post_id = self::factory()->post->create();
+		$res     = $this->request(
+			'POST',
+			'/designs/' . $post_id . '/preview',
+			[ 'imageData' => $this->png_data_uri() ]
+		);
+
+		$this->assertSame( 404, $res->get_status() );
+	}
+
+	/**
+	 * Deleting a design removes its preview file via before_delete_post.
+	 */
+	public function test_preview_file_cleaned_up_on_delete(): void {
+		$id = $this->make_design();
+		$this->request(
+			'POST',
+			'/designs/' . $id . '/preview',
+			[ 'imageData' => $this->png_data_uri( 800, 600 ) ]
+		);
+		$path = $this->preview_path( $id );
+		$this->assertFileExists( $path );
+
+		wp_delete_post( $id, true );
+		$this->assertFileDoesNotExist( $path );
+	}
+
+	/**
+	 * SEC-01: a tampered preview-path meta value must not steer the delete
+	 * cleanup outside the previews directory.
+	 */
+	public function test_tampered_preview_path_does_not_delete_outside_previews(): void {
+		$sentinel = dirname( wp_upload_dir()['basedir'] ) . '/sf-sentinel-' . wp_generate_password( 8, false ) . '.txt';
+		file_put_contents( $sentinel, 'keep me' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		$id = $this->make_design();
+		update_post_meta( $id, 'socialframe_preview_path', '../' . basename( $sentinel ) );
+
+		wp_delete_post( $id, true );
+
+		$this->assertFileExists( $sentinel );
+		unlink( $sentinel ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+	}
+
+	/**
+	 * SEC-01: the preview URL is derived from the ID, not the stored meta.
+	 */
+	public function test_preview_url_ignores_tampered_meta(): void {
+		$id = $this->make_design();
+		update_post_meta( $id, 'socialframe_preview_path', '../../evil.png' );
+
+		$res = $this->request( 'GET', '/designs/' . $id );
+
+		$this->assertSame(
+			wp_upload_dir()['baseurl'] . '/socialframe/previews/sf-' . $id . '-preview.png',
+			$res->get_data()['thumbnailUrl']
+		);
+	}
+
+	/**
+	 * SEC-01: plugin meta cannot be added or edited through core's Custom
+	 * Fields / add-meta path, even by a user who can edit the design.
+	 */
+	public function test_plugin_meta_not_editable_via_custom_fields(): void {
+		$author = self::factory()->user->create( [ 'role' => 'author' ] );
+		wp_set_current_user( $author );
+		$id = $this->make_design( [ 'author' => $author ] );
+
+		$this->assertTrue( current_user_can( 'edit_post', $id ) );
+		foreach ( [ 'socialframe_preview_path', 'socialframe_fabric_json', 'socialframe_image_id' ] as $key ) {
+			$this->assertFalse( current_user_can( 'add_post_meta', $id, $key ), $key );
+			$this->assertFalse( current_user_can( 'edit_post_meta', $id, $key ), $key );
+		}
+	}
+
+	/**
+	 * PRV-01: the preview URL carries the random token, not just the ID, and
+	 * the previews directory blocks listing.
+	 */
+	public function test_preview_url_is_tokenized(): void {
+		$id    = $this->make_design();
+		$url   = $this->request( 'POST', '/designs/' . $id . '/preview', [ 'imageData' => $this->png_data_uri() ] )->get_data()['previewUrl'];
+		$token = get_post_meta( $id, 'socialframe_preview_token', true );
+
+		$this->assertMatchesRegularExpression( '/^[a-z0-9]{16}$/', $token );
+		$this->assertStringEndsWith( 'sf-' . $id . '-' . $token . '-preview.png', $url );
+		$this->assertSame( $url, $this->request( 'GET', '/designs/' . $id )->get_data()['thumbnailUrl'] );
+		$this->assertFileExists( wp_upload_dir()['basedir'] . '/socialframe/previews/index.php' );
+	}
+
+	/**
+	 * PRV-01: regenerating a preview removes one left at the legacy path.
+	 */
+	public function test_preview_removes_legacy_file(): void {
+		$id     = $this->make_design();
+		$legacy = wp_upload_dir()['basedir'] . '/socialframe/previews/sf-' . $id . '-preview.png';
+		wp_mkdir_p( dirname( $legacy ) );
+		file_put_contents( $legacy, 'old' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		$this->request( 'POST', '/designs/' . $id . '/preview', [ 'imageData' => $this->png_data_uri() ] );
+
+		$this->assertFileDoesNotExist( $legacy );
+	}
+
+	/**
+	 * A malformed token falls back to the legacy path, never a traversal.
+	 */
+	public function test_malformed_token_is_ignored(): void {
+		$this->assertSame(
+			'socialframe/previews/sf-5-preview.png',
+			\SocialFrame\REST\PreviewController::preview_rel_path( 5, '../../wp-config' )
+		);
+	}
+}

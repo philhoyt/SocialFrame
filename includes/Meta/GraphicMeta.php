@@ -20,6 +20,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class GraphicMeta {
 
 	/**
+	 * Minimum allowed custom canvas dimension, in pixels.
+	 */
+	const MIN_DIMENSION = 100;
+
+	/**
+	 * Maximum allowed custom canvas dimension, in pixels.
+	 */
+	const MAX_DIMENSION = 5000;
+
+	/**
 	 * Hook into WordPress to register post meta.
 	 */
 	public function register(): void {
@@ -28,9 +38,14 @@ class GraphicMeta {
 
 	/**
 	 * Register all meta keys for socialframe_graphic.
+	 *
+	 * Every key uses auth_callback => __return_false so it cannot be added or
+	 * edited through core's Custom Fields UI / add-meta AJAX. The plugin writes
+	 * these keys itself via update_post_meta(), which is not capability-checked.
 	 */
 	public function register_meta(): void {
-		$allowed_formats = array_keys( socialframe_get_formats() );
+		$allowed_formats   = array_keys( socialframe_get_formats() );
+		$allowed_formats[] = 'custom';
 
 		register_post_meta(
 			'socialframe_graphic',
@@ -41,6 +56,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => '',
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => [ $this, 'sanitize_fabric_json' ],
 			]
 		);
@@ -54,9 +70,38 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => '',
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => function ( string $value ) use ( $allowed_formats ): string {
 					return in_array( $value, $allowed_formats, true ) ? $value : '';
 				},
+			]
+		);
+
+		register_post_meta(
+			'socialframe_graphic',
+			'socialframe_width',
+			[
+				'type'              => 'integer',
+				'description'       => 'Custom canvas width in pixels (0 for preset formats).',
+				'single'            => true,
+				'default'           => 0,
+				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
+				'sanitize_callback' => [ $this, 'sanitize_dimension' ],
+			]
+		);
+
+		register_post_meta(
+			'socialframe_graphic',
+			'socialframe_height',
+			[
+				'type'              => 'integer',
+				'description'       => 'Custom canvas height in pixels (0 for preset formats).',
+				'single'            => true,
+				'default'           => 0,
+				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
+				'sanitize_callback' => [ $this, 'sanitize_dimension' ],
 			]
 		);
 
@@ -69,6 +114,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => 'design',
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => function ( string $value ): string {
 					return in_array( $value, [ 'design', 'template' ], true ) ? $value : 'design';
 				},
@@ -84,7 +130,24 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => 0,
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => 'absint',
+			]
+		);
+
+		register_post_meta(
+			'socialframe_graphic',
+			'socialframe_preview_token',
+			[
+				'type'              => 'string',
+				'description'       => 'Random token in the preview filename so previews are not guessable by ID.',
+				'single'            => true,
+				'default'           => '',
+				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
+				'sanitize_callback' => function ( string $value ): string {
+					return 1 === preg_match( '/^[a-z0-9]{16}$/', $value ) ? $value : '';
+				},
 			]
 		);
 
@@ -97,6 +160,7 @@ class GraphicMeta {
 				'single'            => true,
 				'default'           => '',
 				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
 				'sanitize_callback' => 'sanitize_text_field',
 			]
 		);
@@ -121,5 +185,22 @@ class GraphicMeta {
 			return '';
 		}
 		return wp_json_encode( $decoded );
+	}
+
+	/**
+	 * Clamp a custom canvas dimension to the allowed range.
+	 *
+	 * Zero is preserved to mean "no custom dimension" (preset formats). Any
+	 * non-zero value is clamped to [MIN_DIMENSION, MAX_DIMENSION].
+	 *
+	 * @param mixed $value Raw dimension value.
+	 * @return int Sanitized pixel value.
+	 */
+	public function sanitize_dimension( $value ): int {
+		$value = absint( $value );
+		if ( 0 === $value ) {
+			return 0;
+		}
+		return max( self::MIN_DIMENSION, min( self::MAX_DIMENSION, $value ) );
 	}
 }

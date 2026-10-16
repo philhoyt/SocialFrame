@@ -35,7 +35,7 @@ class ExportController extends AbstractController {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'handle_export' ],
-				'permission_callback' => [ $this, 'require_edit_posts' ],
+				'permission_callback' => [ $this, 'require_upload_files' ],
 				'args'                => [
 					'id'        => [
 						'type'    => 'integer',
@@ -81,7 +81,9 @@ class ExportController extends AbstractController {
 		// base64_decode() only proves the string was valid base64, not that it
 		// is an image — without this an edit_posts user could store arbitrary
 		// bytes under a .png name.
-		$image_info = getimagesizefromstring( $binary );
+		// The leading @ suppresses the read-error notice getimagesizefromstring()
+		// emits on malformed/truncated data; the false return is handled below.
+		$image_info = @getimagesizefromstring( $binary ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		if ( false === $image_info || IMAGETYPE_PNG !== $image_info[2] ) {
 			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
 		}
@@ -113,7 +115,14 @@ class ExportController extends AbstractController {
 		$attachment_id = wp_insert_attachment(
 			[
 				'post_mime_type' => 'image/png',
-				'post_title'     => $post->post_title . ( $is_thumb ? ' Thumbnail' : ' Export' ),
+				'post_title'     => sprintf(
+					$is_thumb
+						/* translators: %s: design title. */
+						? __( '%s Thumbnail', 'socialframe' )
+						/* translators: %s: design title. */
+						: __( '%s Export', 'socialframe' ),
+					$post->post_title
+				),
 				'post_status'    => 'inherit',
 				'post_parent'    => $id,
 				'guid'           => $file_url,

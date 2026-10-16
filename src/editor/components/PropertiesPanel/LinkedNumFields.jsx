@@ -79,24 +79,24 @@ function clamp( v, min, max ) {
  * `onChangeBoth(aVal, bVal)` for that; `onChangeA`/`onChangeB` handle
  * independent changes when unlinked.
  *
- * @param {Object}   props
- * @param {string}   props.aLabel
- * @param {number}   props.aValue
- * @param {number}   [props.aMin]
- * @param {number}   [props.aMax]
- * @param {number}   [props.aStep=1]
- * @param {Function} props.onChangeA
- * @param {string}   props.bLabel
- * @param {number}   props.bValue
- * @param {number}   [props.bMin]
- * @param {number}   [props.bMax]
- * @param {number}   [props.bStep=1]
- * @param {Function} props.onChangeB
- * @param {Function} props.onChangeBoth  Called with (aVal, bVal) when linked.
- * @param {string}   [props.linkMode]    "ratio" (default) or "delta".
- * @param {string}   [props.stateKey]    Unique key so state persists across remounts.
- * @param {string}   [props.lockLabel]
- * @param {string}   [props.unlockLabel]
+ * @param {Object}                         props
+ * @param {string}                         props.aLabel
+ * @param {number}                         props.aValue
+ * @param {number}                         [props.aMin]
+ * @param {number}                         [props.aMax]
+ * @param {number}                         [props.aStep=1]
+ * @param {(value: number) => void}        props.onChangeA
+ * @param {string}                         props.bLabel
+ * @param {number}                         props.bValue
+ * @param {number}                         [props.bMin]
+ * @param {number}                         [props.bMax]
+ * @param {number}                         [props.bStep=1]
+ * @param {(value: number) => void}        props.onChangeB
+ * @param {(a: number, b: number) => void} props.onChangeBoth  Called with (aVal, bVal) when linked.
+ * @param {string}                         [props.linkMode]    "ratio" (default) or "delta".
+ * @param {string}                         [props.stateKey]    Unique key so state persists across remounts.
+ * @param {string}                         [props.lockLabel]
+ * @param {string}                         [props.unlockLabel]
  */
 export function LinkedNumFields( {
 	aLabel,

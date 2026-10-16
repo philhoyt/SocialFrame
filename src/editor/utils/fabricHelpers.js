@@ -301,10 +301,10 @@ export function extractProperties( obj, type ) {
 		top: obj.top ?? 0,
 		width: obj.getScaledWidth
 			? Math.round( obj.getScaledWidth() )
-			: obj.width ?? 0,
+			: ( obj.width ?? 0 ),
 		height: obj.getScaledHeight
 			? Math.round( obj.getScaledHeight() )
-			: obj.height ?? 0,
+			: ( obj.height ?? 0 ),
 		opacity: obj.opacity ?? 1,
 		angle: obj.angle ?? 0,
 		flipX: obj.flipX ?? false,
@@ -315,7 +315,7 @@ export function extractProperties( obj, type ) {
 					offsetX: obj.shadow.offsetX ?? 0,
 					offsetY: obj.shadow.offsetY ?? 0,
 					color: obj.shadow.color ?? 'rgba(0,0,0,0.3)',
-			  }
+				}
 			: null,
 	};
 

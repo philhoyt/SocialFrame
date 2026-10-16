@@ -85,11 +85,12 @@ export function reducer( state = DEFAULT_STATE, action ) {
 			};
 		}
 
+		// The entry callbacks run in the undoAction/redoAction thunks; the
+		// reducer only moves the index (reducers must not dispatch).
 		case 'UNDO': {
 			if ( state.undoIndex < 0 ) {
 				return state;
 			}
-			state.undoStack[ state.undoIndex ].undo();
 			return { ...state, undoIndex: state.undoIndex - 1, isDirty: true };
 		}
 
@@ -97,7 +98,6 @@ export function reducer( state = DEFAULT_STATE, action ) {
 			if ( state.undoIndex >= state.undoStack.length - 1 ) {
 				return state;
 			}
-			state.undoStack[ state.undoIndex + 1 ].redo();
 			return { ...state, undoIndex: state.undoIndex + 1, isDirty: true };
 		}
 

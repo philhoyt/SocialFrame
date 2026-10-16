@@ -28,7 +28,7 @@ export function ShadowSection() {
 			{
 				shadow: new fabric.Shadow( { ...shadow, ...overrides } ),
 			},
-			'Shadow'
+			__( 'Shadow', 'socialframe' )
 		);
 	}
 
@@ -38,12 +38,13 @@ export function ShadowSection() {
 				className={ `socialframe-props__toggle-btn${
 					hasShadow ? ' socialframe-props__toggle-btn--active' : ''
 				}` }
+				aria-pressed={ !! hasShadow }
 				style={ { width: '100%', marginBottom: hasShadow ? 12 : 0 } }
 				onClick={ () => {
 					if ( hasShadow ) {
 						fabricApi?.updateSelected(
 							{ shadow: null },
-							'Remove shadow'
+							__( 'Remove shadow', 'socialframe' )
 						);
 					} else {
 						applyShadow( {} );

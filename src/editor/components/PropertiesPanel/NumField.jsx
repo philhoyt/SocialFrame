@@ -8,14 +8,14 @@ import { useRef, useEffect, useId } from '@wordpress/element';
  * - Hold and drag horizontally → scrubs the value.
  * - Press Enter while typing → commits and blurs.
  *
- * @param {Object}   props
- * @param {string}   props.label            Short label shown before the input (e.g. "X", "W", "°").
- * @param {number}   props.value
- * @param {Function} props.onChange         Called with the new numeric value.
- * @param {boolean}  [props.readOnly=false]
- * @param {number}   [props.step=1]
- * @param {number}   [props.min]
- * @param {number}   [props.max]
+ * @param {Object}                  props
+ * @param {string}                  props.label            Short label shown before the input (e.g. "X", "W", "°").
+ * @param {number}                  props.value
+ * @param {(value: number) => void} props.onChange         Called with the new numeric value.
+ * @param {boolean}                 [props.readOnly=false]
+ * @param {number}                  [props.step=1]
+ * @param {number}                  [props.min]
+ * @param {number}                  [props.max]
  */
 export function NumField( {
 	label,

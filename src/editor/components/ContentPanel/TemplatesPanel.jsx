@@ -4,6 +4,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
 import { useFabric } from '../../EditorApp';
+import { fetchAllPages } from '../../../shared/fetchAllPages';
 
 export function TemplatesPanel() {
 	const fabric = useFabric();
@@ -13,27 +14,49 @@ export function TemplatesPanel() {
 	const [ pendingTemplate, setPendingTemplate ] = useState( null );
 
 	useEffect( () => {
-		apiFetch( { path: 'socialframe/v1/templates' } )
-			.then( ( data ) => {
-				setBundled( data.bundled ?? [] );
-				setUserMade( data.userMade ?? [] );
-			} )
+		Promise.all( [
+			apiFetch( { path: 'socialframe/v1/templates' } ).then( ( data ) =>
+				setBundled( data.bundled ?? [] )
+			),
+			// User templates are design posts; the list omits their Fabric
+			// JSON, which is fetched when one is applied.
+			fetchAllPages(
+				apiFetch,
+				'socialframe/v1/designs?type=template'
+			).then( ( items ) =>
+				setUserMade(
+					items.map( ( item ) => ( {
+						id: item.id,
+						label: item.title,
+						format: item.format,
+						thumbnailUrl: item.thumbnailUrl,
+						source: 'user',
+					} ) )
+				)
+			),
+		] )
 			.catch( () => {} )
 			.finally( () => setLoading( false ) );
 	}, [] );
 
-	const applyTemplate = ( template ) => {
+	const applyTemplate = async ( template ) => {
 		if ( ! fabric?.loadFromJSON ) {
 			return;
 		}
 		try {
+			let { fabricJson } = template;
+			if ( fabricJson === undefined ) {
+				( { fabricJson } = await apiFetch( {
+					path: `socialframe/v1/designs/${ template.id }`,
+				} ) );
+			}
 			const json =
-				typeof template.fabricJson === 'string'
-					? JSON.parse( template.fabricJson )
-					: template.fabricJson;
+				typeof fabricJson === 'string'
+					? JSON.parse( fabricJson )
+					: fabricJson;
 			fabric.loadFromJSON( json );
-		} catch ( e ) {
-			// Invalid JSON — skip.
+		} catch {
+			// Invalid JSON or failed fetch — skip.
 		}
 	};
 

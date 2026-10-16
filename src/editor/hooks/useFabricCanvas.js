@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import * as fabric from 'fabric';
 import { initAligningGuidelines } from 'fabric/extensions';
@@ -26,14 +27,24 @@ import {
  * @param {import('react').RefObject<HTMLCanvasElement>} canvasRef          Ref attached to the <canvas> element.
  * @param {import('react').RefObject<HTMLDivElement>}    areaRef            Ref attached to the container div.
  * @param {Object}                                       options
- * @param {string}                                       options.format     Format key, e.g. 'instagram-post'.
+ * @param {string}                                       options.format     Format key, e.g. 'instagram-post' or 'custom'.
  * @param {string}                                       options.fabricJson Initial JSON string (may be empty).
+ * @param {number}                                       [options.width]    Explicit canvas width (custom sizes); falls back to the format preset.
+ * @param {number}                                       [options.height]   Explicit canvas height (custom sizes); falls back to the format preset.
  * @return {Object} Stable imperative API consumed via FabricContext.
  */
-export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
+export function useFabricCanvas(
+	canvasRef,
+	areaRef,
+	{ format, fabricJson, width: initialWidth, height: initialHeight }
+) {
 	const fabricRef = useRef( null );
-	const artboardWRef = useRef( FORMATS[ format ]?.width ?? 1080 );
-	const artboardHRef = useRef( FORMATS[ format ]?.height ?? 1080 );
+	const artboardWRef = useRef(
+		initialWidth || FORMATS[ format ]?.width || 1080
+	);
+	const artboardHRef = useRef(
+		initialHeight || FORMATS[ format ]?.height || 1080
+	);
 	const artboardRectRef = useRef( null );
 	const setupArtboardRef = useRef( null );
 	const fitToScreenRef = useRef( null );
@@ -392,7 +403,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			if ( naturalWidth !== prevWidth ) {
 				dispatch.markDirty();
 				dispatch.pushHistory( {
-					label: 'Fit text to content',
+					label: __( 'Fit text to content', 'socialframe' ),
 					undo: () => {
 						obj.set( 'width', prevWidth );
 						obj.initDimensions();
@@ -580,13 +591,26 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	const getFabric = useCallback( () => fabricRef.current, [] );
 
+	/** Current artboard size in canvas pixels. */
+	const getArtboardSize = useCallback(
+		() => ( {
+			width: artboardWRef.current,
+			height: artboardHRef.current,
+		} ),
+		[]
+	);
+
 	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
 		return (
-			fabricRef.current?.toJSON( [
+			// toObject(), not toJSON(): Fabric 6's toJSON() takes no arguments
+			// and silently drops these custom properties, which lost layer
+			// names, ids and the artboard marker on every save.
+			fabricRef.current?.toObject( [
 				'id',
 				'isArtboard',
 				'sfShapeType',
+				'name',
 			] ) ?? null
 		);
 	}, [] );
@@ -703,7 +727,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			canvas.renderAll();
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Background color',
+				label: __( 'Background color', 'socialframe' ),
 				undo: () => {
 					artboard.set( 'fill', prev );
 					artboard.dirty = true;
@@ -729,7 +753,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			canvas.setActiveObject( shape );
 			canvas.renderAll();
 			dispatch.pushHistory( {
-				label: `Add ${ type }`,
+				label: __( 'Add shape', 'socialframe' ),
 				undo: () => {
 					canvas.remove( shape );
 					canvas.discardActiveObject();
@@ -759,7 +783,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			text.selectAll();
 			canvas.renderAll();
 			dispatch.pushHistory( {
-				label: `Add ${ role } text`,
+				label: __( 'Add text', 'socialframe' ),
 				undo: () => {
 					canvas.remove( text );
 					canvas.discardActiveObject();
@@ -801,7 +825,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 					canvas.setActiveObject( img );
 					canvas.renderAll();
 					dispatch.pushHistory( {
-						label: 'Add image',
+						label: __( 'Add image', 'socialframe' ),
 						undo: () => {
 							canvas.remove( img );
 							canvas.discardActiveObject();
@@ -877,7 +901,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		dispatch.clearSelection();
 
 		dispatch.pushHistory( {
-			label: 'Delete object',
+			label: __( 'Delete object', 'socialframe' ),
 			undo: () => {
 				canvas.add( obj );
 				canvas.setActiveObject( obj );
@@ -927,7 +951,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			dispatch.markDirty();
 
 			dispatch.pushHistory( {
-				label: 'Fill shape with image',
+				label: __( 'Fill shape with image', 'socialframe' ),
 				undo: () => {
 					shape.set( 'fill', prevFill );
 					shape.dirty = true;
@@ -1016,7 +1040,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			dispatch.markDirty();
 
 			dispatch.pushHistory( {
-				label: 'Set background image',
+				label: __( 'Set background image', 'socialframe' ),
 				undo: () => {
 					artboard.set( 'fill', prev );
 					artboard.dirty = true;
@@ -1081,7 +1105,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		dispatch.markDirty();
 
 		dispatch.pushHistory( {
-			label: 'Remove background image',
+			label: __( 'Remove background image', 'socialframe' ),
 			undo: () => {
 				artboard.set( 'fill', prev );
 				artboard.dirty = true;
@@ -1188,7 +1212,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			syncSelection( obj, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: `Align ${ direction }`,
+				label: __( 'Align', 'socialframe' ),
 				undo: () => {
 					obj.set( { left: prevLeft, top: prevTop } );
 					obj.setCoords();
@@ -1234,7 +1258,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Move layer up',
+				label: __( 'Move layer up', 'socialframe' ),
 				undo: () => {
 					canvas.sendObjectBackwards( obj );
 					canvas.renderAll();
@@ -1274,7 +1298,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Move layer down',
+				label: __( 'Move layer down', 'socialframe' ),
 				undo: () => {
 					canvas.bringObjectForward( obj );
 					canvas.renderAll();
@@ -1314,7 +1338,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Duplicate layer',
+				label: __( 'Duplicate layer', 'socialframe' ),
 				undo: () => {
 					canvas.remove( clone );
 					canvas.renderAll();
@@ -1347,7 +1371,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Delete layer',
+				label: __( 'Delete layer', 'socialframe' ),
 				undo: () => {
 					canvas.add( obj );
 					canvas.renderAll();
@@ -1378,7 +1402,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Rename layer',
+				label: __( 'Rename layer', 'socialframe' ),
 				undo: () => {
 					obj.name = prev;
 					syncLayersToStore( canvas, dispatch );
@@ -1416,7 +1440,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 		syncLayersToStore( canvas, dispatch );
 		dispatch.markDirty();
 		dispatch.pushHistory( {
-			label: 'Duplicate',
+			label: __( 'Duplicate', 'socialframe' ),
 			undo: () => {
 				canvas.remove( clone );
 				canvas.renderAll();
@@ -1449,7 +1473,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: locked ? 'Lock layer' : 'Unlock layer',
+				label: locked
+					? __( 'Lock layer', 'socialframe' )
+					: __( 'Unlock layer', 'socialframe' ),
 				undo: () => {
 					obj.set( {
 						selectable: ! prevLocked,
@@ -1487,7 +1513,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: visible ? 'Show layer' : 'Hide layer',
+				label: visible
+					? __( 'Show layer', 'socialframe' )
+					: __( 'Hide layer', 'socialframe' ),
 				undo: () => {
 					obj.set( 'visible', prevVisible );
 					syncLayersToStore( canvas, dispatch );
@@ -1519,7 +1547,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 			canvas.renderAll();
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: 'Replace image',
+				label: __( 'Replace image', 'socialframe' ),
 				undo: () => {
 					obj.setElement( prevElement );
 					canvas.renderAll();
@@ -1537,6 +1565,7 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 
 	return {
 		getFabric,
+		getArtboardSize,
 		getJSON,
 		toDataURL,
 		loadFromJSON,
@@ -1576,9 +1605,9 @@ export function useFabricCanvas( canvasRef, areaRef, { format, fabricJson } ) {
 /**
  * Create the artboard sentinel rect.
  *
- * @param {number} artW Artboard width in canvas pixels.
- * @param {number} artH Artboard height in canvas pixels.
- * @param {*}      fill Fabric fill value (color string or Pattern).
+ * @param {number}        artW Artboard width in canvas pixels.
+ * @param {number}        artH Artboard height in canvas pixels.
+ * @param {string|Object} fill Fabric fill value (color string or Pattern).
  * @return {fabric.Rect} The artboard rectangle object.
  */
 function createArtboardRect( artW, artH, fill ) {

@@ -61,7 +61,8 @@ class DuplicateController extends AbstractController {
 
 		$new_post_id = wp_insert_post(
 			[
-				'post_title'  => $source_post->post_title . ' (Copy)',
+				/* translators: %s: title of the design being duplicated. */
+				'post_title'  => sprintf( __( '%s (Copy)', 'socialframe' ), $source_post->post_title ),
 				'post_type'   => 'socialframe_graphic',
 				'post_status' => 'publish',
 			],
@@ -72,13 +73,15 @@ class DuplicateController extends AbstractController {
 			return $new_post_id;
 		}
 
-		// Copy format and Fabric JSON; always duplicate as a design.
-		$meta_to_copy = [ 'socialframe_fabric_json', 'socialframe_format' ];
+		// Copy format, custom size, and Fabric JSON; always duplicate as a design.
+		$meta_to_copy = [ 'socialframe_fabric_json', 'socialframe_format', 'socialframe_width', 'socialframe_height' ];
 
 		foreach ( $meta_to_copy as $key ) {
 			$value = get_post_meta( $id, $key, true );
 			if ( '' !== $value ) {
-				update_post_meta( $new_post_id, $key, $value );
+				// update_post_meta() unslashes its input; slash first so JSON
+				// escapes (\" \n \uXXXX) survive the copy (ARC-01).
+				update_post_meta( $new_post_id, $key, wp_slash( $value ) );
 			}
 		}
 

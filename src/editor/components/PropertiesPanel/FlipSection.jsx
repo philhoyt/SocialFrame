@@ -19,10 +19,11 @@ export function FlipSection() {
 				className={ `socialframe-props__toggle-btn${
 					props.flipX ? ' socialframe-props__toggle-btn--active' : ''
 				}` }
+				aria-pressed={ !! props.flipX }
 				onClick={ () =>
 					fabric?.updateSelected(
 						{ flipX: ! props.flipX },
-						'Flip horizontal'
+						__( 'Flip horizontal', 'socialframe' )
 					)
 				}
 				title={ __( 'Flip Horizontal', 'socialframe' ) }
@@ -33,10 +34,11 @@ export function FlipSection() {
 				className={ `socialframe-props__toggle-btn${
 					props.flipY ? ' socialframe-props__toggle-btn--active' : ''
 				}` }
+				aria-pressed={ !! props.flipY }
 				onClick={ () =>
 					fabric?.updateSelected(
 						{ flipY: ! props.flipY },
-						'Flip vertical'
+						__( 'Flip vertical', 'socialframe' )
 					)
 				}
 				title={ __( 'Flip Vertical', 'socialframe' ) }

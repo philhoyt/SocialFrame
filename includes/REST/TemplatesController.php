@@ -19,8 +19,9 @@ use WP_REST_Response;
 /**
  * Handles GET /templates.
  *
- * Merges bundled templates (registered via the socialframe_templates filter)
- * with user-saved template posts.
+ * Lists bundled templates (extensible via the socialframe_templates filter).
+ * User-saved templates are design posts with type=template and are listed,
+ * paginated, through GET /designs?type=template.
  */
 class TemplatesController extends AbstractController {
 
@@ -40,18 +41,14 @@ class TemplatesController extends AbstractController {
 	}
 
 	/**
-	 * GET /templates — list bundled and user-saved templates.
+	 * GET /templates — list bundled templates.
 	 *
 	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function get_templates( WP_REST_Request $request ): WP_REST_Response {
-		$bundled   = $this->get_bundled_templates();
-		$user_made = $this->get_user_templates();
-
 		return $this->respond(
 			[
-				'bundled'  => $bundled,
-				'userMade' => $user_made,
+				'bundled' => $this->get_bundled_templates(),
 			]
 		);
 	}
@@ -110,45 +107,6 @@ class TemplatesController extends AbstractController {
 		 * @param array $bundled Array of template objects.
 		 */
 		return apply_filters( 'socialframe_templates', $bundled );
-	}
-
-	/**
-	 * Fetch user-saved templates from the database.
-	 *
-	 * @return array<int, array<string, mixed>>
-	 */
-	private function get_user_templates(): array {
-		$posts = get_posts(
-			[
-				'post_type'      => 'socialframe_graphic',
-				'posts_per_page' => 100,
-				'post_status'    => 'publish',
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-				'meta_query'     => [
-					[
-						'key'   => 'socialframe_type',
-						'value' => 'template',
-					],
-				],
-				'orderby'        => 'modified',
-				'order'          => 'DESC',
-			]
-		);
-
-		return array_map(
-			function ( \WP_Post $post ): array {
-				$image_id = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
-				return [
-					'id'           => $post->ID,
-					'label'        => $post->post_title,
-					'format'       => (string) get_post_meta( $post->ID, 'socialframe_format', true ),
-					'fabricJson'   => (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true ),
-					'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : '',
-					'source'       => 'user',
-				];
-			},
-			$posts
-		);
 	}
 
 	/**

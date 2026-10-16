@@ -53,13 +53,21 @@ export function ImageProperties() {
 						label="X"
 						value={ Math.round( props.left ?? 0 ) }
 						onChange={ ( v ) =>
-							update( { left: v }, 'Position X' )
+							update(
+								{ left: v },
+								__( 'Position X', 'socialframe' )
+							)
 						}
 					/>
 					<NumField
 						label="Y"
 						value={ Math.round( props.top ?? 0 ) }
-						onChange={ ( v ) => update( { top: v }, 'Position Y' ) }
+						onChange={ ( v ) =>
+							update(
+								{ top: v },
+								__( 'Position Y', 'socialframe' )
+							)
+						}
 					/>
 					<LinkedNumFields
 						stateKey="wh"
@@ -69,7 +77,7 @@ export function ImageProperties() {
 						onChangeA={ ( v ) =>
 							update(
 								{ scaleX: v / ( props.naturalWidth ?? 100 ) },
-								'Width'
+								__( 'Width', 'socialframe' )
 							)
 						}
 						bLabel="H"
@@ -78,7 +86,7 @@ export function ImageProperties() {
 						onChangeB={ ( v ) =>
 							update(
 								{ scaleY: v / ( props.naturalHeight ?? 100 ) },
-								'Height'
+								__( 'Height', 'socialframe' )
 							)
 						}
 						onChangeBoth={ ( w, h ) =>
@@ -87,14 +95,19 @@ export function ImageProperties() {
 									scaleX: w / ( props.naturalWidth ?? 100 ),
 									scaleY: h / ( props.naturalHeight ?? 100 ),
 								},
-								'Size'
+								__( 'Size', 'socialframe' )
 							)
 						}
 					/>
 					<NumField
 						label="°"
 						value={ Math.round( props.angle ?? 0 ) }
-						onChange={ ( v ) => update( { angle: v }, 'Rotation' ) }
+						onChange={ ( v ) =>
+							update(
+								{ angle: v },
+								__( 'Rotation', 'socialframe' )
+							)
+						}
 					/>
 					<NumField
 						label="%"
@@ -102,7 +115,10 @@ export function ImageProperties() {
 						min={ 0 }
 						max={ 100 }
 						onChange={ ( v ) =>
-							update( { opacity: v / 100 }, 'Opacity' )
+							update(
+								{ opacity: v / 100 },
+								__( 'Opacity', 'socialframe' )
+							)
 						}
 					/>
 				</div>

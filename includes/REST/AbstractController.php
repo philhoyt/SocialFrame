@@ -55,6 +55,16 @@ abstract class AbstractController {
 	}
 
 	/**
+	 * Permission callback for routes that create Media Library attachments.
+	 *
+	 * Exporting writes a file into uploads and creates an attachment, so it
+	 * also requires upload_files — Contributors have edit_posts but not this.
+	 */
+	public function require_upload_files(): bool {
+		return current_user_can( 'edit_posts' ) && current_user_can( 'upload_files' );
+	}
+
+	/**
 	 * Resize a PNG binary to a given width using GD, preserving aspect ratio.
 	 *
 	 * @param string $binary    Raw PNG binary.
@@ -111,25 +121,36 @@ abstract class AbstractController {
 	/**
 	 * Build a standard design object shape from a WP_Post.
 	 *
-	 * @param \WP_Post $post The post object.
+	 * List responses omit fabricJson (PRF-01): it can be large and only the
+	 * editor needs it, which fetches the single design.
+	 *
+	 * @param \WP_Post $post      The post object.
+	 * @param bool     $with_json Whether to include the Fabric JSON.
 	 * @return array<string, mixed>
 	 */
-	protected function format_design( \WP_Post $post ): array {
-		$image_id     = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
-		$preview_path = (string) get_post_meta( $post->ID, 'socialframe_preview_path', true );
-		$preview_url  = $preview_path ? wp_upload_dir()['baseurl'] . '/' . $preview_path : '';
+	protected function format_design( \WP_Post $post, bool $with_json = true ): array {
+		$image_id = (int) get_post_meta( $post->ID, 'socialframe_image_id', true );
 
-		return [
+		$design = [
 			'id'           => $post->ID,
 			'title'        => $post->post_title,
 			'format'       => (string) get_post_meta( $post->ID, 'socialframe_format', true ),
 			'type'         => (string) get_post_meta( $post->ID, 'socialframe_type', true ),
-			'fabricJson'   => (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true ),
+			// Custom canvas size in pixels (0 for preset formats; the editor
+			// falls back to the format's preset dimensions).
+			'width'        => (int) get_post_meta( $post->ID, 'socialframe_width', true ),
+			'height'       => (int) get_post_meta( $post->ID, 'socialframe_height', true ),
 			'imageId'      => $image_id,
-			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : $preview_url,
+			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : PreviewController::preview_url( $post->ID ),
 			'modified'     => $post->post_modified_gmt,
 			'editUrl'      => admin_url( 'admin.php?page=socialframe-editor&id=' . $post->ID ),
 			'canDelete'    => current_user_can( 'delete_post', $post->ID ),
 		];
+
+		if ( $with_json ) {
+			$design['fabricJson'] = (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true );
+		}
+
+		return $design;
 	}
 }
