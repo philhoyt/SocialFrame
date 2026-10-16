@@ -590,6 +590,15 @@ export function useFabricCanvas(
 
 	const getFabric = useCallback( () => fabricRef.current, [] );
 
+	/** Current artboard size in canvas pixels. */
+	const getArtboardSize = useCallback(
+		() => ( {
+			width: artboardWRef.current,
+			height: artboardHRef.current,
+		} ),
+		[]
+	);
+
 	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
 		return (
@@ -1547,6 +1556,7 @@ export function useFabricCanvas(
 
 	return {
 		getFabric,
+		getArtboardSize,
 		getJSON,
 		toDataURL,
 		loadFromJSON,

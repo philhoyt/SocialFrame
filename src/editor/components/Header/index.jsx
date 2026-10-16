@@ -106,6 +106,7 @@ export function Header() {
 				title,
 				format,
 				fabricJson: fabric.getJSON(),
+				size: fabric.getArtboardSize(),
 				apiFetch,
 			} );
 			createSuccessNotice( __( 'Saved as template.', 'socialframe' ) );

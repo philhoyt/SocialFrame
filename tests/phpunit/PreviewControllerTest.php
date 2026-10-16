@@ -44,7 +44,7 @@ class PreviewControllerTest extends RestTestCase {
 
 		$this->assertSame( 201, $res->get_status() );
 		$rel = get_post_meta( $id, 'socialframe_preview_path', true );
-		$this->assertSame( 'socialframe/previews/sf-' . $id . '-preview.png', $rel );
+		$this->assertMatchesRegularExpression( '#^socialframe/previews/sf-' . $id . '-[a-z0-9]{16}-preview\.png$#', $rel );
 		$this->assertFileExists( $this->preview_path( $id ) );
 	}
 
@@ -156,5 +156,44 @@ class PreviewControllerTest extends RestTestCase {
 			$this->assertFalse( current_user_can( 'add_post_meta', $id, $key ), $key );
 			$this->assertFalse( current_user_can( 'edit_post_meta', $id, $key ), $key );
 		}
+	}
+
+	/**
+	 * PRV-01: the preview URL carries the random token, not just the ID, and
+	 * the previews directory blocks listing.
+	 */
+	public function test_preview_url_is_tokenized(): void {
+		$id    = $this->make_design();
+		$url   = $this->request( 'POST', '/designs/' . $id . '/preview', [ 'imageData' => $this->png_data_uri() ] )->get_data()['previewUrl'];
+		$token = get_post_meta( $id, 'socialframe_preview_token', true );
+
+		$this->assertMatchesRegularExpression( '/^[a-z0-9]{16}$/', $token );
+		$this->assertStringEndsWith( 'sf-' . $id . '-' . $token . '-preview.png', $url );
+		$this->assertSame( $url, $this->request( 'GET', '/designs/' . $id )->get_data()['thumbnailUrl'] );
+		$this->assertFileExists( wp_upload_dir()['basedir'] . '/socialframe/previews/index.php' );
+	}
+
+	/**
+	 * PRV-01: regenerating a preview removes one left at the legacy path.
+	 */
+	public function test_preview_removes_legacy_file(): void {
+		$id     = $this->make_design();
+		$legacy = wp_upload_dir()['basedir'] . '/socialframe/previews/sf-' . $id . '-preview.png';
+		wp_mkdir_p( dirname( $legacy ) );
+		file_put_contents( $legacy, 'old' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
+		$this->request( 'POST', '/designs/' . $id . '/preview', [ 'imageData' => $this->png_data_uri() ] );
+
+		$this->assertFileDoesNotExist( $legacy );
+	}
+
+	/**
+	 * A malformed token falls back to the legacy path, never a traversal.
+	 */
+	public function test_malformed_token_is_ignored(): void {
+		$this->assertSame(
+			'socialframe/previews/sf-5-preview.png',
+			\SocialFrame\REST\PreviewController::preview_rel_path( 5, '../../wp-config' )
+		);
 	}
 }

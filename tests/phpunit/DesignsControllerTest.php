@@ -181,4 +181,41 @@ class DesignsControllerTest extends RestTestCase {
 		wp_set_current_user( $other );
 		$this->assertFalse( $this->request( 'GET', '/designs/' . $id )->get_data()['canDelete'] );
 	}
+
+	/**
+	 * ARC-03: the list paginates and reports totals in headers.
+	 */
+	public function test_get_designs_paginates_with_total_headers(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
+		for ( $i = 0; $i < 3; $i++ ) {
+			$this->make_design();
+		}
+
+		$res = $this->request(
+			'GET',
+			'/designs',
+			[
+				'per_page' => 2,
+				'page'     => 2,
+			]
+		);
+
+		$this->assertCount( 1, $res->get_data() );
+		$this->assertSame( '3', $res->get_headers()['X-WP-Total'] );
+		$this->assertSame( '2', $res->get_headers()['X-WP-TotalPages'] );
+	}
+
+	/**
+	 * PRF-01: list items omit fabricJson; the single-design route keeps it.
+	 */
+	public function test_list_omits_fabric_json(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
+		$id = $this->make_design( [ 'fabric_json' => '{"objects":[]}' ] );
+
+		$list = $this->request( 'GET', '/designs' )->get_data();
+		$this->assertArrayNotHasKey( 'fabricJson', $list[0] );
+
+		$single = $this->request( 'GET', '/designs/' . $id )->get_data();
+		$this->assertSame( '{"objects":[]}', $single['fabricJson'] );
+	}
 }

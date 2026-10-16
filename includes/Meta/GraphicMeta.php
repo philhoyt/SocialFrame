@@ -137,6 +137,22 @@ class GraphicMeta {
 
 		register_post_meta(
 			'socialframe_graphic',
+			'socialframe_preview_token',
+			[
+				'type'              => 'string',
+				'description'       => 'Random token in the preview filename so previews are not guessable by ID.',
+				'single'            => true,
+				'default'           => '',
+				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
+				'sanitize_callback' => function ( string $value ): string {
+					return 1 === preg_match( '/^[a-z0-9]{16}$/', $value ) ? $value : '';
+				},
+			]
+		);
+
+		register_post_meta(
+			'socialframe_graphic',
 			'socialframe_preview_path',
 			[
 				'type'              => 'string',

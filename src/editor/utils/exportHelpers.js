@@ -53,6 +53,7 @@ export async function sendPreview( toDataURL, designId, apiFetch ) {
  * @param {string}   options.title      Template title.
  * @param {string}   options.format     Format key.
  * @param {Object}   options.fabricJson Fabric JSON object.
+ * @param {Object}   [options.size]     Artboard { width, height }; stored for custom formats.
  * @param {Function} options.apiFetch   @wordpress/api-fetch.
  * @return {Promise<Object>} New template post data.
  */
@@ -60,6 +61,7 @@ export async function saveAsTemplate( {
 	title,
 	format,
 	fabricJson,
+	size,
 	apiFetch,
 } ) {
 	return apiFetch( {
@@ -70,6 +72,9 @@ export async function saveAsTemplate( {
 			format,
 			type: 'template',
 			fabricJson: JSON.stringify( fabricJson ),
+			...( format === 'custom' && size
+				? { width: size.width, height: size.height }
+				: {} ),
 		},
 	} );
 }

@@ -72,8 +72,8 @@ class DuplicateController extends AbstractController {
 			return $new_post_id;
 		}
 
-		// Copy format and Fabric JSON; always duplicate as a design.
-		$meta_to_copy = [ 'socialframe_fabric_json', 'socialframe_format' ];
+		// Copy format, custom size, and Fabric JSON; always duplicate as a design.
+		$meta_to_copy = [ 'socialframe_fabric_json', 'socialframe_format', 'socialframe_width', 'socialframe_height' ];
 
 		foreach ( $meta_to_copy as $key ) {
 			$value = get_post_meta( $id, $key, true );

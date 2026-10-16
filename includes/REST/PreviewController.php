@@ -98,18 +98,39 @@ class PreviewController extends AbstractController {
 			return new WP_Error( 'resize_failed', __( 'Could not generate preview.', 'socialframe' ), [ 'status' => 500 ] );
 		}
 
+		// Each design gets a random, unguessable token in its preview filename
+		// so previews are not enumerable by post ID (PRV-01).
+		$token = self::preview_token( $id );
+		if ( '' === $token ) {
+			$token = strtolower( wp_generate_password( 16, false ) );
+			update_post_meta( $id, 'socialframe_preview_token', $token );
+		}
+
 		$upload   = wp_upload_dir();
-		$rel_path = self::preview_rel_path( $id );
+		$rel_path = self::preview_rel_path( $id, $token );
 		$abs_path = $upload['basedir'] . '/' . $rel_path;
+		$dir      = dirname( $abs_path );
 
-		// Ensure the directory exists.
-		wp_mkdir_p( dirname( $abs_path ) );
+		// Ensure the directory exists and does not allow directory listing.
+		wp_mkdir_p( $dir );
+		if ( ! file_exists( $dir . '/index.php' ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" );
+		}
 
+		// Direct write, like core's wp_upload_bits(): uploads is always
+		// PHP-writable, and WP_Filesystem may need credentials in REST.
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		$bytes = file_put_contents( $abs_path, $binary );
 
 		if ( false === $bytes ) {
 			return new WP_Error( 'write_failed', __( 'Could not write preview file.', 'socialframe' ), [ 'status' => 500 ] );
+		}
+
+		// Remove a preview left at the pre-token (guessable) path.
+		$legacy = $upload['basedir'] . '/' . self::preview_rel_path( $id );
+		if ( file_exists( $legacy ) ) {
+			wp_delete_file( $legacy );
 		}
 
 		update_post_meta( $id, 'socialframe_preview_path', $rel_path );
@@ -123,14 +144,41 @@ class PreviewController extends AbstractController {
 	/**
 	 * Relative path (from the uploads basedir) of a design's preview PNG.
 	 *
-	 * The path is always derived from the post ID — never read back from
-	 * meta — so a tampered socialframe_preview_path value cannot redirect a
-	 * write or delete outside the previews directory (SEC-01).
+	 * The path is always derived from the post ID and a validated token —
+	 * never read back from meta as a path — so a tampered meta value cannot
+	 * redirect a write or delete outside the previews directory (SEC-01).
+	 * Without a valid token this returns the legacy pre-token path.
+	 *
+	 * @param int    $id    Design post ID.
+	 * @param string $token Preview token (16 lowercase alphanumerics), or ''.
+	 */
+	public static function preview_rel_path( int $id, string $token = '' ): string {
+		if ( 1 === preg_match( '/^[a-z0-9]{16}$/', $token ) ) {
+			return 'socialframe/previews/sf-' . $id . '-' . $token . '-preview.png';
+		}
+		return 'socialframe/previews/sf-' . $id . '-preview.png';
+	}
+
+	/**
+	 * A design's stored preview token, or '' if missing or malformed.
 	 *
 	 * @param int $id Design post ID.
 	 */
-	public static function preview_rel_path( int $id ): string {
-		return 'socialframe/previews/sf-' . $id . '-preview.png';
+	public static function preview_token( int $id ): string {
+		$token = (string) get_post_meta( $id, 'socialframe_preview_token', true );
+		return 1 === preg_match( '/^[a-z0-9]{16}$/', $token ) ? $token : '';
+	}
+
+	/**
+	 * Public URL of a design's preview, or '' if it has none.
+	 *
+	 * @param int $id Design post ID.
+	 */
+	public static function preview_url( int $id ): string {
+		if ( ! get_post_meta( $id, 'socialframe_preview_path', true ) ) {
+			return '';
+		}
+		return wp_upload_dir()['baseurl'] . '/' . self::preview_rel_path( $id, self::preview_token( $id ) );
 	}
 
 	/**
@@ -144,9 +192,18 @@ class PreviewController extends AbstractController {
 			return;
 		}
 
-		$abs_path = wp_upload_dir()['basedir'] . '/' . self::preview_rel_path( $post_id );
-		if ( file_exists( $abs_path ) ) {
-			wp_delete_file( $abs_path );
+		$basedir = wp_upload_dir()['basedir'];
+		$paths   = array_unique(
+			[
+				self::preview_rel_path( $post_id, self::preview_token( $post_id ) ),
+				self::preview_rel_path( $post_id ),
+			]
+		);
+
+		foreach ( $paths as $rel_path ) {
+			if ( file_exists( $basedir . '/' . $rel_path ) ) {
+				wp_delete_file( $basedir . '/' . $rel_path );
+			}
 		}
 	}
 }

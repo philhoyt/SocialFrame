@@ -4,6 +4,8 @@ import apiFetch from '@wordpress/api-fetch';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { DataViews, filterSortAndPaginate } from '@wordpress/dataviews';
 
+import { fetchAllPages } from '../shared/fetchAllPages';
+
 const { adminUrl, formats } = window.socialFrameAdminConfig ?? {};
 
 const FORMAT_LABELS = Object.fromEntries(
@@ -34,7 +36,7 @@ export function AdminApp() {
 	const loadItems = useCallback( () => {
 		setLoading( true );
 		setError( null );
-		apiFetch( { path: `socialframe/v1/designs?type=${ filter }` } )
+		fetchAllPages( apiFetch, `socialframe/v1/designs?type=${ filter }` )
 			.then( setItems )
 			.catch( ( err ) =>
 				setError(

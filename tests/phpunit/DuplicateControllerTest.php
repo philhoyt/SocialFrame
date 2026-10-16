@@ -84,4 +84,18 @@ class DuplicateControllerTest extends RestTestCase {
 		$res     = $this->request( 'POST', '/designs/' . $post_id . '/duplicate' );
 		$this->assertSame( 404, $res->get_status() );
 	}
+
+	/**
+	 * ARC-04: a custom-size design keeps its dimensions when duplicated.
+	 */
+	public function test_duplicate_copies_custom_dimensions(): void {
+		$source = $this->make_design( [ 'format' => 'custom' ] );
+		update_post_meta( $source, 'socialframe_width', 1400 );
+		update_post_meta( $source, 'socialframe_height', 700 );
+
+		$new = $this->request( 'POST', '/designs/' . $source . '/duplicate' )->get_data();
+
+		$this->assertSame( 1400, $new['width'] );
+		$this->assertSame( 700, $new['height'] );
+	}
 }

@@ -35,10 +35,21 @@ class DesignsController extends AbstractController {
 					'callback'            => [ $this, 'get_designs' ],
 					'permission_callback' => [ $this, 'require_edit_posts' ],
 					'args'                => [
-						'type' => [
+						'type'     => [
 							'type'    => 'string',
 							'default' => 'design',
 							'enum'    => [ 'design', 'template' ],
+						],
+						'page'     => [
+							'type'    => 'integer',
+							'default' => 1,
+							'minimum' => 1,
+						],
+						'per_page' => [
+							'type'    => 'integer',
+							'default' => 100,
+							'minimum' => 1,
+							'maximum' => 100,
 						],
 					],
 				],
@@ -126,23 +137,27 @@ class DesignsController extends AbstractController {
 	}
 
 	/**
-	 * GET /designs — list designs or templates.
+	 * GET /designs — list designs or templates, one page at a time.
+	 *
+	 * Totals are returned in X-WP-Total / X-WP-TotalPages headers, matching
+	 * core's REST collections, so clients can fetch every page (ARC-03).
 	 *
 	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function get_designs( WP_REST_Request $request ): WP_REST_Response {
-		$type = $request->get_param( 'type' );
+		$per_page = (int) $request->get_param( 'per_page' );
 
-		$posts = get_posts(
+		$query = new \WP_Query(
 			[
 				'post_type'      => 'socialframe_graphic',
-				'posts_per_page' => 100,
+				'posts_per_page' => $per_page,
+				'paged'          => (int) $request->get_param( 'page' ),
 				'post_status'    => 'publish',
 				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				'meta_query'     => [
 					[
 						'key'   => 'socialframe_type',
-						'value' => $type,
+						'value' => $request->get_param( 'type' ),
 					],
 				],
 				'orderby'        => 'modified',
@@ -150,9 +165,28 @@ class DesignsController extends AbstractController {
 			]
 		);
 
-		$designs = array_map( [ $this, 'format_design' ], $posts );
+		// Prime exported-attachment posts in one query instead of one per
+		// design when format_design() resolves their URLs (PRF-01).
+		$image_ids = array_filter(
+			array_map(
+				fn( \WP_Post $post ): int => (int) get_post_meta( $post->ID, 'socialframe_image_id', true ),
+				$query->posts
+			)
+		);
+		if ( $image_ids ) {
+			_prime_post_caches( $image_ids, false, true );
+		}
 
-		return $this->respond( $designs );
+		$designs = array_map(
+			fn( \WP_Post $post ): array => $this->format_design( $post, false ),
+			$query->posts
+		);
+
+		$response = $this->respond( $designs );
+		$response->header( 'X-WP-Total', (string) $query->found_posts );
+		$response->header( 'X-WP-TotalPages', (string) (int) ceil( $query->found_posts / $per_page ) );
+
+		return $response;
 	}
 
 	/**
