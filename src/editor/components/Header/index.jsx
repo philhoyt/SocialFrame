@@ -118,7 +118,7 @@ export function Header() {
 		}
 	};
 
-	const { adminUrl } = window.socialFrameConfig ?? {};
+	const { adminUrl, canUpload } = window.socialFrameConfig ?? {};
 
 	return (
 		<div className="socialframe-header">
@@ -230,14 +230,16 @@ export function Header() {
 						? __( 'Saving…', 'socialframe' )
 						: __( 'Save', 'socialframe' ) }
 				</Button>
-				<Button
-					variant="primary"
-					onClick={ handleExport }
-					disabled={ isSaving }
-					isBusy={ isSaving }
-				>
-					{ __( 'Export PNG', 'socialframe' ) }
-				</Button>
+				{ canUpload && (
+					<Button
+						variant="primary"
+						onClick={ handleExport }
+						disabled={ isSaving }
+						isBusy={ isSaving }
+					>
+						{ __( 'Export PNG', 'socialframe' ) }
+					</Button>
+				) }
 			</div>
 
 			{ shareUrl && (

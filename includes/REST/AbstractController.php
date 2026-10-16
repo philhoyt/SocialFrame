@@ -55,6 +55,16 @@ abstract class AbstractController {
 	}
 
 	/**
+	 * Permission callback for routes that create Media Library attachments.
+	 *
+	 * Exporting writes a file into uploads and creates an attachment, so it
+	 * also requires upload_files — Contributors have edit_posts but not this.
+	 */
+	public function require_upload_files(): bool {
+		return current_user_can( 'edit_posts' ) && current_user_can( 'upload_files' );
+	}
+
+	/**
 	 * Resize a PNG binary to a given width using GD, preserving aspect ratio.
 	 *
 	 * @param string $binary    Raw PNG binary.

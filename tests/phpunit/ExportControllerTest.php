@@ -97,4 +97,20 @@ class ExportControllerTest extends RestTestCase {
 
 		$this->assertSame( 404, $res->get_status() );
 	}
+
+	/**
+	 * SEC-03: a Contributor (edit_posts but no upload_files) cannot export.
+	 */
+	public function test_export_forbidden_without_upload_files(): void {
+		$id = $this->make_design();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'contributor' ] ) );
+
+		$res = $this->request(
+			'POST',
+			'/designs/' . $id . '/export',
+			[ 'imageData' => $this->png_data_uri( 200, 200 ) ]
+		);
+
+		$this->assertSame( 403, $res->get_status() );
+	}
 }

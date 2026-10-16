@@ -35,7 +35,7 @@ class ExportController extends AbstractController {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'handle_export' ],
-				'permission_callback' => [ $this, 'require_edit_posts' ],
+				'permission_callback' => [ $this, 'require_upload_files' ],
 				'args'                => [
 					'id'        => [
 						'type'    => 'integer',

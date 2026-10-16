@@ -117,7 +117,16 @@ class PostImportController extends AbstractController {
 		$post_id = (int) $request->get_param( 'id' );
 		$post    = get_post( $post_id );
 
-		if ( ! $post || 'publish' !== $post->post_status ) {
+		// Mirror search_posts(): only published posts of public, REST-visible
+		// types the user can read, and never password-protected content the
+		// user could not otherwise see (SEC-02).
+		if (
+			! $post
+			|| 'publish' !== $post->post_status
+			|| ! in_array( $post->post_type, $this->get_public_post_types(), true )
+			|| ! current_user_can( 'read_post', $post_id )
+			|| ( post_password_required( $post ) && ! current_user_can( 'edit_post', $post_id ) )
+		) {
 			return new \WP_Error( 'not_found', __( 'Post not found.', 'socialframe' ), [ 'status' => 404 ] );
 		}
 
