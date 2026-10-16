@@ -10,6 +10,7 @@ import { LinkedNumFields } from './LinkedNumFields';
 import { AlignmentSection } from './AlignmentSection';
 import { FlipSection } from './FlipSection';
 import { ShadowSection } from './ShadowSection';
+import { FieldSection } from './FieldSection';
 
 export function ImageProperties() {
 	const props = useSelect( ( select ) =>
@@ -151,6 +152,8 @@ export function ImageProperties() {
 			>
 				<ShadowSection />
 			</Accordion>
+
+			<FieldSection kind="image" />
 		</div>
 	);
 }
