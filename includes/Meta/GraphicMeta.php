@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use SocialFrame\Fields\FieldFiller;
 
 /**
  * Registers post meta for the socialframe_graphic post type.
@@ -34,6 +35,9 @@ class GraphicMeta {
 	 */
 	public function register(): void {
 		add_action( 'init', [ $this, 'register_meta' ] );
+		add_action( 'added_post_meta', [ $this, 'sync_has_fields' ], 10, 3 );
+		add_action( 'updated_post_meta', [ $this, 'sync_has_fields' ], 10, 3 );
+		add_action( 'deleted_post_meta', [ $this, 'sync_has_fields' ], 10, 3 );
 	}
 
 	/**
@@ -164,6 +168,46 @@ class GraphicMeta {
 				'sanitize_callback' => 'sanitize_text_field',
 			]
 		);
+
+		register_post_meta(
+			'socialframe_graphic',
+			'socialframe_has_fields',
+			[
+				'type'              => 'string',
+				'description'       => 'Set to 1 when the Fabric JSON carries at least one template field.',
+				'single'            => true,
+				'default'           => '',
+				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
+				'sanitize_callback' => function ( string $value ): string {
+					return '1' === $value ? '1' : '';
+				},
+			]
+		);
+	}
+
+	/**
+	 * Keep socialframe_has_fields in step with the stored Fabric JSON.
+	 *
+	 * Runs on every write of socialframe_fabric_json, whoever makes it, so the
+	 * flag the template picker filters on cannot drift from the canvas.
+	 *
+	 * @param int|int[] $meta_ids  Meta ID(s), unused.
+	 * @param int       $object_id Post ID.
+	 * @param string    $meta_key  Meta key that changed.
+	 */
+	public function sync_has_fields( $meta_ids, $object_id, $meta_key ): void {
+		if ( 'socialframe_fabric_json' !== $meta_key ) {
+			return;
+		}
+
+		$decoded = json_decode( (string) get_post_meta( (int) $object_id, 'socialframe_fabric_json', true ), true );
+
+		if ( is_array( $decoded ) && FieldFiller::has_fields( $decoded ) ) {
+			update_post_meta( (int) $object_id, 'socialframe_has_fields', '1' );
+		} else {
+			delete_post_meta( (int) $object_id, 'socialframe_has_fields' );
+		}
 	}
 
 	/**
