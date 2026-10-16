@@ -6,9 +6,14 @@ import {
 	SearchControl,
 } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
+import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import { store as noticesStore } from '@wordpress/notices';
 
+import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
+import { useSaveNow } from '../../hooks/useAutoSave';
+import { canvasHasFields } from '../../utils/fieldSources';
 
 export function PostsPanel() {
 	const fabric = useFabric();
@@ -23,6 +28,14 @@ export function PostsPanel() {
 	const [ loadingPost, setLoadingPost ] = useState( false );
 	const [ metaOpen, setMetaOpen ] = useState( false );
 	const [ importing, setImporting ] = useState( false );
+	const [ filling, setFilling ] = useState( false );
+	const [ hasFields, setHasFields ] = useState( false );
+
+	const designId = useSelect( ( select ) =>
+		select( STORE_KEY ).getDesignId()
+	);
+	const saveNow = useSaveNow();
+	const { createErrorNotice } = useDispatch( noticesStore );
 
 	// Import options — booleans keyed by field name
 	const [ checks, setChecks ] = useState( {} );
@@ -57,6 +70,7 @@ export function PostsPanel() {
 		setPostData( null );
 		setChecks( {} );
 		setMetaOpen( false );
+		setHasFields( canvasHasFields( fabric?.getJSON() ) );
 		setStep( 'options' );
 
 		apiFetch( { path: `socialframe/v1/post-import/${ post.id }` } )
@@ -101,6 +115,47 @@ export function PostsPanel() {
 			...prev,
 			[ `term_${ slug }` ]: ! prev[ `term_${ slug }` ],
 		} ) );
+	}
+
+	/**
+	 * Save the open design, then open a new copy filled from this post.
+	 *
+	 * The fill reads the design from the server, so it must not run on top of
+	 * a failed save: that would fill a stale version of the canvas.
+	 */
+	async function handleFill() {
+		if ( ! selectedPost || ! designId ) {
+			return;
+		}
+		setFilling( true );
+		const fail = ( message ) => {
+			createErrorNotice( message, { type: 'snackbar' } );
+			setFilling( false );
+		};
+
+		if ( ! ( await saveNow() ) ) {
+			fail(
+				__(
+					'Could not save the design, so no copy was made. Please try again.',
+					'socialframe'
+				)
+			);
+			return;
+		}
+
+		try {
+			const result = await apiFetch( {
+				path: `socialframe/v1/designs/${ designId }/fill`,
+				method: 'POST',
+				data: { post_id: selectedPost.id },
+			} );
+			window.location.href = result.design.editUrl;
+		} catch ( error ) {
+			fail(
+				error?.message ||
+					__( 'Could not create the filled copy.', 'socialframe' )
+			);
+		}
 	}
 
 	async function handleImport() {
@@ -364,6 +419,32 @@ export function PostsPanel() {
 						>
 							{ __( 'Import to Canvas', 'socialframe' ) }
 						</Button>
+
+						{ hasFields && (
+							<div className="socialframe-posts-panel__fill">
+								<Button
+									variant="secondary"
+									onClick={ handleFill }
+									disabled={ filling || importing }
+									isBusy={ filling }
+									style={ {
+										width: '100%',
+										justifyContent: 'center',
+									} }
+								>
+									{ __(
+										'Create filled copy',
+										'socialframe'
+									) }
+								</Button>
+								<p className="socialframe-posts-panel__hint">
+									{ __(
+										"Saves this design, then opens a new copy with its template fields filled from this post. This design isn't changed.",
+										'socialframe'
+									) }
+								</p>
+							</div>
+						) }
 					</>
 				) }
 				{ ! loadingPost && ! postData && (

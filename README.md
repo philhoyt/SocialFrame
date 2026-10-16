@@ -19,7 +19,7 @@ A graphic editor that runs inside your WordPress Admin. It reads your theme's `t
 | Text | Five size presets — Huge down to Small |
 | Elements | Rect, rounded rect, circle, triangle, line |
 | Media | Pick from the Media Library |
-| Import Post | Search any public post type; import title, featured image, content, excerpt, terms, and meta |
+| Import Post | Search any public post type; import title, featured image, content, excerpt, terms, and meta, or create a filled copy of a template |
 | Layers | Reorder, rename, hide, lock |
 
 ### Properties Panel
@@ -96,6 +96,44 @@ npm run start
 3. Select what to import — title, featured image, content, excerpt, taxonomy terms, or individual meta fields
 4. Click **Import to Canvas** — each item is added as a separate canvas object
 
+### Template fields
+Turn a design into a template that fills itself from a post.
+
+1. Select a text or image layer and open **Template field** at the bottom of the properties panel
+2. Choose where its value comes from, for example **Post title** or **Featured image**
+3. Save the design (as a design or a template)
+
+To fill it, either:
+- open **Import Post** in the editor, pick a post and click **Create filled copy**, or
+- on any post list in wp-admin (Posts, Pages, or a custom post type), hover a published post and click **Create graphic**, then pick the template
+
+Filling always creates a **new design**. The template is never changed, so one template can be reused for any number of posts.
+
+| Field name | Fills with |
+|---|---|
+| `post.title` | Post title |
+| `post.excerpt` | Excerpt, or the first 55 words of the content when there is none |
+| `post.content` | Post content as plain text |
+| `post.date` | Publish date in the site's date format |
+| `post.author` | Author display name |
+| `post.featured_image` | Featured image (image layers only) |
+| `meta.{key}` | A public custom field; images must be Media Library attachments |
+| `terms.{taxonomy}` | The post's terms in that taxonomy, comma separated |
+| anything else | Only filled through the REST API's `values` |
+
+The same name can be used on several layers; all of them are filled. A replacement image keeps the layer's size and position and is cropped to fit, never stretched.
+
+Developers can add or change post-derived values with the `socialframe_post_field_values` filter:
+
+```php
+add_filter( 'socialframe_post_field_values', function ( $values, $post, $names ) {
+	if ( in_array( 'price', $names, true ) ) {
+		$values['price'] = '$' . get_post_meta( $post->ID, 'price', true );
+	}
+	return $values;
+}, 10, 3 );
+```
+
 ### Exporting
 1. Click **Export PNG** in the top-right toolbar
 2. The image is saved to the WordPress Media Library at full resolution
@@ -113,7 +151,7 @@ All endpoints are under the `socialframe/v1` namespace and require the `edit_pos
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/designs` | List designs (`?type=design\|template`) |
+| GET | `/designs` | List designs (`?type=design\|template\|any`, `?has_fields=1`) |
 | POST | `/designs` | Create a new design |
 | GET | `/designs/{id}` | Fetch a single design |
 | PUT | `/designs/{id}` | Update title and/or canvas JSON |
@@ -123,6 +161,17 @@ All endpoints are under the `socialframe/v1` namespace and require the `edit_pos
 | GET | `/templates` | List bundled and user-saved templates |
 | GET | `/post-import` | Search posts across all public post types |
 | GET | `/post-import/{id}` | Fetch importable data for a single post |
+| GET | `/designs/{id}/fields` | List a design's template fields |
+| POST | `/designs/{id}/fill` | Create a new design with the fields filled |
+
+`POST /designs/{id}/fill` takes `post_id` (fill from a post), `values` (an object of field name to value), or both; `values` win for the same name. Text values are strings and image values are attachment IDs. An optional `title` names the new design. The response holds the new `design`, plus `filled` and `unmatched` lists of field names; an unknown name or an unusable image is reported in `unmatched` rather than failing the request.
+
+```bash
+curl -X POST https://example.com/wp-json/socialframe/v1/designs/42/fill \
+  -H 'Content-Type: application/json' \
+  -u admin:APPLICATION_PASSWORD \
+  -d '{"values": {"headline": "Spring sale", "post.featured_image": 123}}'
+```
 
 ---
 

@@ -111,4 +111,19 @@ abstract class RestTestCase extends WP_UnitTestCase {
 
 		return base64_encode( $binary );
 	}
+
+	/**
+	 * Create a real PNG image attachment of the given size.
+	 *
+	 * @param int $width  Image width.
+	 * @param int $height Image height.
+	 * @param int $parent_id Optional parent post ID.
+	 * @return int Attachment ID.
+	 */
+	protected function make_image_attachment( int $width, int $height, int $parent_id = 0 ): int {
+		$file = get_temp_dir() . 'socialframe-' . $width . 'x' . $height . '-' . wp_rand() . '.png';
+		imagepng( imagecreatetruecolor( $width, $height ), $file );
+
+		return (int) self::factory()->attachment->create_upload_object( $file, $parent_id );
+	}
 }

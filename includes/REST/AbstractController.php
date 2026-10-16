@@ -119,6 +119,53 @@ abstract class AbstractController {
 	}
 
 	/**
+	 * Copy a graphic and its meta into a new design post.
+	 *
+	 * Format, custom size and Fabric JSON are copied; the copy is always a
+	 * design and has no export yet. Pass $fabric_json to store a different
+	 * canvas on the copy. If the canvas cannot be stored, the copy is deleted
+	 * so no empty design is left behind.
+	 *
+	 * @param \WP_Post    $source      Graphic to copy.
+	 * @param string      $title       Title for the copy.
+	 * @param string|null $fabric_json Canvas JSON for the copy, or null to copy the source's.
+	 * @return int|WP_Error New post ID.
+	 */
+	protected function duplicate_graphic( \WP_Post $source, string $title, ?string $fabric_json = null ): int|WP_Error {
+		$new_post_id = wp_insert_post(
+			[
+				'post_title'  => $title,
+				'post_type'   => 'socialframe_graphic',
+				'post_status' => 'publish',
+			],
+			true
+		);
+
+		if ( is_wp_error( $new_post_id ) ) {
+			return $new_post_id;
+		}
+
+		foreach ( [ 'socialframe_format', 'socialframe_width', 'socialframe_height' ] as $key ) {
+			$value = get_post_meta( $source->ID, $key, true );
+			if ( '' !== $value ) {
+				update_post_meta( $new_post_id, $key, $value );
+			}
+		}
+
+		$fabric_json ??= (string) get_post_meta( $source->ID, 'socialframe_fabric_json', true );
+		// update_post_meta() unslashes its input; slash first so JSON escapes
+		// (\" \n \uXXXX) survive the copy (ARC-01).
+		if ( '' !== $fabric_json && ! update_post_meta( $new_post_id, 'socialframe_fabric_json', wp_slash( $fabric_json ) ) ) {
+			wp_delete_post( $new_post_id, true );
+			return new WP_Error( 'copy_failed', __( 'Could not save the new design.', 'socialframe' ), [ 'status' => 500 ] );
+		}
+
+		update_post_meta( $new_post_id, 'socialframe_type', 'design' );
+
+		return $new_post_id;
+	}
+
+	/**
 	 * Build a standard design object shape from a WP_Post.
 	 *
 	 * List responses omit fabricJson (PRF-01): it can be large and only the

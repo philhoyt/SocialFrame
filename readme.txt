@@ -31,6 +31,10 @@ A graphic editor that runs inside your WordPress Admin. It reads your theme's th
 * Import Post — search all public post types and import title, featured image, content, excerpt, taxonomy terms, and meta fields directly onto the canvas
 * Layers — reorder, rename, hide, and lock objects
 
+**Template fields**
+
+Mark any text or image layer as a template field, such as Post title, Featured image, a custom field or a taxonomy. Then create a graphic from any published post, either from the editor's Import Post panel or from the Create graphic link on the Posts, Pages or custom post type list. Each fill creates a new design, and the template is left as it was. Replacement images keep their layer's size and are cropped to fit.
+
 **Supported Formats**
 
 * Instagram Post (1080 × 1080)
@@ -79,6 +83,10 @@ Yes. Click Save as Template in the editor toolbar to save a design as a reusable
 
 Any user with the edit_posts capability can access SocialFrame, view all designs, and use every editor feature, including creating, editing, exporting, and duplicating. Designs are a shared workspace. Deleting a design you did not create requires the delete_others_posts capability (Editor role and above); you can always delete your own designs.
 
+= How do I make a graphic for every post from one template? =
+
+Select a text or image layer, open Template field in the properties panel, and choose a source such as Post title or Featured image. Save the design. Then click Create graphic under any published post in the post list and pick that design. A new, filled design opens in the editor.
+
 == Screenshots ==
 
 1. The SocialFrame editor showing the canvas, sidebars, and header toolbar.
@@ -87,6 +95,14 @@ Any user with the edit_posts capability can access SocialFrame, view all designs
 4. The admin designs list built with WordPress DataViews.
 
 == Changelog ==
+
+= Unreleased =
+* Added: Template fields. Mark text and image layers to be filled from a post's title, excerpt, content, date, author, featured image, custom fields or terms.
+* Added: Create graphic row action on post lists, and Create filled copy in the Import Post panel. Filling always creates a new design.
+* Added: REST endpoints `GET /designs/{id}/fields` and `POST /designs/{id}/fill`, and `has_fields` / `type=any` filters on `GET /designs`.
+* Added: `socialframe_post_field_values` filter.
+* Fixed: Duplicated layers keep their shape type (star, arrow and similar) and template field.
+* Fixed: Saves run one at a time, so an older autosave can no longer overwrite a newer save, and a failed manual save now always shows an error.
 
 = 1.0.0 =
 * Initial release.
