@@ -25,20 +25,22 @@ import {
  * @param {'text'|'image'} props.kind Kind of the selected object.
  */
 export function FieldSection( { kind } ) {
-	const fieldName = useSelect(
-		( select ) => select( STORE_KEY ).getSelectionProps()?.fieldName ?? ''
-	);
+	const { fieldName, objectId } = useSelect( ( select ) => ( {
+		fieldName: select( STORE_KEY ).getSelectionProps()?.fieldName ?? '',
+		objectId: select( STORE_KEY ).getSelectedObjectId(),
+	} ) );
 	const fabric = useFabric();
 
 	const [ source, setSource ] = useState( '' );
 	const [ key, setKey ] = useState( '' );
 
-	// Re-read when the selection (or its field) changes.
+	// Re-read when the selection or its field changes, dropping any
+	// half-picked source from the previous object.
 	useEffect( () => {
 		const parsed = parseFieldName( fieldName );
 		setSource( parsed.source );
 		setKey( parsed.key );
-	}, [ fieldName ] );
+	}, [ fieldName, objectId ] );
 
 	const def = FIELD_SOURCES.find( ( s ) => s.value === source );
 	const candidate = buildFieldName( source, key );

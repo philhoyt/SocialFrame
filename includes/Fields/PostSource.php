@@ -87,14 +87,16 @@ class PostSource {
 		$GLOBALS['post'] = $post;
 		setup_postdata( $post );
 
-		$filtered = apply_filters( 'the_content', $post->post_content ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter
-
-		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- restoring the original.
-		$GLOBALS['post'] = $previous;
-		if ( $previous instanceof \WP_Post ) {
-			setup_postdata( $previous );
-		} else {
-			wp_reset_postdata();
+		try {
+			$filtered = apply_filters( 'the_content', $post->post_content ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter
+		} finally {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- restoring the original.
+			$GLOBALS['post'] = $previous;
+			if ( $previous instanceof \WP_Post ) {
+				setup_postdata( $previous );
+			} else {
+				wp_reset_postdata();
+			}
 		}
 
 		$content = html_entity_decode( wp_strip_all_tags( $filtered ), ENT_QUOTES, 'UTF-8' );
