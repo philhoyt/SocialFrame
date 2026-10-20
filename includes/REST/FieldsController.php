@@ -164,10 +164,10 @@ class FieldsController extends AbstractController {
 	 * @return array{0: \WP_Post, 1: array<string, mixed>}|WP_Error
 	 */
 	private function get_canvas( int $id ): array|WP_Error {
-		$post = get_post( $id );
+		$post = $this->get_graphic( $id );
 
-		if ( ! $post || 'socialframe_graphic' !== $post->post_type ) {
-			return new WP_Error( 'not_found', __( 'Design not found.', 'socialframe' ), [ 'status' => 404 ] );
+		if ( is_wp_error( $post ) ) {
+			return $post;
 		}
 
 		$decoded = json_decode( (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true ), true );

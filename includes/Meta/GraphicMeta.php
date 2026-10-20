@@ -184,6 +184,47 @@ class GraphicMeta {
 				},
 			]
 		);
+
+		register_post_meta(
+			'socialframe_graphic',
+			'socialframe_post_types',
+			[
+				'type'              => 'string',
+				'description'       => 'Post type a design is assigned to, one row per type.',
+				'single'            => false,
+				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
+				'sanitize_callback' => 'sanitize_key',
+			]
+		);
+
+		register_post_meta(
+			'socialframe_graphic',
+			'socialframe_source_post',
+			[
+				'type'              => 'integer',
+				'description'       => 'Post a generated design was filled from.',
+				'single'            => true,
+				'default'           => 0,
+				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
+				'sanitize_callback' => 'absint',
+			]
+		);
+
+		register_post_meta(
+			'socialframe_graphic',
+			'socialframe_source_design',
+			[
+				'type'              => 'integer',
+				'description'       => 'Assigned design a generated design was filled from.',
+				'single'            => true,
+				'default'           => 0,
+				'show_in_rest'      => false,
+				'auth_callback'     => '__return_false',
+				'sanitize_callback' => 'absint',
+			]
+		);
 	}
 
 	/**

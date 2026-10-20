@@ -70,9 +70,9 @@ class PreviewController extends AbstractController {
 		$id         = (int) $request->get_param( 'id' );
 		$image_data = $request->get_param( 'imageData' );
 
-		$post = get_post( $id );
-		if ( ! $post || 'socialframe_graphic' !== $post->post_type ) {
-			return new WP_Error( 'not_found', __( 'Design not found.', 'socialframe' ), [ 'status' => 404 ] );
+		$post = $this->get_graphic( $id );
+		if ( is_wp_error( $post ) ) {
+			return $post;
 		}
 
 		$base64 = preg_replace( '/^data:image\/png;base64,/', '', $image_data );

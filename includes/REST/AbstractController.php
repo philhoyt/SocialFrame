@@ -119,6 +119,42 @@ abstract class AbstractController {
 	}
 
 	/**
+	 * Fetch a graphic the current user may work with, or a 404.
+	 *
+	 * @param int $id Post ID.
+	 * @return \WP_Post|WP_Error
+	 */
+	protected function get_graphic( int $id ): \WP_Post|WP_Error {
+		$post = get_post( $id );
+
+		if ( ! $post || 'socialframe_graphic' !== $post->post_type || ! self::can_access_graphic( $post ) ) {
+			return new WP_Error( 'not_found', __( 'Design not found.', 'socialframe' ), [ 'status' => 404 ] );
+		}
+
+		return $post;
+	}
+
+	/**
+	 * Whether the current user may see a graphic.
+	 *
+	 * Designs are a shared workspace, except a design generated from a post:
+	 * it carries that post's content, which may be a draft, so only users who
+	 * can edit the source post see it. Once the source post is gone the
+	 * design is an ordinary one.
+	 *
+	 * @param \WP_Post $graphic Graphic post.
+	 */
+	public static function can_access_graphic( \WP_Post $graphic ): bool {
+		$source_id = (int) get_post_meta( $graphic->ID, 'socialframe_source_post', true );
+
+		if ( $source_id < 1 || ! get_post( $source_id ) ) {
+			return true;
+		}
+
+		return current_user_can( 'edit_post', $source_id );
+	}
+
+	/**
 	 * Copy a graphic and its meta into a new design post.
 	 *
 	 * Format, custom size and Fabric JSON are copied; the copy is always a
@@ -192,6 +228,8 @@ abstract class AbstractController {
 			'modified'     => $post->post_modified_gmt,
 			'editUrl'      => admin_url( 'admin.php?page=socialframe-editor&id=' . $post->ID ),
 			'canDelete'    => current_user_can( 'delete_post', $post->ID ),
+			'postTypes'    => array_values( array_map( 'strval', get_post_meta( $post->ID, 'socialframe_post_types', false ) ) ),
+			'sourcePost'   => (int) get_post_meta( $post->ID, 'socialframe_source_post', true ),
 		];
 
 		if ( $with_json ) {
