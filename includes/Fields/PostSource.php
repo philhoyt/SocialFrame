@@ -50,7 +50,9 @@ class PostSource {
 	 * @return string[]
 	 */
 	public static function frame_post_types(): array {
-		$public = self::public_post_types();
+		// The panel lives in the block editor, so types edited elsewhere
+		// (Media, or types with the block editor turned off) cannot use it.
+		$public = array_values( array_filter( self::public_post_types(), 'use_block_editor_for_post_type' ) );
 
 		/**
 		 * Filters the post types designs can be assigned to.

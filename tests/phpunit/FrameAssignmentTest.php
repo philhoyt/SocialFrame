@@ -22,13 +22,13 @@ class FrameAssignmentTest extends RestTestCase {
 	}
 
 	/**
-	 * Assigned post types round-trip, and unknown or private types are dropped.
+	 * Assigned post types round-trip; Media, unknown and private types are dropped.
 	 */
 	public function test_post_types_round_trip(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
 		$design = $this->make_design();
 
-		$res = $this->request( 'PUT', '/designs/' . $design, [ 'postTypes' => [ 'post', 'page', 'nav_menu_item', 'nope' ] ] );
+		$res = $this->request( 'PUT', '/designs/' . $design, [ 'postTypes' => [ 'post', 'page', 'attachment', 'nav_menu_item', 'nope' ] ] );
 
 		$this->assertSame( 200, $res->get_status() );
 		$this->assertEqualsCanonicalizing( [ 'post', 'page' ], $res->get_data()['postTypes'] );
