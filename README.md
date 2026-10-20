@@ -134,6 +134,25 @@ add_filter( 'socialframe_post_field_values', function ( $values, $post, $names )
 }, 10, 3 );
 ```
 
+### Generating from the post editor
+Assign a design with template fields to one or more post types, and every post of those types can generate its own image without leaving the block editor.
+
+1. Open the design, click an empty part of the canvas, and tick the post types under **Post types** in the properties panel
+2. Edit a post of one of those types and open the **SocialFrame** panel in the post sidebar
+3. Click **Generate** next to the design. The image is rendered in your browser, saved to the Media Library and shown in the panel
+
+The post's current title, excerpt and featured image are used even before you save. Other fields (content, custom fields, terms, date, author) come from the last saved version.
+
+Each post has one generated design and one image per assigned design. **Regenerate** fills the same design again and replaces its image, keeping the Media Library attachment ID. Changes made to the generated design in SocialFrame are lost, and you are asked to confirm first. Click **Edit in SocialFrame** to touch up a generated design by hand.
+
+A generated design holds content from its post, which may be a draft, so only users who can edit that post see it in the designs list.
+
+Developers can narrow the post types offered with the `socialframe_frame_post_types` filter:
+
+```php
+add_filter( 'socialframe_frame_post_types', fn( $types ) => array_intersect( $types, [ 'post', 'event' ] ) );
+```
+
 ### Exporting
 1. Click **Export PNG** in the top-right toolbar
 2. The image is saved to the WordPress Media Library at full resolution
@@ -151,10 +170,10 @@ All endpoints are under the `socialframe/v1` namespace and require the `edit_pos
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/designs` | List designs (`?type=design\|template\|any`, `?has_fields=1`) |
+| GET | `/designs` | List designs (`?type=design\|template\|any`, `?has_fields=1`, `?assigned_to={post type}`) |
 | POST | `/designs` | Create a new design |
 | GET | `/designs/{id}` | Fetch a single design |
-| PUT | `/designs/{id}` | Update title and/or canvas JSON |
+| PUT | `/designs/{id}` | Update title, canvas JSON and/or assigned `postTypes` |
 | DELETE | `/designs/{id}` | Delete a design |
 | POST | `/designs/{id}/export` | Export as PNG, save to Media Library |
 | POST | `/designs/{id}/duplicate` | Duplicate a design or instantiate a template |
@@ -163,6 +182,8 @@ All endpoints are under the `socialframe/v1` namespace and require the `edit_pos
 | GET | `/post-import/{id}` | Fetch importable data for a single post |
 | GET | `/designs/{id}/fields` | List a design's template fields |
 | POST | `/designs/{id}/fill` | Create a new design with the fields filled |
+| GET | `/posts/{id}/frames` | Designs assigned to a post's type, with that post's generated image |
+| POST | `/designs/{id}/generate` | Fill a design from a post and store the post's generated image |
 
 `POST /designs/{id}/fill` takes `post_id` (fill from a post), `values` (an object of field name to value), or both; `values` win for the same name. Text values are strings and image values are attachment IDs. An optional `title` names the new design. The response holds the new `design`, plus `filled` and `unmatched` lists of field names; an unknown name or an unusable image is reported in `unmatched` rather than failing the request.
 
@@ -172,6 +193,8 @@ curl -X POST https://example.com/wp-json/socialframe/v1/designs/42/fill \
   -u admin:APPLICATION_PASSWORD \
   -d '{"values": {"headline": "Spring sale", "post.featured_image": 123}}'
 ```
+
+`POST /designs/{id}/generate` takes `post_id` and optional `values`, and needs `upload_files` plus permission to edit the post. Without `imageData` it is a dry run that returns the filled `fabricJson` and its `width` and `height` for rendering. Send it again with the rendered PNG as `imageData` to store the image and the generated design; nothing is written until then.
 
 ---
 

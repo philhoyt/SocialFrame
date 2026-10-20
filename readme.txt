@@ -35,6 +35,10 @@ A graphic editor that runs inside your WordPress Admin. It reads your theme's th
 
 Mark any text or image layer as a template field, such as Post title, Featured image, a custom field or a taxonomy. Then create a graphic from any published post, either from the editor's Import Post panel or from the Create graphic link on the Posts, Pages or custom post type list. Each fill creates a new design, and the template is left as it was. Replacement images keep their layer's size and are cropped to fit.
 
+**Generate from the post editor**
+
+Assign a design with template fields to post types such as Posts or Pages. Each post of those types then gets a SocialFrame panel in the block editor sidebar, where Generate renders the design with that post's title, excerpt, featured image and other fields and saves it to the Media Library. Regenerate replaces the image in place, and Edit in SocialFrame opens the generated design for touch-ups.
+
 **Supported Formats**
 
 * Instagram Post (1080 × 1080)
@@ -87,6 +91,10 @@ Any user with the edit_posts capability can access SocialFrame, view all designs
 
 Select a text or image layer, open Template field in the properties panel, and choose a source such as Post title or Featured image. Save the design. Then click Create graphic under any published post in the post list and pick that design. A new, filled design opens in the editor.
 
+= Can I generate the image while writing a post? =
+
+Yes. Open a design with template fields, click an empty part of the canvas, and tick the post types under Post types. Posts of those types get a SocialFrame panel in the block editor sidebar with a Generate button for each assigned design. Unsaved changes to the title, excerpt and featured image are used. The image is saved to the Media Library, and Regenerate replaces it.
+
 == Screenshots ==
 
 1. The SocialFrame editor showing the canvas, sidebars, and header toolbar.
@@ -101,6 +109,8 @@ Select a text or image layer, open Template field in the properties panel, and c
 * Added: Create graphic row action on post lists, and Create filled copy in the Import Post panel. Filling always creates a new design.
 * Added: REST endpoints `GET /designs/{id}/fields` and `POST /designs/{id}/fill`, and `has_fields` / `type=any` filters on `GET /designs`.
 * Added: `socialframe_post_field_values` filter.
+* Added: Assign designs to post types and generate them from a SocialFrame panel in the block editor. Each post keeps one generated design and image per assigned design, and Regenerate replaces the image in place.
+* Added: REST endpoints `GET /posts/{id}/frames` and `POST /designs/{id}/generate`, the `assigned_to` filter on `GET /designs`, `postTypes` on `PUT /designs/{id}`, and the `socialframe_frame_post_types` filter.
 * Fixed: Duplicated layers keep their shape type (star, arrow and similar) and template field.
 * Fixed: Saves run one at a time, so an older autosave can no longer overwrite a newer save, and a failed manual save now always shows an error.
 
