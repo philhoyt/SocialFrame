@@ -1,4 +1,4 @@
-import { useState } from '@wordpress/element';
+import { useMemo } from '@wordpress/element';
 import { CheckboxControl } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import apiFetch from '@wordpress/api-fetch';
@@ -19,14 +19,17 @@ const { postTypes: AVAILABLE = [] } = window.socialFrameConfig ?? {};
  */
 export function PostTypesSection() {
 	const fabric = useFabric();
-	const { designId, assigned } = useSelect( ( select ) => ( {
+	const { designId, assigned, layers } = useSelect( ( select ) => ( {
 		designId: select( STORE_KEY ).getDesignId(),
 		assigned: select( STORE_KEY ).getPostTypes(),
+		layers: select( STORE_KEY ).getLayers(),
 	} ) );
 	const { setPostTypes } = useDispatch( STORE_KEY );
 	const { createErrorNotice } = useDispatch( noticesStore );
-	const [ hasFields ] = useState( () =>
-		canvasHasFields( fabric?.getJSON?.() )
+	// Layers change once the canvas has loaded and whenever objects do.
+	const hasFields = useMemo(
+		() => canvasHasFields( fabric?.getJSON?.() ),
+		[ fabric, layers ] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
 	if ( ! AVAILABLE.length ) {
