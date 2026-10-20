@@ -13,7 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
+use SocialFrame\Fields\FieldFiller;
+use SocialFrame\Fields\PostSource;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
@@ -152,6 +153,200 @@ abstract class AbstractController {
 		}
 
 		return current_user_can( 'edit_post', $source_id );
+	}
+
+	/**
+	 * Load a graphic and its decoded canvas.
+	 *
+	 * @param int $id Post ID.
+	 * @return array{0: \WP_Post, 1: array<string, mixed>}|WP_Error
+	 */
+	protected function get_canvas( int $id ): array|WP_Error {
+		$post = $this->get_graphic( $id );
+
+		if ( is_wp_error( $post ) ) {
+			return $post;
+		}
+
+		$decoded = json_decode( (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true ), true );
+		if ( ! is_array( $decoded ) ) {
+			return new WP_Error( 'empty_design', __( 'This design has no saved canvas yet.', 'socialframe' ), [ 'status' => 400 ] );
+		}
+
+		return [ $post, $decoded ];
+	}
+
+	/**
+	 * Fill a decoded canvas from a post and explicit values.
+	 *
+	 * Values from the post come first; explicit values win for the same name.
+	 * Text values are sanitized, image values are cast to attachment IDs.
+	 *
+	 * @param array<string, mixed>      $canvas Decoded Fabric JSON.
+	 * @param \WP_Post|null             $source Post to read field values from.
+	 * @param array<string, string|int> $values Explicit values by field name.
+	 * @return array{canvas: array<string, mixed>, filled: string[], unmatched: string[]}
+	 */
+	protected function fill_canvas( array $canvas, ?\WP_Post $source, array $values ): array {
+		$all = [];
+
+		if ( $source ) {
+			$all = PostSource::values_for( $source, array_column( FieldFiller::collect( $canvas ), 'name' ) );
+		}
+
+		foreach ( $values as $name => $value ) {
+			$all[ (string) $name ] = is_string( $value ) ? sanitize_textarea_field( $value ) : (int) $value;
+		}
+
+		return FieldFiller::fill( $canvas, $all );
+	}
+
+	/**
+	 * Default title for a design filled from a post, or from values alone.
+	 *
+	 * @param \WP_Post      $design Design that was filled.
+	 * @param \WP_Post|null $source Post the values came from.
+	 */
+	protected function filled_title( \WP_Post $design, ?\WP_Post $source ): string {
+		return $source
+			/* translators: 1: design title, 2: title of the post the design was filled from. */
+			? sprintf( __( '%1$s: %2$s', 'socialframe' ), $design->post_title, PostSource::title( $source ) )
+			/* translators: %s: design title. */
+			: sprintf( __( '%s (Filled)', 'socialframe' ), $design->post_title );
+	}
+
+	/**
+	 * Save a PNG data URI to the Media Library and link it to a design.
+	 *
+	 * With $replace_id, an image attachment already belonging to this design
+	 * keeps its ID and gets the new file; the old files are deleted only once
+	 * the new metadata is in place. Any other $replace_id is ignored and a new
+	 * attachment is created.
+	 *
+	 * @param \WP_Post $design     Design the image belongs to.
+	 * @param string   $image_data PNG data URI.
+	 * @param bool     $thumbnail  Resize to a 400px thumbnail first.
+	 * @param int      $replace_id Attachment to replace, or 0.
+	 * @return array{attachmentId: int, url: string, libraryUrl: string}|WP_Error
+	 */
+	protected function store_png( \WP_Post $design, string $image_data, bool $thumbnail = false, int $replace_id = 0 ): array|WP_Error {
+		// Strip the data URI prefix.
+		$base64 = preg_replace( '/^data:image\/png;base64,/', '', $image_data );
+		$binary = base64_decode( (string) $base64, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+
+		if ( false === $binary ) {
+			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
+		}
+
+		// Verify the decoded bytes are actually a PNG before trusting them.
+		// base64_decode() only proves the string was valid base64, not that it
+		// is an image — without this an edit_posts user could store arbitrary
+		// bytes under a .png name.
+		// The leading @ suppresses the read-error notice getimagesizefromstring()
+		// emits on malformed/truncated data; the false return is handled below.
+		$image_info = @getimagesizefromstring( $binary ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		if ( false === $image_info || IMAGETYPE_PNG !== $image_info[2] ) {
+			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
+		}
+
+		// If thumbnail requested, resize via GD.
+		if ( $thumbnail ) {
+			$binary = $this->resize_png( $binary, 400 );
+			if ( ! $binary ) {
+				return new WP_Error( 'resize_failed', __( 'Could not generate thumbnail.', 'socialframe' ), [ 'status' => 500 ] );
+			}
+		}
+
+		$replace = $replace_id > 0 ? get_post( $replace_id ) : null;
+		if ( ! $replace
+			|| 'attachment' !== $replace->post_type
+			|| $replace->post_parent !== $design->ID
+			|| ! wp_attachment_is_image( $replace )
+			|| ! current_user_can( 'edit_post', $replace->ID )
+		) {
+			$replace = null;
+		}
+
+		// Write to the uploads directory via the WordPress filesystem API.
+		// wp_upload_bits() handles the path, unique filename, and extension
+		// validation that a raw file_put_contents() would bypass.
+		$suffix   = $thumbnail ? '-thumb' : '';
+		$filename = 'socialframe-' . $design->ID . $suffix . '-' . time() . '.png';
+
+		$upload = wp_upload_bits( $filename, null, $binary );
+
+		if ( ! empty( $upload['error'] ) ) {
+			return new WP_Error( 'write_failed', __( 'Could not write image file.', 'socialframe' ), [ 'status' => 500 ] );
+		}
+
+		$filepath = $upload['file'];
+
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		if ( $replace ) {
+			$attachment_id = $replace->ID;
+			$old_file      = (string) get_attached_file( $attachment_id );
+			$old_meta      = wp_get_attachment_metadata( $attachment_id );
+			$old_backups   = get_post_meta( $attachment_id, '_wp_attachment_backup_sizes', true );
+
+			update_attached_file( $attachment_id, $filepath );
+			$metadata = wp_generate_attachment_metadata( $attachment_id, $filepath );
+
+			if ( empty( $metadata ) ) {
+				update_attached_file( $attachment_id, $old_file );
+				wp_delete_file( $filepath );
+				return new WP_Error( 'write_failed', __( 'Could not write image file.', 'socialframe' ), [ 'status' => 500 ] );
+			}
+
+			wp_update_attachment_metadata( $attachment_id, $metadata );
+			delete_post_meta( $attachment_id, '_wp_attachment_backup_sizes' );
+
+			if ( '' !== $old_file && $old_file !== $filepath ) {
+				wp_delete_attachment_files(
+					$attachment_id,
+					is_array( $old_meta ) ? $old_meta : [],
+					is_array( $old_backups ) ? $old_backups : [],
+					$old_file
+				);
+			}
+		} else {
+			// Create the media library attachment.
+			$attachment_id = wp_insert_attachment(
+				[
+					'post_mime_type' => 'image/png',
+					'post_title'     => sprintf(
+						$thumbnail
+							/* translators: %s: design title. */
+							? __( '%s Thumbnail', 'socialframe' )
+							/* translators: %s: design title. */
+							: __( '%s Export', 'socialframe' ),
+						$design->post_title
+					),
+					'post_status'    => 'inherit',
+					'post_parent'    => $design->ID,
+					'guid'           => $upload['url'],
+				],
+				$filepath,
+				$design->ID,
+				true
+			);
+
+			if ( is_wp_error( $attachment_id ) ) {
+				wp_delete_file( $filepath );
+				return $attachment_id;
+			}
+
+			wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $filepath ) );
+		}
+
+		// Store reference on the design post.
+		update_post_meta( $design->ID, 'socialframe_image_id', $attachment_id );
+
+		return [
+			'attachmentId' => $attachment_id,
+			'url'          => (string) wp_get_attachment_url( $attachment_id ),
+			'libraryUrl'   => admin_url( 'upload.php?item=' . $attachment_id ),
+		];
 	}
 
 	/**
