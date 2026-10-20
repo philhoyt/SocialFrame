@@ -32,6 +32,7 @@ class Plugin {
 		( new REST\TemplatesController() )->register();
 		( new REST\PostImportController() )->register();
 		( new REST\FieldsController() )->register();
+		( new REST\FramesController() )->register();
 
 		( new Admin\AdminPage() )->register();
 		( new Admin\EditorPage() )->register();
