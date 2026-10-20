@@ -1,0 +1,45 @@
+.socialframe-frames__note {
+	margin: 0 0 12px;
+	color: #757575;
+	font-size: 12px;
+}
+
+.socialframe-frame {
+	padding: 12px 0;
+	border-top: 1px solid #e0e0e0;
+}
+
+.socialframe-frame:first-of-type {
+	padding-top: 0;
+	border-top: 0;
+}
+
+.socialframe-frame__header {
+	margin-bottom: 8px;
+}
+
+.socialframe-frame__image {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin-bottom: 8px;
+	border: 1px solid #e0e0e0;
+}
+
+.socialframe-frame__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	align-items: center;
+}
+
+.socialframe-frame__status {
+	min-height: 1em;
+	margin: 6px 0 0;
+	color: #757575;
+	font-size: 12px;
+}
+
+.socialframe-frame__library {
+	font-size: 12px;
+}
