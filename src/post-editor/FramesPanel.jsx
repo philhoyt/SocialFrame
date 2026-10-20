@@ -39,9 +39,20 @@ export function FramesPanel() {
 	useEffect( load, [ load ] );
 
 	// Touch-ups exported from SocialFrame in another tab show up on return.
+	// Switching browser tabs does not always focus the window, so also
+	// reload when the page becomes visible again.
 	useEffect( () => {
+		const onVisible = () => {
+			if ( 'visible' === document.visibilityState ) {
+				load();
+			}
+		};
 		window.addEventListener( 'focus', load );
-		return () => window.removeEventListener( 'focus', load );
+		document.addEventListener( 'visibilitychange', onVisible );
+		return () => {
+			window.removeEventListener( 'focus', load );
+			document.removeEventListener( 'visibilitychange', onVisible );
+		};
 	}, [ load ] );
 
 	if ( data && ! data.frames.length ) {
