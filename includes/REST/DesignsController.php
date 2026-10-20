@@ -35,17 +35,21 @@ class DesignsController extends AbstractController {
 					'callback'            => [ $this, 'get_designs' ],
 					'permission_callback' => [ $this, 'require_edit_posts' ],
 					'args'                => [
-						'type'     => [
+						'type'       => [
 							'type'    => 'string',
 							'default' => 'design',
-							'enum'    => [ 'design', 'template' ],
+							'enum'    => [ 'design', 'template', 'any' ],
 						],
-						'page'     => [
+						'has_fields' => [
+							'type'    => 'boolean',
+							'default' => false,
+						],
+						'page'       => [
 							'type'    => 'integer',
 							'default' => 1,
 							'minimum' => 1,
 						],
-						'per_page' => [
+						'per_page'   => [
 							'type'    => 'integer',
 							'default' => 100,
 							'minimum' => 1,
@@ -147,6 +151,20 @@ class DesignsController extends AbstractController {
 	public function get_designs( WP_REST_Request $request ): WP_REST_Response {
 		$per_page = (int) $request->get_param( 'per_page' );
 
+		$meta_query = [];
+		if ( 'any' !== $request->get_param( 'type' ) ) {
+			$meta_query[] = [
+				'key'   => 'socialframe_type',
+				'value' => $request->get_param( 'type' ),
+			];
+		}
+		if ( $request->get_param( 'has_fields' ) ) {
+			$meta_query[] = [
+				'key'   => 'socialframe_has_fields',
+				'value' => '1',
+			];
+		}
+
 		$query = new \WP_Query(
 			[
 				'post_type'      => 'socialframe_graphic',
@@ -154,12 +172,7 @@ class DesignsController extends AbstractController {
 				'paged'          => (int) $request->get_param( 'page' ),
 				'post_status'    => 'publish',
 				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-				'meta_query'     => [
-					[
-						'key'   => 'socialframe_type',
-						'value' => $request->get_param( 'type' ),
-					],
-				],
+				'meta_query'     => $meta_query,
 				'orderby'        => 'modified',
 				'order'          => 'DESC',
 			]

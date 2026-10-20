@@ -15,6 +15,17 @@ import {
 	getDefaultLayerName,
 } from '../utils/fabricHelpers';
 
+// Custom properties every object carries through toObject() and clone().
+// Registering them here (rather than passing a list to toObject) is what
+// keeps layer ids, names and template fields on duplicated objects too.
+fabric.FabricObject.customProperties = [
+	'id',
+	'isArtboard',
+	'sfShapeType',
+	'name',
+	'fieldName',
+];
+
 /**
  * Initializes and manages the Fabric.js canvas instance.
  *
@@ -123,11 +134,10 @@ export function useFabricCanvas(
 			// ── Load existing JSON ─────────────────────────────────────────────
 			try {
 				canvas.loadFromJSON( fabricJson ).then( () => {
-					// Fabric v6 does not reliably restore custom properties (id,
-					// isArtboard) after loadFromJSON, so we use three layers of
-					// detection in order of specificity:
-					//   1. isArtboard flag (set in-memory, may not survive JSON)
-					//   2. id === 'artboard' (serialised custom prop, may not survive)
+					// Designs saved before custom properties were registered lack
+					// the isArtboard/id markers, so detection falls back in order:
+					//   1. isArtboard flag
+					//   2. id === 'artboard'
 					//   3. Geometry: a rect at (0,0) whose dimensions match the format
 					const allObjects = canvas.getObjects();
 
@@ -602,17 +612,8 @@ export function useFabricCanvas(
 
 	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
-		return (
-			// toObject(), not toJSON(): Fabric 6's toJSON() takes no arguments
-			// and silently drops these custom properties, which lost layer
-			// names, ids and the artboard marker on every save.
-			fabricRef.current?.toObject( [
-				'id',
-				'isArtboard',
-				'sfShapeType',
-				'name',
-			] ) ?? null
-		);
+		// Custom properties come from FabricObject.customProperties above.
+		return fabricRef.current?.toObject() ?? null;
 	}, [] );
 
 	/**

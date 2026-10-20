@@ -309,6 +309,7 @@ export function extractProperties( obj, type ) {
 		angle: obj.angle ?? 0,
 		flipX: obj.flipX ?? false,
 		flipY: obj.flipY ?? false,
+		fieldName: obj.fieldName ?? '',
 		shadow: obj.shadow
 			? {
 					blur: obj.shadow.blur ?? 0,

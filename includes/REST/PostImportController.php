@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Query;
+use SocialFrame\Fields\PostSource;
 
 /**
  * Provides two endpoints:
@@ -79,7 +80,7 @@ class PostImportController extends AbstractController {
 		$search   = $request->get_param( 'search' );
 		$per_page = (int) $request->get_param( 'per_page' );
 
-		$post_types = $this->get_public_post_types();
+		$post_types = PostSource::public_post_types();
 
 		$query = new WP_Query(
 			[
@@ -117,181 +118,22 @@ class PostImportController extends AbstractController {
 		$post_id = (int) $request->get_param( 'id' );
 		$post    = get_post( $post_id );
 
-		// Mirror search_posts(): only published posts of public, REST-visible
-		// types the user can read, and never password-protected content the
-		// user could not otherwise see (SEC-02).
-		if (
-			! $post
-			|| 'publish' !== $post->post_status
-			|| ! in_array( $post->post_type, $this->get_public_post_types(), true )
-			|| ! current_user_can( 'read_post', $post_id )
-			|| ( post_password_required( $post ) && ! current_user_can( 'edit_post', $post_id ) )
-		) {
+		if ( ! $post || ! PostSource::can_read( $post ) ) {
 			return new \WP_Error( 'not_found', __( 'Post not found.', 'socialframe' ), [ 'status' => 404 ] );
 		}
 
-		// Content — apply filters then strip all HTML tags.
-		$raw_content = $post->post_content;
-		$content     = '';
-		if ( $raw_content ) {
-			$filtered = apply_filters( 'the_content', $raw_content ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter
-			$content  = wp_strip_all_tags( $filtered );
-			$content  = html_entity_decode( $content, ENT_QUOTES, 'UTF-8' );
-			$content  = preg_replace( '/\n{3,}/', "\n\n", trim( $content ) ) ?? $content;
-		}
-
-		// Excerpt.
-		$excerpt = '';
-		if ( $post->post_excerpt ) {
-			$excerpt = wp_strip_all_tags( $post->post_excerpt );
-			$excerpt = html_entity_decode( $excerpt, ENT_QUOTES, 'UTF-8' );
-			$excerpt = trim( $excerpt );
-		}
-
-		// Featured image.
-		$thumb_url          = get_the_post_thumbnail_url( $post_id, 'large' );
-		$featured_image_url = $thumb_url ? $thumb_url : '';
-
-		// Meta fields — public (non-underscore-prefixed), non-empty scalars only.
-		// Each entry is typed so the editor can render/import it correctly.
-		$raw_meta = get_post_meta( $post_id );
-		$meta     = [];
-		foreach ( $raw_meta as $key => $values ) {
-			if ( str_starts_with( $key, '_' ) ) {
-				continue;
-			}
-			$value = maybe_unserialize( $values[0] ?? '' );
-			if ( ! is_scalar( $value ) || '' === (string) $value ) {
-				continue;
-			}
-
-			$meta[ $key ] = $this->classify_meta_value( $value );
-		}
-
-		/**
-		 * Filters the public post meta exposed through the post-import endpoint.
-		 *
-		 * Only non-underscore-prefixed (public) scalar meta is included by
-		 * default. Site owners can use this filter to unset specific keys, or
-		 * return an empty array to expose no meta at all.
-		 *
-		 * @param array<string, mixed> $meta    Meta keyed by meta key, each value a
-		 *                                       classified { type, value, ... } array.
-		 * @param int                  $post_id The source post ID.
-		 * @param \WP_Post             $post    The source post object.
-		 */
-		$meta = apply_filters( 'socialframe_import_post_meta', $meta, $post_id, $post );
-
-		// Taxonomy terms — all taxonomies attached to the post type that have terms on this post.
-		$terms = $this->get_post_terms( $post_id, $post->post_type );
+		$thumb_url = get_the_post_thumbnail_url( $post_id, 'large' );
 
 		return $this->respond(
 			[
 				'id'                 => $post_id,
-				'title'              => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
-				'featured_image_url' => $featured_image_url,
-				'content'            => $content,
-				'excerpt'            => $excerpt,
-				'terms'              => $terms,
-				'meta'               => $meta,
+				'title'              => PostSource::title( $post ),
+				'featured_image_url' => $thumb_url ? $thumb_url : '',
+				'content'            => PostSource::content( $post ),
+				'excerpt'            => PostSource::excerpt( $post ),
+				'terms'              => PostSource::terms( $post ),
+				'meta'               => PostSource::meta( $post ),
 			]
 		);
-	}
-
-	/**
-	 * Return all taxonomy terms assigned to a post, keyed by taxonomy slug.
-	 *
-	 * Only includes taxonomies that actually have terms on this post.
-	 * Returns an associative array of:
-	 *   taxonomy_slug => { label: string, terms: string[] }
-	 *
-	 * @param int    $post_id   Post ID.
-	 * @param string $post_type Post type slug.
-	 * @return array<string, array{label: string, terms: string[]}>
-	 */
-	private function get_post_terms( int $post_id, string $post_type ): array {
-		$taxonomies = get_object_taxonomies( $post_type, 'objects' );
-		$result     = [];
-
-		foreach ( $taxonomies as $slug => $taxonomy ) {
-			$terms = get_the_terms( $post_id, $slug );
-			if ( ! $terms || is_wp_error( $terms ) ) {
-				continue;
-			}
-			$result[ $slug ] = [
-				'label' => $taxonomy->labels->name,
-				'terms' => array_map( fn( $t ) => $t->name, $terms ),
-			];
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Classify a scalar meta value into a typed structure.
-	 *
-	 * Returns an array with:
-	 *   type      — 'image' | 'text'
-	 *   value     — the raw scalar value (original meta value)
-	 *   image_url — resolved image URL (only present when type === 'image')
-	 *
-	 * Detection order:
-	 *   1. Numeric value that maps to a WordPress image attachment → type=image
-	 *   2. String URL ending with a common image extension          → type=image
-	 *   3. Everything else                                          → type=text
-	 *
-	 * @param mixed $value Scalar meta value.
-	 * @return array<string, mixed>
-	 */
-	private function classify_meta_value( mixed $value ): array {
-		// 1. Numeric attachment ID.
-		if ( is_numeric( $value ) && (int) $value > 0 ) {
-			$attachment_url = wp_get_attachment_url( (int) $value );
-			if ( $attachment_url ) {
-				$mime = get_post_mime_type( (int) $value );
-				if ( is_string( $mime ) && str_starts_with( $mime, 'image/' ) ) {
-					return [
-						'type'      => 'image',
-						'value'     => $value,
-						'image_url' => $attachment_url,
-					];
-				}
-			}
-		}
-
-		// 2. URL string pointing to an image file.
-		if ( is_string( $value ) && preg_match( '/\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i', $value ) ) {
-			return [
-				'type'      => 'image',
-				'value'     => $value,
-				'image_url' => $value,
-			];
-		}
-
-		// 3. Plain text.
-		return [
-			'type'  => 'text',
-			'value' => $value,
-		];
-	}
-
-	/**
-	 * Return all public post type slugs that are also visible in REST.
-	 *
-	 * @return string[]
-	 */
-	private function get_public_post_types(): array {
-		$types = get_post_types(
-			[
-				'public'       => true,
-				'show_in_rest' => true,
-			],
-			'names'
-		);
-
-		// Exclude SocialFrame's own post type.
-		unset( $types['socialframe_graphic'] );
-
-		return array_values( $types );
 	}
 }

@@ -101,3 +101,53 @@
 .socialframe-new__custom-size .components-base-control {
 	flex: 1;
 }
+
+/* From-post template picker */
+
+.socialframe-new__template-card {
+	padding: 12px;
+}
+
+.socialframe-new__template-card:disabled {
+	cursor: wait;
+}
+
+.socialframe-new__template-thumb {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	aspect-ratio: 1;
+	overflow: hidden;
+	background: #f0f0f1;
+	border-radius: 4px;
+}
+
+.socialframe-new__template-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.socialframe-new__template-thumb .components-spinner {
+	position: absolute;
+}
+
+.socialframe-new__empty {
+	padding: 24px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	color: #50575e;
+}
+
+.socialframe-new__empty p {
+	margin: 0 0 12px;
+}
+
+.socialframe-new__loading {
+	display: flex;
+	justify-content: center;
+	padding: 24px 0;
+}

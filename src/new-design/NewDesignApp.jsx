@@ -3,7 +3,9 @@ import { Button, TextControl, Notice } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 
-const { formats } = window.socialFrameNewConfig ?? {};
+import { FromPostPicker } from './FromPostPicker';
+
+const { formats, fromPost, blankUrl } = window.socialFrameNewConfig ?? {};
 
 // Custom canvas bounds — must match GraphicMeta::MIN_DIMENSION / MAX_DIMENSION.
 const MIN_DIM = 100;
@@ -20,6 +22,13 @@ const ASPECT_LABELS = {
 };
 
 export function NewDesignApp() {
+	if ( fromPost ) {
+		return <FromPostPicker post={ fromPost } blankUrl={ blankUrl } />;
+	}
+	return <FormatPicker />;
+}
+
+function FormatPicker() {
 	const [ selectedFormat, setSelectedFormat ] = useState( null );
 	const [ title, setTitle ] = useState( '' );
 	const [ customWidth, setCustomWidth ] = useState( String( DEFAULT_DIM ) );

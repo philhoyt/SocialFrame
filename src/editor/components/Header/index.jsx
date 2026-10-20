@@ -7,10 +7,7 @@ import { store as noticesStore } from '@wordpress/notices';
 
 import { STORE_KEY } from '../../store';
 import { useFabric } from '../../EditorApp';
-import {
-	useAutoSave,
-	AUTOSAVE_FAILED_NOTICE_ID,
-} from '../../hooks/useAutoSave';
+import { useAutoSave, useSaveNow } from '../../hooks/useAutoSave';
 import {
 	exportDesign,
 	saveAsTemplate,
@@ -22,7 +19,7 @@ import './Header.css';
 
 export function Header() {
 	const dispatch = useDispatch( STORE_KEY );
-	const { createSuccessNotice, createErrorNotice, removeNotice } =
+	const { createSuccessNotice, createErrorNotice } =
 		useDispatch( noticesStore );
 
 	const [ shareUrl, setShareUrl ] = useState( null );
@@ -58,23 +55,10 @@ export function Header() {
 
 	// Debounced auto-save + background preview on every save.
 	useAutoSave( fabric?.getJSON, designId, fabric?.toDataURL );
+	const saveNow = useSaveNow();
 
 	const handleSave = async () => {
-		if ( ! fabric || ! designId ) {
-			return;
-		}
-		dispatch.setSaving( true );
-		try {
-			await apiFetch( {
-				path: `socialframe/v1/designs/${ designId }`,
-				method: 'PUT',
-				data: { title, fabricJson: JSON.stringify( fabric.getJSON() ) },
-			} );
-			dispatch.markClean();
-			// A successful manual save supersedes an earlier autosave failure.
-			removeNotice( AUTOSAVE_FAILED_NOTICE_ID );
-			sendPreview( fabric.toDataURL, designId, apiFetch );
-		} catch {
+		if ( ! ( await saveNow() ) ) {
 			createErrorNotice(
 				__(
 					'Could not save the design. Please try again.',
@@ -82,8 +66,6 @@ export function Header() {
 				),
 				{ type: 'snackbar' }
 			);
-		} finally {
-			dispatch.setSaving( false );
 		}
 	};
 
