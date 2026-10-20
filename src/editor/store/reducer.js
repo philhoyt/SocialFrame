@@ -5,6 +5,7 @@ const DEFAULT_STATE = {
 	designId: 0,
 	designTitle: '',
 	format: '',
+	postTypes: [],
 	selection: {
 		type: 'none',
 		objectId: null,
@@ -34,11 +35,15 @@ export function reducer( state = DEFAULT_STATE, action ) {
 				designId: action.designId,
 				designTitle: action.title,
 				format: action.format,
+				postTypes: action.postTypes,
 				isDirty: false,
 			};
 
 		case 'SET_TITLE':
 			return { ...state, designTitle: action.title, isDirty: true };
+
+		case 'SET_POST_TYPES':
+			return { ...state, postTypes: action.postTypes };
 
 		case 'SET_SELECTION':
 			return { ...state, selection: action.selection };

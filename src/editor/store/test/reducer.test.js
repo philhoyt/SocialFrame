@@ -7,6 +7,7 @@ import {
 	setActivePanel,
 	setDesign,
 	setTitle,
+	setPostTypes,
 	setSelection,
 	clearSelection,
 	updateSelectionProperties,
@@ -30,6 +31,26 @@ describe( 'editor reducer', () => {
 		expect( state.isDirty ).toBe( false );
 		expect( state.undoIndex ).toBe( -1 );
 		expect( state.selection.type ).toBe( 'none' );
+	} );
+
+	it( 'loads post types with the design and replaces them without dirtying', () => {
+		const loaded = fromDefault(
+			setDesign( {
+				designId: 5,
+				title: 'Square',
+				format: 'instagram-post',
+				postTypes: [ 'post' ],
+			} )
+		);
+		expect( loaded.postTypes ).toEqual( [ 'post' ] );
+
+		const changed = reducer( loaded, setPostTypes( [ 'post', 'page' ] ) );
+		expect( changed.postTypes ).toEqual( [ 'post', 'page' ] );
+		expect( changed.isDirty ).toBe( false );
+
+		expect( fromDefault( setDesign( { designId: 6 } ) ).postTypes ).toEqual(
+			[]
+		);
 	} );
 
 	it( 'toggles the active panel when the same panel is set twice', () => {
