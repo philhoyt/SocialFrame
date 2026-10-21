@@ -5,9 +5,9 @@ import * as fabric from 'fabric';
 import { AligningGuidelines } from 'fabric/extensions';
 
 import { configureFabric } from '../../shared/configureFabric';
-import { containInBox, readBox } from '../../shared/stackLayout';
+import { containInBox, readTree } from '../../shared/frameLayout';
 import { STORE_KEY } from '../store';
-import { useStackLayout } from './useStackLayout';
+import { useFrameLayout } from './useFrameLayout';
 import { FORMATS } from '../utils/formats';
 import {
 	createShape,
@@ -58,7 +58,12 @@ export function useFabricCanvas(
 	const isPanningRef = useRef( false );
 	const panStartRef = useRef( { x: 0, y: 0 } );
 	const dispatch = useDispatch( STORE_KEY );
-	const stack = useStackLayout( fabricRef, dispatch );
+	const syncLayers = useCallback( () => {
+		if ( fabricRef.current ) {
+			syncLayersToStore( fabricRef.current, dispatch );
+		}
+	}, [ dispatch ] );
+	const frames = useFrameLayout( fabricRef, dispatch, syncLayers );
 
 	// Initialize Fabric once on mount.
 	useEffect( () => {
@@ -206,7 +211,7 @@ export function useFabricCanvas(
 					syncLayersToStore( canvas, dispatch );
 					canvas.renderAll();
 					fitToScreen();
-					stack.schedule();
+					frames.schedule();
 				} );
 			} catch ( e ) {
 				// eslint-disable-next-line no-console
@@ -244,11 +249,11 @@ export function useFabricCanvas(
 		resizeObserver.observe( container );
 
 		// ── Selection bridge ──────────────────────────────────────────────────
-		canvas.on( 'selection:created', ( e ) =>
-			syncSelection( e.selected?.[ 0 ], dispatch )
+		canvas.on( 'selection:created', () =>
+			syncSelection( canvas.getActiveObject(), dispatch )
 		);
-		canvas.on( 'selection:updated', ( e ) =>
-			syncSelection( e.selected?.[ 0 ], dispatch )
+		canvas.on( 'selection:updated', () =>
+			syncSelection( canvas.getActiveObject(), dispatch )
 		);
 		canvas.on( 'selection:cleared', () => dispatch.clearSelection() );
 
@@ -275,9 +280,9 @@ export function useFabricCanvas(
 				return;
 			}
 
-			// Stack members record their own history: a drag there also
-			// changes the row's gap.
-			if ( stack.handleModified( e ) ) {
+			// Layers in a frame are placed by it, and frames resize by
+			// their own rules; frames record their own history.
+			if ( frames.handleModified( e ) ) {
 				return;
 			}
 
@@ -343,8 +348,16 @@ export function useFabricCanvas(
 			if ( isArtboardObject( e.target ) ) {
 				return;
 			}
+			frames.handleRemoved( e.target );
 			dispatch.markDirty();
 			syncLayersToStore( canvas, dispatch );
+		} );
+
+		// A dragged frame takes its layers along as it moves.
+		canvas.on( 'object:moving', ( e ) => {
+			if ( e.target?.sfFrame ) {
+				frames.schedule();
+			}
 		} );
 
 		// ── Snap to grid ──────────────────────────────────────────────────────
@@ -430,8 +443,8 @@ export function useFabricCanvas(
 			}
 		} );
 
-		// Reflow the stack while text is typed.
-		canvas.on( 'text:changed', () => stack.schedule() );
+		// Reflow frames while text is typed.
+		canvas.on( 'text:changed', () => frames.schedule() );
 
 		// ── Auto-delete empty text objects ────────────────────────────────────
 		canvas.on( 'text:editing:exited', ( e ) => {
@@ -585,13 +598,12 @@ export function useFabricCanvas(
 
 			ctx.restore();
 
-			// Vertical stack: a dashed line where the stack must end, and an
-			// outline on text that will be shortened on export.
-			const layout = stack.result.current;
+			// Frames: a red outline on frames whose content doesn't fit, and
+			// on text that will be shortened on export.
+			const layout = frames.result.current;
 			if (
-				stack.exporting.current ||
-				! layout.overflow ||
-				layout.limit === null
+				frames.exporting.current ||
+				( ! layout.overflows.length && ! layout.truncated.length )
 			) {
 				return;
 			}
@@ -599,14 +611,12 @@ export function useFabricCanvas(
 			ctx.strokeStyle = '#d63638';
 			ctx.lineWidth = 2;
 			ctx.setLineDash( [ 6, 4 ] );
-			const limitY = panY + layout.limit * zoom;
-			ctx.beginPath();
-			ctx.moveTo( artL, limitY );
-			ctx.lineTo( artR, limitY );
-			ctx.stroke();
-			for ( const id of layout.truncated ) {
-				const target = canvas.getObjects().find( ( o ) => o.id === id );
-				if ( ! target ) {
+			const ids = new Set( [
+				...layout.overflows.map( ( o ) => o.frameId ),
+				...layout.truncated,
+			] );
+			for ( const target of canvas.getObjects() ) {
+				if ( ! ids.has( target.id ) ) {
 					continue;
 				}
 				ctx.strokeRect(
@@ -662,7 +672,7 @@ export function useFabricCanvas(
 	const toDataURL = useCallback(
 		() =>
 			// Stack text that doesn't fit is shortened for the export only.
-			stack.forExport( () => {
+			frames.forExport( () => {
 				const canvas = fabricRef.current;
 				const artboard = artboardRectRef.current;
 				if ( ! canvas ) {
@@ -711,7 +721,7 @@ export function useFabricCanvas(
 
 				return dataURL;
 			} ),
-		[ stack ]
+		[ frames ]
 	);
 
 	const loadFromJSON = useCallback(
@@ -899,7 +909,7 @@ export function useFabricCanvas(
 			if ( ! obj ) {
 				return;
 			}
-			const props = stack.withStackBase( obj, changes );
+			const props = frames.withItemBase( obj, changes );
 
 			const prevProps = {};
 			Object.keys( props ).forEach( ( k ) => {
@@ -935,13 +945,23 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch, stack ]
+		[ dispatch, frames ]
 	);
 
 	const deleteSelected = useCallback( () => {
 		const canvas = fabricRef.current;
 		const obj = canvas?.getActiveObject();
 		if ( ! obj ) {
+			return;
+		}
+		const targets = canvas.getActiveObjects();
+		if ( frames.involves( targets ) ) {
+			canvas.discardActiveObject();
+			dispatch.clearSelection();
+			frames.removeObjects(
+				targets,
+				__( 'Delete object', 'socialframe' )
+			);
 			return;
 		}
 
@@ -963,7 +983,7 @@ export function useFabricCanvas(
 				canvas.renderAll();
 			},
 		} );
-	}, [ dispatch ] );
+	}, [ dispatch, frames ] );
 
 	// ── Shape fill with image ─────────────────────────────────────────────────
 
@@ -1303,6 +1323,9 @@ export function useFabricCanvas(
 			if ( ! canvas || ! obj ) {
 				return;
 			}
+			if ( frames.moveLayer( id, 1 ) ) {
+				return;
+			}
 			canvas.bringObjectForward( obj );
 			canvas.renderAll();
 			syncLayersToStore( canvas, dispatch );
@@ -1323,7 +1346,7 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
 	const moveLayerDown = useCallback(
@@ -1331,6 +1354,9 @@ export function useFabricCanvas(
 			const canvas = fabricRef.current;
 			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
 			if ( ! canvas || ! obj ) {
+				return;
+			}
+			if ( frames.moveLayer( id, -1 ) ) {
 				return;
 			}
 
@@ -1363,7 +1389,7 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
 	const duplicateById = useCallback(
@@ -1378,9 +1404,11 @@ export function useFabricCanvas(
 				id: genId(),
 				left: ( obj.left ?? 0 ) + 20,
 				top: ( obj.top ?? 0 ) + 20,
-				// A copy would sit on its source's row; it starts outside the stack.
-				sfStackItem: undefined,
-				sfBox: undefined,
+				// A copy starts outside any frame; a copied frame starts empty.
+				sfItem: undefined,
+				sfFrame: obj.sfFrame
+					? { ...obj.sfFrame, children: [] }
+					: undefined,
 			} );
 			if ( obj.name ) {
 				clone.name = obj.name;
@@ -1417,6 +1445,15 @@ export function useFabricCanvas(
 			if ( ! canvas || ! obj ) {
 				return;
 			}
+			if ( frames.involves( [ obj ] ) ) {
+				canvas.discardActiveObject();
+				dispatch.clearSelection();
+				frames.removeObjects(
+					[ obj ],
+					__( 'Delete layer', 'socialframe' )
+				);
+				return;
+			}
 			canvas.remove( obj );
 			canvas.discardActiveObject();
 			canvas.renderAll();
@@ -1440,7 +1477,7 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
 	const renameById = useCallback(
@@ -1483,9 +1520,9 @@ export function useFabricCanvas(
 			id: genId(),
 			left: ( obj.left ?? 0 ) + 20,
 			top: ( obj.top ?? 0 ) + 20,
-			// A copy would sit on its source's row; it starts outside the stack.
-			sfStackItem: undefined,
-			sfBox: undefined,
+			// A copy starts outside any frame; a copied frame starts empty.
+			sfItem: undefined,
+			sfFrame: obj.sfFrame ? { ...obj.sfFrame, children: [] } : undefined,
 		} );
 		if ( obj.name ) {
 			clone.name = obj.name;
@@ -1600,7 +1637,7 @@ export function useFabricCanvas(
 			} );
 			const newElement = newImg.getElement();
 
-			// A stacked image is shown whole inside its box; record its
+			// An image in a frame is shown whole at its intended width; record its
 			// geometry so undo restores the old size along with the old file.
 			const GEO = [
 				'left',
@@ -1615,7 +1652,7 @@ export function useFabricCanvas(
 				GEO.map( ( k ) => [ k, obj[ k ] ] )
 			);
 			obj.setElement( newElement );
-			const box = readBox( obj.sfBox );
+			const box = frames.imageBox( obj );
 			const fit = box
 				? containInBox(
 						{
@@ -1654,7 +1691,7 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
 	return {
@@ -1670,7 +1707,7 @@ export function useFabricCanvas(
 		updateSelected,
 		deleteSelected,
 		replaceImage,
-		stack,
+		frames,
 		fillShapeWithImage,
 		updateShapeImageFit,
 		setBackgroundImage,
@@ -1774,6 +1811,14 @@ function syncSelection( obj, dispatch ) {
 	if ( ! obj ) {
 		return;
 	}
+	if ( obj.type === 'activeselection' ) {
+		dispatch.setSelection( {
+			type: 'multi',
+			objectId: null,
+			properties: { ids: obj.getObjects().map( ( o ) => o.id ) },
+		} );
+		return;
+	}
 	const type = getObjectType( obj );
 	const properties = extractProperties( obj, type );
 	dispatch.setSelection( {
@@ -1801,12 +1846,35 @@ function syncLayersToStore( canvas, dispatch ) {
 			obj.id = genId();
 		}
 	} );
-	const layers = [ ...objects ].reverse().map( ( obj ) => ( {
-		id: obj.id,
-		name: obj.name || getDefaultLayerName( obj ),
-		type: getObjectType( obj ),
-		locked: ! ( obj.selectable ?? true ),
-		visible: obj.visible ?? true,
-	} ) );
+	// Top layer first; a frame's layers follow it, indented, in layout order.
+	const tree = readTree( canvas.getObjects() );
+	const inFrame = ( id ) => {
+		const p = tree.parent.get( id );
+		return p !== undefined && ! tree.byId.get( p )?.isArtboard;
+	};
+	const layers = [];
+	const add = ( obj, depth ) => {
+		layers.push( {
+			id: obj.id,
+			name: obj.name || getDefaultLayerName( obj ),
+			type: getObjectType( obj ),
+			locked: ! ( obj.selectable ?? true ),
+			visible: obj.visible ?? true,
+			depth,
+			isFrame: tree.frames.has( obj.id ),
+			inFrame: tree.parent.has( obj.id ),
+		} );
+		for ( const c of tree.children.get( obj.id ) ?? [] ) {
+			const child = tree.byId.get( c );
+			if ( child ) {
+				add( child, depth + 1 );
+			}
+		}
+	};
+	for ( const obj of [ ...objects ].reverse() ) {
+		if ( ! inFrame( obj.id ) ) {
+			add( obj, 0 );
+		}
+	}
 	dispatch.setLayers( layers );
 }
