@@ -10,7 +10,7 @@ import { AlignmentSection } from './AlignmentSection';
 import { FlipSection } from './FlipSection';
 import { ShadowSection } from './ShadowSection';
 import { FieldSection } from './FieldSection';
-import { StackSection } from './StackSection';
+import { LayoutSection } from './LayoutSection';
 import { ColorRow } from './ColorRow';
 
 const { themeFonts } = window.socialFrameConfig ?? {};
@@ -396,7 +396,7 @@ export function TextProperties() {
 
 			<FieldSection kind="text" />
 
-			<StackSection />
+			<LayoutSection />
 		</div>
 	);
 }

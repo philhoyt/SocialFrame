@@ -86,6 +86,11 @@ export function LayersPanel() {
 				{ layers.map( ( layer, index ) => (
 					<li
 						key={ layer.id ?? index }
+						style={
+							layer.depth
+								? { paddingLeft: 8 + layer.depth * 14 }
+								: undefined
+						}
 						className={ `socialframe-layers__item${
 							selectedId === layer.id ? ' is-selected' : ''
 						}${ layer.locked ? ' is-locked' : '' }${
@@ -132,7 +137,9 @@ export function LayersPanel() {
 									className="socialframe-layers__type-icon"
 									aria-hidden="true"
 								>
-									{ typeIcon( layer.type ) }
+									{ typeIcon(
+										layer.isFrame ? 'frame' : layer.type
+									) }
 								</span>
 								<span className="socialframe-layers__name">
 									{ layer.name }
@@ -236,6 +243,8 @@ function typeIcon( type ) {
 			return 'T';
 		case 'image':
 			return '🖼';
+		case 'frame':
+			return '▦';
 		default:
 			return '◻';
 	}

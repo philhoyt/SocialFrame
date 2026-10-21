@@ -347,3 +347,15 @@
 .socialframe-props__hint--warning {
 	color: #f86368;
 }
+
+.socialframe-frame-settings {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.socialframe-frame-settings__sides {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}

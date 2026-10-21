@@ -11,7 +11,7 @@ import { AlignmentSection } from './AlignmentSection';
 import { FlipSection } from './FlipSection';
 import { ShadowSection } from './ShadowSection';
 import { FieldSection } from './FieldSection';
-import { StackSection } from './StackSection';
+import { LayoutSection } from './LayoutSection';
 
 export function ImageProperties() {
 	const props = useSelect( ( select ) =>
@@ -156,7 +156,7 @@ export function ImageProperties() {
 
 			<FieldSection kind="image" />
 
-			<StackSection />
+			<LayoutSection />
 		</div>
 	);
 }
