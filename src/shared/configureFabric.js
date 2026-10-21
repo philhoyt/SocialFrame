@@ -16,10 +16,9 @@ export function configureFabric( fabric ) {
 		'sfShapeType',
 		'name',
 		'fieldName',
-		// Vertical stack: the artboard's stack, a member's row, an image's box.
-		'sfStack',
-		'sfStackItem',
-		'sfBox',
+		// Frames: a frame's layout settings, and a child's sizing.
+		'sfFrame',
+		'sfItem',
 	];
 
 	// Fabric 7 changed the default origin to center. Every position in the

@@ -29,18 +29,16 @@ describe( 'configureFabric', () => {
 			id: 'artboard',
 			isArtboard: true,
 			fieldName: 'post.title',
-			sfStack: { top: 40, bottom: 60, rows: [ { id: 'r1', gap: 0 } ] },
-			sfStackItem: { row: 'r1', offset: 0 },
-			sfBox: { left: 0, width: 10, height: 10 },
+			sfFrame: { direction: 'column', children: [ 'a' ] },
+			sfItem: { width: 'fill', w: 10 },
 		} );
 
 		expect( rect.toObject() ).toMatchObject( {
 			id: 'artboard',
 			isArtboard: true,
 			fieldName: 'post.title',
-			sfStack: { top: 40, bottom: 60, rows: [ { id: 'r1', gap: 0 } ] },
-			sfStackItem: { row: 'r1', offset: 0 },
-			sfBox: { left: 0, width: 10, height: 10 },
+			sfFrame: { direction: 'column', children: [ 'a' ] },
+			sfItem: { width: 'fill', w: 10 },
 			originX: 'left',
 			originY: 'top',
 		} );
