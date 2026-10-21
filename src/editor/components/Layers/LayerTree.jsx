@@ -110,12 +110,15 @@ export function LayerTree() {
 	const { frames } = fabric;
 
 	const select = ( row, e ) => {
-		if ( row.kind === 'artboard' ) {
-			fabric.selectByIds( [] );
-			return;
-		}
+		// A range may end on the artboard row; rangeOf() leaves it out.
 		if ( e?.shiftKey && anchor.current ) {
 			fabric.selectByIds( rangeOf( shown, anchor.current, row.id ) );
+			return;
+		}
+		if ( row.kind === 'artboard' ) {
+			if ( ! ( e?.metaKey || e?.ctrlKey ) ) {
+				fabric.selectByIds( [] );
+			}
 			return;
 		}
 		if ( e?.metaKey || e?.ctrlKey ) {

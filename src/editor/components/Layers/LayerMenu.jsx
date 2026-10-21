@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from '@wordpress/element';
+import { useMemo, useRef } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 import {
 	MenuGroup,
@@ -36,14 +36,13 @@ export function LayerMenu() {
 	const { closeContextMenu } = useDispatch( STORE_KEY );
 	const opener = useRef( null );
 
-	// Remember what had focus so it gets it back when the menu closes.
-	useEffect( () => {
-		if ( at ) {
-			// The menu has no node of its own yet when it opens.
-			// eslint-disable-next-line @wordpress/no-global-active-element
-			opener.current = opener.current ?? document.activeElement;
-		}
-	}, [ at ] );
+	// Remember what had focus so it gets it back when the menu closes. This
+	// runs while rendering, before the menu's own effects move focus, and
+	// before the menu has a node of its own.
+	if ( at && ! opener.current ) {
+		// eslint-disable-next-line @wordpress/no-global-active-element
+		opener.current = document.activeElement;
+	}
 
 	const anchor = useMemo(
 		() =>

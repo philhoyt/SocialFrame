@@ -13,7 +13,7 @@
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
-	color: #888;
+	color: #9a9a9a;
 	margin: 0;
 	padding: 12px 12px 8px;
 }
@@ -79,7 +79,15 @@
 	color: #fff;
 }
 
-.socialframe-tree__row.is-hidden .socialframe-tree__name,
+/* Dimmed, but still 4.5:1 against the row backgrounds. */
+.socialframe-tree__row.is-hidden .socialframe-tree__name {
+	color: #9a9a9a;
+}
+
+.socialframe-tree__row.is-hidden.is-selected .socialframe-tree__name {
+	color: #b8b8b8;
+}
+
 .socialframe-tree__row.is-hidden .socialframe-tree__icon {
 	opacity: 0.45;
 }

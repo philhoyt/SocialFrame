@@ -19,6 +19,9 @@ export function configureFabric( fabric ) {
 		// Frames: a frame's layout settings, and a child's sizing.
 		'sfFrame',
 		'sfItem',
+		// Locked layers: Fabric leaves these out of toObject() by default.
+		'selectable',
+		'evented',
 	];
 
 	// Fabric 7 changed the default origin to center. Every position in the
