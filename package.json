@@ -17,7 +17,11 @@
 		"wp-env": "wp-env",
 		"format": "wp-scripts format",
 		"packages-update": "wp-scripts packages-update",
-		"plugin-zip": "wp-scripts plugin-zip"
+		"plugin-zip": "wp-scripts plugin-zip",
+		"test:unit": "wp-scripts test-unit-js",
+		"env:start": "wp-env start",
+		"env:stop": "wp-env stop",
+		"env:reset": "wp-env reset"
 	},
 	"files": [
 		"build",

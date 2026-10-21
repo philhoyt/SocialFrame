@@ -7,7 +7,8 @@
 		"build/**",
 		"vendor/**",
 		"node_modules/**",
-		"lib/**"
+		"lib/**",
+		"plans/**"
 	],
 	"rules": {
 		"selector-class-pattern": [
