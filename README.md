@@ -76,6 +76,16 @@ For local development with hot-reload:
 npm run start
 ```
 
+### Running tests
+
+```bash
+npm run test:js    # Vitest unit tests
+npm run test:php   # PHPUnit (needs bin/install-wp-tests.sh once)
+npm run test:e2e   # Playwright, against a wp-env site on port 8889
+```
+
+The E2E tests need Docker. Build first (`npm run build`); `npm run test:e2e` starts wp-env if it is not running yet. They cover creating, editing, saving, duplicating and exporting a design, and generating a design from the block editor's SocialFrame panel.
+
 ---
 
 ## Usage

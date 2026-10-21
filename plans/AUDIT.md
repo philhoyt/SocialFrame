@@ -14,7 +14,7 @@
 |----------|-------|------|
 | Critical | 1 | 0 |
 | Warning  | 13 | 0 |
-| Info     | 8 | 1 (TST-03) |
+| Info     | 8 | 0 |
 
 **Baseline**
 - `npm run build` passes, with webpack bundle-size warnings only.
@@ -52,7 +52,7 @@
 | ARC-05 | Preview write uses raw `file_put_contents` | Won't fix (matches core) |
 | TST-01 | No CI running lint/tests on PRs | ✅ Fixed |
 | TST-02 | Duplicate test does not cover escaped JSON | ✅ Fixed |
-| TST-03 | No component tests or E2E for the editor | open |
+| TST-03 | No component tests or E2E for the editor | ✅ Fixed |
 | INF-01 | Release workflow pins Node 20 | ✅ Fixed |
 | QA-01 | Undo/redo threw Redux error #3 and never ran (found in browser QA) | ✅ Fixed |
 | QA-03 | Templates saved from the editor had no thumbnail (found in browser QA) | ✅ Fixed |
@@ -318,6 +318,11 @@ Nothing in npm or Packagist is deprecated or abandoned.
 **Recommendation:** `tests/phpunit/DuplicateControllerTest.php:28-33` uses `{"objects":[1]}`, which has no escapes, so ARC-01 slipped through. Add a fixture containing `\"`, `\n` and non-ASCII text. Also add tests for SEC-01 (traversal path ignored) and SEC-02 (non-public or protected post → 404).
 
 ### [TST-03] No editor component tests or E2E
+
+> **✅ Fixed (2026-10-20):** Playwright E2E now runs against wp-env (`npm run test:e2e`, CI job `e2e`).
+> - `tests/e2e/editor.spec.js` creates a design from the New Design screen, adds text, saves, reloads, exports (asserting a 1080×1080 attachment) and duplicates from the designs list (asserting the copy's JSON is identical).
+> - `tests/e2e/post-editor-frames.spec.js` generates from unsaved title edits in the block editor, checks Fabric loads only on click, then regenerates in place: same design, same attachment, template unchanged. It also checks the panel isn't loaded on an unassigned type.
+> - Removing the Fabric 7 origin defaults makes the editor spec fail, so it catches that regression.
 **Recommendation:** Jest covers only the store reducer and selectors. A Playwright smoke test (create → edit → save → duplicate → export) would have caught ARC-01 and ADM-01.
 
 ### [INF-01] Release workflow pins Node 20
@@ -408,6 +413,7 @@ Checked in Chrome on social-frame.local (WP 7.1.3) against a duplicate of an exi
 
 | Date | Changes |
 |------|---------|
+| 2026-10-20 | Fixed TST-03: added Playwright E2E with wp-env (3 tests) and a CI job. No findings remain open. |
 | 2026-10-20 | Fixed DEP-01: upgraded fabric 6.9.1 → 7.4.0 on `fix/fabric-7` and kept the top-left origin defaults. Checked saved designs against their v6 exports and previews. Open: TST-03. Checks: PHPUnit 104/104 and Vitest 49/49 pass; ESLint, Stylelint and phpcs are clean. |
 | 2026-10-16 | Fixed QA-03: Save as Template now generates the template's preview thumbnail. Verified in Chrome. |
 | 2026-10-16 | Browser QA in Chrome (WP 7.1.3): found and fixed QA-01 (undo/redo threw Redux #3) and QA-02 (Fabric 6 `toJSON()` dropped custom props). Manual save now clears a stale autosave-failure notice. Vitest passes 26/26. |
