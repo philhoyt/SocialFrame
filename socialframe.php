@@ -57,9 +57,11 @@ if ( file_exists( SOCIALFRAME_DIR . 'lib/plugin-update-checker/plugin-update-che
 		'socialframe'
 	);
 	// getVcsApi() is typed as the base Api class; only the GitHub API has enableReleaseAssets().
+	// Without a name filter the first asset wins, and GitHub lists assets
+	// by name, so readme.txt would come ahead of socialframe.zip.
 	$socialframe_vcs_api = $socialframe_update_checker->getVcsApi();
 	if ( method_exists( $socialframe_vcs_api, 'enableReleaseAssets' ) ) {
-		$socialframe_vcs_api->enableReleaseAssets();
+		$socialframe_vcs_api->enableReleaseAssets( '/^socialframe\.zip$/' );
 	}
 }
 
