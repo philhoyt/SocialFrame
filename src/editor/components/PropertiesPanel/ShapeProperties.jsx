@@ -9,6 +9,7 @@ import { Accordion } from './Accordion';
 import { NumField } from './NumField';
 import { LinkedNumFields } from './LinkedNumFields';
 import { AlignmentSection } from './AlignmentSection';
+import { LayoutSection } from './LayoutSection';
 import { FlipSection } from './FlipSection';
 import { ShadowSection } from './ShadowSection';
 import { ColorRow } from './ColorRow';
@@ -237,6 +238,8 @@ export function ShapeProperties() {
 			>
 				<ShadowSection />
 			</Accordion>
+
+			<LayoutSection />
 		</div>
 	);
 }

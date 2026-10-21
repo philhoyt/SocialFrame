@@ -5,7 +5,6 @@ import { TemplatesPanel } from './TemplatesPanel';
 import { ElementsPanel } from './ElementsPanel';
 import { TextPanel } from './TextPanel';
 import { MediaPanel } from './MediaPanel';
-import { LayersPanel } from './LayersPanel';
 import { PostsPanel } from './PostsPanel';
 
 import './ContentPanel.css';
@@ -16,7 +15,6 @@ const PANEL_MAP = {
 	text: TextPanel,
 	media: MediaPanel,
 	posts: PostsPanel,
-	layers: LayersPanel,
 };
 
 export function ContentPanel() {

@@ -57,6 +57,7 @@
 }
 
 .socialframe-editor__body {
+	position: relative;
 	display: flex;
 	flex: 1;
 	overflow: hidden;

@@ -29,7 +29,7 @@ A graphic editor that runs inside your WordPress Admin. It reads your theme's th
 * Elements — add shapes (rectangle, rounded rectangle, circle, triangle, line)
 * Media — insert images from the WordPress Media Library
 * Import Post — search all public post types and import title, featured image, content, excerpt, taxonomy terms, and meta fields directly onto the canvas
-* Layers — reorder, rename, hide, and lock objects
+* Layers — an always-visible layer tree with drag and drop into and out of frames, multi-select, a right-click menu, rename, hide, and lock
 
 **Template fields**
 
@@ -103,6 +103,12 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 4. The admin designs list built with WordPress DataViews.
 
 == Changelog ==
+
+= Unreleased =
+* Add: Frames. Lay layers out with a direction, padding, gap and alignment, nest frames for rows, and let the artboard lay out the card. Framed images are shown whole at their own aspect ratio, and text set to shrink fits its frame, then is shortened with "…" in exports.
+* Add: The Layers panel is now an always-visible column (a drawer on narrow screens) with frames nested as a tree. Drag layers to reorder them or move them into and out of frames, Shift- or Cmd-click to select several, and right-click a layer in the tree or on the canvas for Create frame, Add to frame, Remove from frame, Duplicate, Lock, Hide, Rename and Delete.
+* Add: Corner radius for images. The corners keep their size when a frame resizes the image or a template fill swaps the photo.
+* Fix: Locked layers stay locked after saving and reloading.
 
 = 1.1.0 =
 * Security: Post import and template fills only read published posts of public post types that you can read, and never expose password-protected content you cannot edit.

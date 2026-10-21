@@ -6,6 +6,7 @@
  */
 
 import { configureFabric } from './configureFabric';
+import { applyFrameLayout } from './frameLayout';
 
 const TEXT_TYPES = [ 'text', 'i-text', 'itext', 'textbox' ];
 const LOAD_TIMEOUT_MS = 30000;
@@ -159,6 +160,10 @@ export async function renderDesign( fabricJson, size = {} ) {
 		// metrics; drop them and re-measure.
 		fabric.cache.clearFontCache();
 		canvas.getObjects().forEach( ( obj ) => obj.initDimensions?.() );
+
+		// Lay frames out around the filled content; overflowing flexible
+		// text is shortened, since this render is the output.
+		applyFrameLayout( canvas, { truncate: true } );
 
 		canvas.renderAll();
 		return canvas.lowerCanvasEl.toDataURL( 'image/png' );

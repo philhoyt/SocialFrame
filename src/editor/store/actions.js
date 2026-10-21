@@ -84,3 +84,13 @@ export const redoAction =
 export const setLayers = ( layers ) => ( { type: 'SET_LAYERS', layers } );
 
 export const setZoom = ( zoom ) => ( { type: 'SET_ZOOM', zoom } );
+
+export const openContextMenu = ( { x, y } ) => ( {
+	type: 'OPEN_CONTEXT_MENU',
+	x,
+	y,
+} );
+
+export const closeContextMenu = () => ( { type: 'CLOSE_CONTEXT_MENU' } );
+
+export const setLayersOpen = ( open ) => ( { type: 'SET_LAYERS_OPEN', open } );
