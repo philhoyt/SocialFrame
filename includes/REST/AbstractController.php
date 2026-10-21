@@ -227,9 +227,17 @@ abstract class AbstractController {
 	 * @param string   $image_data PNG data URI.
 	 * @param bool     $thumbnail  Resize to a 400px thumbnail first.
 	 * @param int      $replace_id Attachment to replace, or 0.
+	 * @param bool     $trusted_replace Skip edit_post on the attachment being
+	 *                                  replaced. Only for callers that already
+	 *                                  checked edit_post on the post the design
+	 *                                  was generated from: attachments map to
+	 *                                  core edit_posts and edit_others_posts, so
+	 *                                  without this a user who may regenerate
+	 *                                  the image could not replace it. The
+	 *                                  attachment must still be the design's.
 	 * @return array{attachmentId: int, url: string, libraryUrl: string}|WP_Error
 	 */
-	protected function store_png( \WP_Post $design, string $image_data, bool $thumbnail = false, int $replace_id = 0 ): array|WP_Error {
+	protected function store_png( \WP_Post $design, string $image_data, bool $thumbnail = false, int $replace_id = 0, bool $trusted_replace = false ): array|WP_Error {
 		// Strip the data URI prefix.
 		$base64 = preg_replace( '/^data:image\/png;base64,/', '', $image_data );
 		$binary = base64_decode( (string) $base64, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
@@ -262,7 +270,7 @@ abstract class AbstractController {
 			|| 'attachment' !== $replace->post_type
 			|| $replace->post_parent !== $design->ID
 			|| ! wp_attachment_is_image( $replace )
-			|| ! current_user_can( 'edit_post', $replace->ID )
+			|| ( ! $trusted_replace && ! current_user_can( 'edit_post', $replace->ID ) )
 		) {
 			$replace = null;
 		}
@@ -422,6 +430,8 @@ abstract class AbstractController {
 			'thumbnailUrl' => $image_id ? wp_get_attachment_url( $image_id ) : PreviewController::preview_url( $post->ID ),
 			'modified'     => $post->post_modified_gmt,
 			'editUrl'      => admin_url( 'admin.php?page=socialframe-editor&id=' . $post->ID ),
+			// Whether the user may open the design editor.
+			'canEdit'      => current_user_can( 'edit_posts' ),
 			'canDelete'    => current_user_can( 'delete_post', $post->ID ),
 			'postTypes'    => array_values( array_map( 'strval', get_post_meta( $post->ID, 'socialframe_post_types', false ) ) ),
 			'sourcePost'   => (int) get_post_meta( $post->ID, 'socialframe_source_post', true ),

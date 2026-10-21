@@ -305,4 +305,132 @@ class FramesControllerTest extends RestTestCase {
 		$this->assertSame( $generated['imageId'], $frames[0]['output']['imageId'] );
 		$this->assertNotEmpty( $frames[0]['output']['imageUrl'] );
 	}
+
+	/**
+	 * A role that edits only a custom type, without core edit_posts, can
+	 * list frames, dry-run, generate and regenerate in place for its own
+	 * post, but cannot open the design editor or library.
+	 */
+	public function test_problem_author_generates_from_own_post(): void {
+		$problem_author = $this->make_problem_author();
+		$problem        = self::factory()->post->create(
+			[
+				'post_type'   => 'problem',
+				'post_author' => $problem_author,
+				'post_title'  => 'Crimp Line',
+			]
+		);
+		add_post_meta( $this->design, 'socialframe_post_types', 'problem' );
+		wp_set_current_user( $problem_author );
+
+		$frames = $this->request( 'GET', '/posts/' . $problem . '/frames' );
+		$this->assertSame( 200, $frames->get_status() );
+		$this->assertSame( $this->design, $frames->get_data()['frames'][0]['design']['id'] );
+		$this->assertFalse( $frames->get_data()['frames'][0]['design']['canEdit'] );
+
+		$route = '/designs/' . $this->design . '/generate';
+		$this->assertSame( 200, $this->request( 'POST', $route, [ 'post_id' => $problem ] )->get_status() );
+
+		$params = [
+			'post_id'   => $problem,
+			'imageData' => $this->png_data_uri( 40, 40 ),
+		];
+		$first  = $this->request( 'POST', $route, $params );
+		$this->assertSame( 201, $first->get_status() );
+
+		$second = $this->request( 'POST', $route, $params );
+		$this->assertSame( 200, $second->get_status() );
+		$this->assertSame( $first->get_data()['imageId'], $second->get_data()['imageId'], 'Regenerating replaces the same attachment.' );
+
+		$this->assertSame( 403, $this->request( 'GET', '/designs' )->get_status() );
+	}
+
+	/**
+	 * The same role gets a 404 for a post of its type it cannot edit.
+	 */
+	public function test_problem_author_cannot_generate_from_others_post(): void {
+		$problem_author = $this->make_problem_author();
+		$problem        = self::factory()->post->create(
+			[
+				'post_type'   => 'problem',
+				'post_author' => $this->author,
+			]
+		);
+		add_post_meta( $this->design, 'socialframe_post_types', 'problem' );
+		wp_set_current_user( $problem_author );
+
+		$this->assertSame( 404, $this->request( 'GET', '/posts/' . $problem . '/frames' )->get_status() );
+		$this->assertSame(
+			404,
+			$this->request(
+				'POST',
+				'/designs/' . $this->design . '/generate',
+				[
+					'post_id'   => $problem,
+					'imageData' => $this->png_data_uri( 40, 40 ),
+				]
+			)->get_status()
+		);
+	}
+
+	/**
+	 * Regenerating replaces the image even when another user created it,
+	 * where the attachment's own edit_post would need edit_others_posts.
+	 */
+	public function test_regenerate_replaces_image_made_by_another_user(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		$image_id = $this->commit()->get_data()['imageId'];
+
+		wp_set_current_user( $this->author );
+		$this->assertFalse( current_user_can( 'edit_post', $image_id ) );
+
+		$res = $this->commit();
+		$this->assertSame( 200, $res->get_status() );
+		$this->assertSame( $image_id, $res->get_data()['imageId'] );
+	}
+
+	/**
+	 * A missing source post is a 404 before the design is looked at, so a
+	 * caller cannot tell missing designs from empty ones.
+	 */
+	public function test_missing_source_post_is_checked_first(): void {
+		foreach ( [ $this->design, 999999 ] as $design ) {
+			$res = $this->request( 'POST', '/designs/' . $design . '/generate', [ 'post_id' => 999999 ] );
+			$this->assertSame( 404, $res->get_status() );
+			$this->assertSame( 'post_not_found', $res->get_data()['code'] );
+		}
+	}
+
+	/**
+	 * Subscribers are refused; Authors see that they can open the editor.
+	 */
+	public function test_subscriber_refused_and_author_can_edit(): void {
+		$this->assertTrue( $this->request( 'GET', '/posts/' . $this->draft . '/frames' )->get_data()['frames'][0]['design']['canEdit'] );
+
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'subscriber' ] ) );
+		$this->assertSame( 403, $this->request( 'GET', '/posts/' . $this->draft . '/frames' )->get_status() );
+	}
+
+	/**
+	 * The socialframe_can_generate filter refuses even administrators.
+	 */
+	public function test_filter_refuses_administrator(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		add_filter( 'socialframe_can_generate', '__return_false' );
+
+		$this->assertSame( 403, $this->request( 'GET', '/posts/' . $this->draft . '/frames' )->get_status() );
+		$this->assertSame( 403, $this->commit()->get_status() );
+		$this->assertSame( [], $this->outputs() );
+	}
+
+	/**
+	 * The frames route checks its own post, not a post_id passed alongside.
+	 */
+	public function test_frames_ignores_post_id_param(): void {
+		$other = self::factory()->post->create( [ 'post_author' => self::factory()->user->create( [ 'role' => 'author' ] ) ] );
+		add_filter( 'socialframe_can_generate', fn( $can, $type, $post_id ) => $post_id !== $other, 10, 3 );
+
+		$res = $this->request( 'GET', '/posts/' . $other . '/frames', [ 'post_id' => $this->draft ] );
+		$this->assertSame( 404, $res->get_status() );
+	}
 }

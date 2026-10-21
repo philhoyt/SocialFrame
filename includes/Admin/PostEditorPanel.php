@@ -71,11 +71,7 @@ class PostEditorPanel {
 	 * @param string $post_type Post type slug.
 	 */
 	public static function should_load( string $post_type ): bool {
-		if ( ! current_user_can( 'edit_posts' ) || ! current_user_can( 'upload_files' ) ) {
-			return false;
-		}
-
-		if ( ! in_array( $post_type, PostSource::frame_post_types(), true ) ) {
+		if ( ! PostSource::can_generate_for_type( $post_type ) ) {
 			return false;
 		}
 

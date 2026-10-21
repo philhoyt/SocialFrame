@@ -87,6 +87,8 @@ Yes. Click Save as Template in the editor toolbar to save a design as a reusable
 
 Any user with the edit_posts capability can access SocialFrame, view all designs, and use every editor feature, including creating, editing, exporting, and duplicating. Designs are a shared workspace. Deleting a design you did not create requires the delete_others_posts capability (Editor role and above); you can always delete your own designs.
 
+Generating a post's image from the SocialFrame panel in the post editor needs less: the upload_files capability and permission to edit that post. Roles that edit only a custom post type, without edit_posts, can generate images for their posts but cannot open the rest of SocialFrame. Developers can narrow this with the socialframe_can_generate filter.
+
 = How do I make a graphic for every post from one template? =
 
 Select a text or image layer, open Template field in the properties panel, and choose a source such as Post title or Featured image. Or add a ready-bound field, such as Post title or a Featured image placeholder, from Template fields in the Elements panel. Save the design. Then click Create graphic under any published post in the post list and pick that design. A new, filled design opens in the editor.

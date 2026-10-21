@@ -159,10 +159,18 @@ Each post has one generated design and one image per assigned design. **Regenera
 
 A generated design holds content from its post, which may be a draft, so only users who can edit that post see it in the designs list.
 
+Anyone who can edit a post and upload files can generate its images, including roles that edit only a custom post type and lack `edit_posts`. Those users get the panel but not the rest of SocialFrame, so **Edit in SocialFrame** is hidden for them.
+
 Developers can narrow the post types offered with the `socialframe_frame_post_types` filter:
 
 ```php
 add_filter( 'socialframe_frame_post_types', fn( $types ) => array_intersect( $types, [ 'post', 'event' ] ) );
+```
+
+The `socialframe_can_generate` filter narrows who may generate. It receives `true`, the post type and the post ID (0 when the whole type is checked), and runs only after the user passed the checks above, so returning `true` never grants more:
+
+```php
+add_filter( 'socialframe_can_generate', fn( $can, $type ) => $can && current_user_can( 'publish_posts' ), 10, 2 );
 ```
 
 ### Frames
@@ -215,7 +223,7 @@ Every action is one undo step. Locked and hidden layers stay that way after savi
 
 ## REST API
 
-All endpoints are under the `socialframe/v1` namespace and require the `edit_posts` capability.
+All endpoints are under the `socialframe/v1` namespace and require the `edit_posts` capability, except `/posts/{id}/frames` and `/designs/{id}/generate`, which require `upload_files` and the right to edit the source post.
 
 | Method | Route | Description |
 |---|---|---|

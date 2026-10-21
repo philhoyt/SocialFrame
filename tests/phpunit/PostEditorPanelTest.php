@@ -12,7 +12,7 @@ use SocialFrame\Admin\PostEditorPanel;
 /**
  * Covers which post types and users get the panel.
  */
-class PostEditorPanelTest extends WP_UnitTestCase {
+class PostEditorPanelTest extends RestTestCase {
 
 	/**
 	 * Assign a design to posts.
@@ -85,5 +85,21 @@ class PostEditorPanelTest extends WP_UnitTestCase {
 		$this->assertTrue( wp_script_is( 'socialframe-post-editor', 'enqueued' ) );
 
 		set_current_screen( 'front' );
+	}
+
+	/**
+	 * A role that edits only a custom type gets the panel there, and the
+	 * socialframe_can_generate filter can take it away.
+	 */
+	public function test_loads_for_post_type_caps_without_edit_posts(): void {
+		wp_set_current_user( $this->make_problem_author() );
+		$design = self::factory()->post->create( [ 'post_type' => 'socialframe_graphic' ] );
+		add_post_meta( $design, 'socialframe_post_types', 'problem' );
+
+		$this->assertTrue( PostEditorPanel::should_load( 'problem' ) );
+		$this->assertFalse( PostEditorPanel::should_load( 'post' ) );
+
+		add_filter( 'socialframe_can_generate', '__return_false' );
+		$this->assertFalse( PostEditorPanel::should_load( 'problem' ) );
 	}
 }
