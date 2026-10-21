@@ -20,7 +20,7 @@ A graphic editor that runs inside your WordPress Admin. It reads your theme's `t
 | Elements | Rect, rounded rect, circle, triangle, line |
 | Media | Pick from the Media Library |
 | Import Post | Search any public post type; import title, featured image, content, excerpt, terms, and meta, or create a filled copy of a template |
-| Layers | Reorder, rename, hide, lock |
+| Layers | Always-visible layer tree: drag and drop into and out of frames, multi-select, right-click menu, rename, hide, lock |
 
 ### Properties Panel
 Selected-object controls on the right side of the editor. What's available depends on the object type:
@@ -84,7 +84,7 @@ npm run test:php   # PHPUnit (needs bin/install-wp-tests.sh once)
 npm run test:e2e   # Playwright, against a wp-env site on port 8889
 ```
 
-The E2E tests need Docker. Build first (`npm run build`); `npm run test:e2e` starts wp-env if it is not running yet. They cover creating, editing, saving, duplicating and exporting a design, and generating a design from the block editor's SocialFrame panel.
+The E2E tests need Docker. Build first (`npm run build`); `npm run test:e2e` starts wp-env if it is not running yet. They cover creating, editing, saving, duplicating and exporting a design, and generating a design from the block editor's SocialFrame panel, frames, and the Layers tree, including an axe-core accessibility scan of the Layers column and menu.
 
 ---
 
@@ -162,6 +162,43 @@ Developers can narrow the post types offered with the `socialframe_frame_post_ty
 ```php
 add_filter( 'socialframe_frame_post_types', fn( $types ) => array_intersect( $types, [ 'post', 'event' ] ) );
 ```
+
+### Frames
+Templates filled from posts get content of unknown size. Frames lay layers out for you, so a tall photo or a long title pushes what follows instead of overlapping it.
+
+**Creating frames**
+1. Shift-click two or more layers and choose **Create frame**. The direction and gap are worked out from where the layers sit.
+2. If one selected rectangle surrounds the others (a badge behind its text, say), it becomes the frame and its fill is the background.
+3. Frames nest: select a frame and another layer to put them side by side in a row.
+4. To use the whole card, click an empty part of the canvas and tick **Lay out content** under **Content layout**. Then select a layer and use **Frame placement → Add to frame → Artboard**.
+
+**Frame settings** (select the frame, or the artboard for its content layout)
+- **Direction:** vertical or horizontal.
+- **Gap:** space between layers.
+- **Padding:** one value, or per side.
+- **Align horizontally / vertically:** start, centre or end.
+- **Width / Height:** fixed, or fit the content.
+
+**A layer in a frame** (**Frame placement**)
+- **Width:** fixed, or fill the frame.
+- **Maximum height** for images, which are always shown whole, never cropped.
+- **Corner Radius** for images is set under **Position**. It is in canvas pixels, so the corners keep their size when a frame resizes the image or a template fill swaps the photo.
+- **Shrink to fit** and **Minimum size** for wrapping text.
+- **Move earlier / later**, and **Remove from frame**.
+
+A frame places its layers, so dragging a layer inside one snaps it back; drag the frame to move them together. When a frame with a fixed height runs out of room, text with **Shrink to fit** gets smaller down to its minimum size, then is shortened with "…" in exports and generated images. The design keeps the full text, and the editor outlines what doesn't fit in red. Rotated, skewed and grouped layers can't be in a frame.
+
+The layout runs in the browser: in the editor, on export, and when generating from the block editor. Designs filled through `POST /designs/{id}/fill` and rendered elsewhere get each framed image's size but not the frame positions.
+
+### Layers
+The **Layers** column lists every layer, top first, with each frame's layers nested under it. Below 1100px wide it becomes a drawer opened from the **Layers** button at the bottom of the left toolbar.
+
+- **Select:** click a row; Shift-click selects a range and Cmd/Ctrl-click adds or removes one. The canvas shows the same selection.
+- **Drag and drop:** drag rows to reorder them. Drop on the middle of a frame's row to add to the end of that frame, between a frame's layers to place them there, or between top-level rows to take them out of their frame.
+- **Layer menu:** right-click a row or a layer on the canvas, or press Shift+F10, for **Create frame**, **Add to frame**, **Remove from frame**, **Remove frame (keep layers)**, **Duplicate**, **Bring forward**, **Send backward**, **Lock**, **Hide**, **Rename** and **Delete**. It acts on the whole selection. Right-click an empty part of the canvas to turn the artboard's content layout on or off.
+- **Keyboard:** arrow keys move between rows, Right and Left open and close frames, Enter selects, F2 renames, Alt+Up/Down moves a layer, Delete removes it and Cmd/Ctrl+D duplicates it.
+
+Every action is one undo step. Locked and hidden layers stay that way after saving.
 
 ### Exporting
 1. Click **Export PNG** in the top-right toolbar

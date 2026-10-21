@@ -4,6 +4,7 @@ import { ArtboardPanel } from './ArtboardPanel';
 import { TextProperties } from './TextProperties';
 import { ImageProperties } from './ImageProperties';
 import { ShapeProperties } from './ShapeProperties';
+import { MultiSelectPanel } from './MultiSelectPanel';
 import './PropertiesPanel.css';
 
 export function PropertiesPanel() {
@@ -17,6 +18,7 @@ export function PropertiesPanel() {
 			text: TextProperties,
 			image: ImageProperties,
 			shape: ShapeProperties,
+			multi: MultiSelectPanel,
 		}[ selectionType ] ?? ArtboardPanel;
 
 	return (

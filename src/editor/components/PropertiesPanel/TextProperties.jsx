@@ -10,6 +10,7 @@ import { AlignmentSection } from './AlignmentSection';
 import { FlipSection } from './FlipSection';
 import { ShadowSection } from './ShadowSection';
 import { FieldSection } from './FieldSection';
+import { LayoutSection } from './LayoutSection';
 import { ColorRow } from './ColorRow';
 
 const { themeFonts } = window.socialFrameConfig ?? {};
@@ -394,6 +395,8 @@ export function TextProperties() {
 			</Accordion>
 
 			<FieldSection kind="text" />
+
+			<LayoutSection />
 		</div>
 	);
 }

@@ -1,0 +1,211 @@
+.socialframe-layers {
+	width: 240px;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	background: #242424;
+	border-right: 1px solid #3c3c3c;
+	min-height: 0;
+}
+
+.socialframe-layers__title {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #9a9a9a;
+	margin: 0;
+	padding: 12px 12px 8px;
+}
+
+/* Below 1100px the column is a drawer over the canvas. */
+@media (max-width: 1099px) {
+
+	.socialframe-layers {
+		display: none;
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 60px;
+		z-index: 20;
+		box-shadow: 4px 0 16px rgba(0, 0, 0, 0.4);
+	}
+
+	.socialframe-layers.is-open {
+		display: flex;
+	}
+}
+
+.socialframe-tree {
+	flex: 1;
+	overflow-y: auto;
+	padding: 0 4px 12px;
+}
+
+.socialframe-tree__row {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	height: 28px;
+	padding: 0 4px;
+	border-radius: 4px;
+	color: #ddd;
+	font-size: 12px;
+	cursor: default;
+	user-select: none;
+}
+
+/* wp-admin's media styles position every `[role="treeitem"] span[aria-hidden]`. */
+.socialframe-tree [role="treeitem"] span[aria-hidden] {
+	display: block;
+	position: static;
+	font-family: inherit;
+	font-size: inherit;
+	pointer-events: auto;
+}
+
+.socialframe-tree__row:hover {
+	background: #2e2e2e;
+}
+
+.socialframe-tree__row:focus-visible {
+	outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+	outline-offset: -2px;
+}
+
+.socialframe-tree__row.is-selected {
+	background: #2d3a66;
+	color: #fff;
+}
+
+/* Dimmed, but still 4.5:1 against the row backgrounds. */
+.socialframe-tree__row.is-hidden .socialframe-tree__name {
+	color: #9a9a9a;
+}
+
+.socialframe-tree__row.is-hidden.is-selected .socialframe-tree__name {
+	color: #b8b8b8;
+}
+
+.socialframe-tree__row.is-hidden .socialframe-tree__icon {
+	opacity: 0.45;
+}
+
+.socialframe-tree__guide {
+	align-self: stretch;
+	width: 12px;
+	flex-shrink: 0;
+	border-left: 1px solid #444;
+	margin-left: 6px;
+}
+
+.socialframe-tree__toggle {
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: #aaa;
+	font-size: 12px;
+	line-height: 16px;
+	cursor: pointer;
+}
+
+.socialframe-tree__icon {
+	width: 16px;
+	flex-shrink: 0;
+	text-align: center;
+	color: #aaa;
+}
+
+.socialframe-tree__name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.socialframe-tree__rename {
+	flex: 1;
+	min-width: 0;
+	height: 22px;
+	padding: 0 4px;
+	font-size: 12px;
+	color: #fff;
+	background: #1a1a1a;
+	border: 1px solid var(--wp-admin-theme-color, #3858e9);
+	border-radius: 2px;
+}
+
+.socialframe-tree__badge {
+	flex-shrink: 0;
+	color: #8fa8ff;
+	font-size: 11px;
+}
+
+.socialframe-tree__toggles {
+	display: flex;
+	flex-shrink: 0;
+	opacity: 0;
+}
+
+.socialframe-tree__row:hover .socialframe-tree__toggles,
+.socialframe-tree__row:focus-within .socialframe-tree__toggles,
+.socialframe-tree__row.is-locked .socialframe-tree__toggles,
+.socialframe-tree__row.is-hidden .socialframe-tree__toggles {
+	opacity: 1;
+}
+
+.socialframe-tree__state {
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	border-radius: 2px;
+	background: none;
+	font-size: 11px;
+	cursor: pointer;
+	opacity: 0.6;
+}
+
+.socialframe-tree__state:hover,
+.socialframe-tree__state.is-active {
+	opacity: 1;
+}
+
+/* Drop indicators. */
+.socialframe-tree__row.is-drop-before::before,
+.socialframe-tree__row.is-drop-after::after {
+	content: "";
+	position: absolute;
+	left: 4px;
+	right: 4px;
+	height: 2px;
+	background: var(--wp-admin-theme-color, #3858e9);
+	pointer-events: none;
+}
+
+.socialframe-tree__row.is-drop-before::before {
+	top: -1px;
+}
+
+.socialframe-tree__row.is-drop-after::after {
+	bottom: -1px;
+}
+
+.socialframe-tree__row.is-drop-inside {
+	box-shadow: inset 0 0 0 2px var(--wp-admin-theme-color, #3858e9);
+}
+
+.socialframe-tree__empty {
+	padding: 8px;
+	color: #888;
+	font-size: 12px;
+}
+
+.socialframe-layer-menu .components-menu-item__button {
+	min-height: 32px;
+}

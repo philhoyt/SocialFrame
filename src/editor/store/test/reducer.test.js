@@ -58,6 +58,21 @@ describe( 'editor reducer', () => {
 		);
 	} );
 
+	it( 'bumps the revision on every change, undo and redo', () => {
+		const changed = fromDefault( markDirty() );
+		expect( changed.revision ).toBe( 1 );
+		expect( reducer( changed, markClean() ).revision ).toBe( 1 );
+		expect( reducer( changed, markDirty() ).revision ).toBe( 2 );
+
+		const withHistory = reducer(
+			changed,
+			pushHistory( { label: 'x', undo: vi.fn(), redo: vi.fn() } )
+		);
+		const undone = reducer( withHistory, { type: 'UNDO' } );
+		expect( undone.revision ).toBe( 2 );
+		expect( reducer( undone, { type: 'REDO' } ).revision ).toBe( 3 );
+	} );
+
 	it( 'toggles the active panel when the same panel is set twice', () => {
 		const opened = fromDefault( setActivePanel( 'text' ) );
 		expect( opened.activePanel ).toBe( 'text' );

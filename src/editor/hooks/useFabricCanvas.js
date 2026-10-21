@@ -5,7 +5,10 @@ import * as fabric from 'fabric';
 import { AligningGuidelines } from 'fabric/extensions';
 
 import { configureFabric } from '../../shared/configureFabric';
+import { containInBox, readTree } from '../../shared/frameLayout';
 import { STORE_KEY } from '../store';
+import { useFrameLayout } from './useFrameLayout';
+import { buildRows } from '../utils/layerTree';
 import { FORMATS } from '../utils/formats';
 import {
 	createShape,
@@ -56,6 +59,12 @@ export function useFabricCanvas(
 	const isPanningRef = useRef( false );
 	const panStartRef = useRef( { x: 0, y: 0 } );
 	const dispatch = useDispatch( STORE_KEY );
+	const syncLayers = useCallback( () => {
+		if ( fabricRef.current ) {
+			syncLayersToStore( fabricRef.current, dispatch );
+		}
+	}, [ dispatch ] );
+	const frames = useFrameLayout( fabricRef, dispatch, syncLayers );
 
 	// Initialize Fabric once on mount.
 	useEffect( () => {
@@ -203,6 +212,7 @@ export function useFabricCanvas(
 					syncLayersToStore( canvas, dispatch );
 					canvas.renderAll();
 					fitToScreen();
+					frames.schedule();
 				} );
 			} catch ( e ) {
 				// eslint-disable-next-line no-console
@@ -240,11 +250,11 @@ export function useFabricCanvas(
 		resizeObserver.observe( container );
 
 		// ── Selection bridge ──────────────────────────────────────────────────
-		canvas.on( 'selection:created', ( e ) =>
-			syncSelection( e.selected?.[ 0 ], dispatch )
+		canvas.on( 'selection:created', () =>
+			syncSelection( canvas.getActiveObject(), dispatch )
 		);
-		canvas.on( 'selection:updated', ( e ) =>
-			syncSelection( e.selected?.[ 0 ], dispatch )
+		canvas.on( 'selection:updated', () =>
+			syncSelection( canvas.getActiveObject(), dispatch )
 		);
 		canvas.on( 'selection:cleared', () => dispatch.clearSelection() );
 
@@ -268,6 +278,12 @@ export function useFabricCanvas(
 
 			const obj = e.target;
 			if ( ! obj || isArtboardObject( obj ) ) {
+				return;
+			}
+
+			// Layers in a frame are placed by it, and frames resize by
+			// their own rules; frames record their own history.
+			if ( frames.handleModified( e ) ) {
 				return;
 			}
 
@@ -333,8 +349,32 @@ export function useFabricCanvas(
 			if ( isArtboardObject( e.target ) ) {
 				return;
 			}
+			frames.handleRemoved( e.target );
 			dispatch.markDirty();
 			syncLayersToStore( canvas, dispatch );
+		} );
+
+		// Right-click opens the layer menu at the pointer. A layer outside the
+		// selection becomes the selection first; empty canvas clears it.
+		canvas.on( 'contextmenu', ( opt ) => {
+			const target = opt.target;
+			if ( target && ! isArtboardObject( target ) ) {
+				if ( ! canvas.getActiveObjects().includes( target ) ) {
+					canvas.setActiveObject( target );
+				}
+			} else {
+				canvas.discardActiveObject();
+				dispatch.clearSelection();
+			}
+			canvas.requestRenderAll();
+			dispatch.openContextMenu( { x: opt.e.clientX, y: opt.e.clientY } );
+		} );
+
+		// A dragged frame takes its layers along as it moves.
+		canvas.on( 'object:moving', ( e ) => {
+			if ( e.target?.sfFrame ) {
+				frames.schedule();
+			}
 		} );
 
 		// ── Snap to grid ──────────────────────────────────────────────────────
@@ -419,6 +459,9 @@ export function useFabricCanvas(
 				} );
 			}
 		} );
+
+		// Reflow frames while text is typed.
+		canvas.on( 'text:changed', () => frames.schedule() );
 
 		// ── Auto-delete empty text objects ────────────────────────────────────
 		canvas.on( 'text:editing:exited', ( e ) => {
@@ -571,6 +614,36 @@ export function useFabricCanvas(
 			}
 
 			ctx.restore();
+
+			// Frames: a red outline on frames whose content doesn't fit, and
+			// on text that will be shortened on export.
+			const layout = frames.result.current;
+			if (
+				frames.exporting.current ||
+				( ! layout.overflows.length && ! layout.truncated.length )
+			) {
+				return;
+			}
+			ctx.save();
+			ctx.strokeStyle = '#d63638';
+			ctx.lineWidth = 2;
+			ctx.setLineDash( [ 6, 4 ] );
+			const ids = new Set( [
+				...layout.overflows.map( ( o ) => o.frameId ),
+				...layout.truncated,
+			] );
+			for ( const target of canvas.getObjects() ) {
+				if ( ! ids.has( target.id ) ) {
+					continue;
+				}
+				ctx.strokeRect(
+					panX + target.left * zoom,
+					panY + target.top * zoom,
+					target.getScaledWidth() * zoom,
+					target.getScaledHeight() * zoom
+				);
+			}
+			ctx.restore();
 		};
 		canvas.on( 'after:render', drawOverlay );
 
@@ -613,55 +686,60 @@ export function useFabricCanvas(
 	 * Temporarily resets the canvas to artboard dimensions + identity viewport
 	 * so the export is pixel-perfect regardless of current zoom/pan.
 	 */
-	const toDataURL = useCallback( () => {
-		const canvas = fabricRef.current;
-		const artboard = artboardRectRef.current;
-		if ( ! canvas ) {
-			return null;
-		}
+	const toDataURL = useCallback(
+		() =>
+			// Stack text that doesn't fit is shortened for the export only.
+			frames.forExport( () => {
+				const canvas = fabricRef.current;
+				const artboard = artboardRectRef.current;
+				if ( ! canvas ) {
+					return null;
+				}
 
-		const artW = artboardWRef.current;
-		const artH = artboardHRef.current;
-		const prevVT = [ ...canvas.viewportTransform ];
-		const prevW = canvas.width;
-		const prevH = canvas.height;
+				const artW = artboardWRef.current;
+				const artH = artboardHRef.current;
+				const prevVT = [ ...canvas.viewportTransform ];
+				const prevW = canvas.width;
+				const prevH = canvas.height;
 
-		// Temporarily disable artboard shadow for a clean export.
-		const prevShadow = artboard?.shadow ?? null;
-		if ( artboard ) {
-			artboard.set( 'shadow', null );
-		}
+				// Temporarily disable artboard shadow for a clean export.
+				const prevShadow = artboard?.shadow ?? null;
+				if ( artboard ) {
+					artboard.set( 'shadow', null );
+				}
 
-		// Deselect any active object so transform handles don't appear in the export.
-		const prevActive = canvas.getActiveObject();
-		canvas.discardActiveObject();
+				// Deselect any active object so transform handles don't appear in the export.
+				const prevActive = canvas.getActiveObject();
+				canvas.discardActiveObject();
 
-		// Render at 1x so the export matches the format size on high-DPI
-		// screens too; setDimensions() reads the retina scaling when called.
-		const prevRetina = canvas.enableRetinaScaling;
-		canvas.enableRetinaScaling = false;
-		canvas.setDimensions( { width: artW, height: artH } );
-		canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
-		canvas.renderAll();
+				// Render at 1x so the export matches the format size on high-DPI
+				// screens too; setDimensions() reads the retina scaling when called.
+				const prevRetina = canvas.enableRetinaScaling;
+				canvas.enableRetinaScaling = false;
+				canvas.setDimensions( { width: artW, height: artH } );
+				canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
+				canvas.renderAll();
 
-		// Read pixels directly from the lower canvas — Fabric v6's toDataURL() creates
-		// an offscreen canvas internally whose context is null after setDimensions().
-		const dataURL = canvas.lowerCanvasEl.toDataURL( 'image/png' );
+				// Read pixels directly from the lower canvas — Fabric v6's toDataURL() creates
+				// an offscreen canvas internally whose context is null after setDimensions().
+				const dataURL = canvas.lowerCanvasEl.toDataURL( 'image/png' );
 
-		// Restore retina scaling, viewport, shadow, and selection.
-		if ( artboard ) {
-			artboard.set( 'shadow', prevShadow );
-		}
-		canvas.enableRetinaScaling = prevRetina;
-		canvas.setDimensions( { width: prevW, height: prevH } );
-		canvas.setViewportTransform( prevVT );
-		if ( prevActive ) {
-			canvas.setActiveObject( prevActive );
-		}
-		canvas.renderAll();
+				// Restore retina scaling, viewport, shadow, and selection.
+				if ( artboard ) {
+					artboard.set( 'shadow', prevShadow );
+				}
+				canvas.enableRetinaScaling = prevRetina;
+				canvas.setDimensions( { width: prevW, height: prevH } );
+				canvas.setViewportTransform( prevVT );
+				if ( prevActive ) {
+					canvas.setActiveObject( prevActive );
+				}
+				canvas.renderAll();
 
-		return dataURL;
-	}, [] );
+				return dataURL;
+			} ),
+		[ frames ]
+	);
 
 	const loadFromJSON = useCallback(
 		( json ) => {
@@ -842,12 +920,13 @@ export function useFabricCanvas(
 	);
 
 	const updateSelected = useCallback(
-		( props, label = 'Update' ) => {
+		( changes, label = 'Update' ) => {
 			const canvas = fabricRef.current;
 			const obj = canvas?.getActiveObject();
 			if ( ! obj ) {
 				return;
 			}
+			const props = frames.withItemBase( obj, changes );
 
 			const prevProps = {};
 			Object.keys( props ).forEach( ( k ) => {
@@ -883,13 +962,23 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
 	const deleteSelected = useCallback( () => {
 		const canvas = fabricRef.current;
 		const obj = canvas?.getActiveObject();
 		if ( ! obj ) {
+			return;
+		}
+		const targets = canvas.getActiveObjects();
+		if ( frames.involves( targets ) ) {
+			canvas.discardActiveObject();
+			dispatch.clearSelection();
+			frames.removeObjects(
+				targets,
+				__( 'Delete object', 'socialframe' )
+			);
 			return;
 		}
 
@@ -911,7 +1000,7 @@ export function useFabricCanvas(
 				canvas.renderAll();
 			},
 		} );
-	}, [ dispatch ] );
+	}, [ dispatch, frames ] );
 
 	// ── Shape fill with image ─────────────────────────────────────────────────
 
@@ -1251,6 +1340,9 @@ export function useFabricCanvas(
 			if ( ! canvas || ! obj ) {
 				return;
 			}
+			if ( frames.moveLayer( id, 1 ) ) {
+				return;
+			}
 			canvas.bringObjectForward( obj );
 			canvas.renderAll();
 			syncLayersToStore( canvas, dispatch );
@@ -1271,7 +1363,7 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
 	const moveLayerDown = useCallback(
@@ -1279,6 +1371,9 @@ export function useFabricCanvas(
 			const canvas = fabricRef.current;
 			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
 			if ( ! canvas || ! obj ) {
+				return;
+			}
+			if ( frames.moveLayer( id, -1 ) ) {
 				return;
 			}
 
@@ -1311,48 +1406,163 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
-	const duplicateById = useCallback(
-		async ( id ) => {
+	/**
+	 * Duplicate layers as one undo step. A frame is copied with the layers
+	 * inside it (new ids, its list remapped); a copied layer that was in a
+	 * frame starts outside it. Copies sit 20px down and right, just above
+	 * the originals, and become the selection. If any copy fails, nothing is
+	 * added.
+	 *
+	 * @param {string[]} ids Layer ids.
+	 */
+	const duplicateMany = useCallback(
+		async ( ids ) => {
 			const canvas = fabricRef.current;
-			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
-			if ( ! canvas || ! obj ) {
+			if ( ! canvas || ! ids?.length ) {
 				return;
 			}
-			const clone = await obj.clone();
-			clone.set( {
-				id: genId(),
-				left: ( obj.left ?? 0 ) + 20,
-				top: ( obj.top ?? 0 ) + 20,
+			canvas.discardActiveObject();
+			const tree = readTree( canvas.getObjects() );
+			const chosen = new Set( ids );
+			const roots = ids.filter( ( id ) => {
+				const obj = tree.byId.get( id );
+				if ( ! obj || isArtboardObject( obj ) ) {
+					return false;
+				}
+				let up = tree.parent.get( id );
+				while ( up !== undefined ) {
+					if ( chosen.has( up ) ) {
+						return false;
+					}
+					up = tree.parent.get( up );
+				}
+				return true;
 			} );
-			if ( obj.name ) {
-				clone.name = obj.name;
+			if ( ! roots.length ) {
+				return;
 			}
-			canvas.add( clone );
-			canvas.setActiveObject( clone );
-			canvas.renderAll();
+			const withLayers = ( id ) => [
+				id,
+				...( tree.children.get( id ) ?? [] ).flatMap( withLayers ),
+			];
+			const sources = roots
+				.flatMap( withLayers )
+				.map( ( id ) => tree.byId.get( id ) )
+				.filter( Boolean )
+				.sort(
+					( a, b ) =>
+						canvas.getObjects().indexOf( a ) -
+						canvas.getObjects().indexOf( b )
+				);
+			const newIds = new Map( sources.map( ( o ) => [ o.id, genId() ] ) );
+
+			let clones;
+			try {
+				clones = await Promise.all( sources.map( ( o ) => o.clone() ) );
+			} catch {
+				return;
+			}
+			clones.forEach( ( clone, i ) => {
+				const src = sources[ i ];
+				clone.set( {
+					id: newIds.get( src.id ),
+					left: ( src.left ?? 0 ) + 20,
+					top: ( src.top ?? 0 ) + 20,
+				} );
+				if ( src.name ) {
+					clone.name = src.name;
+				}
+				clone.sfFrame = src.sfFrame
+					? {
+							...JSON.parse( JSON.stringify( src.sfFrame ) ),
+							children: src.sfFrame.children
+								.filter( ( c ) => newIds.has( c ) )
+								.map( ( c ) => newIds.get( c ) ),
+						}
+					: undefined;
+				clone.sfItem =
+					roots.includes( src.id ) || ! src.sfItem
+						? undefined
+						: { ...src.sfItem };
+			} );
+
+			const top = Math.max(
+				...sources.map( ( o ) => canvas.getObjects().indexOf( o ) )
+			);
+			const insert = () =>
+				clones.forEach( ( clone, i ) =>
+					canvas.insertAt( top + 1 + i, clone )
+				);
+			const remove = () =>
+				clones.forEach( ( clone ) => canvas.remove( clone ) );
+			const select = () =>
+				frames.selectIds( roots.map( ( id ) => newIds.get( id ) ) );
+
+			insert();
+			select();
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: __( 'Duplicate layer', 'socialframe' ),
+				label: __( 'Duplicate', 'socialframe' ),
 				undo: () => {
-					canvas.remove( clone );
-					canvas.renderAll();
+					canvas.discardActiveObject();
+					remove();
 					syncLayersToStore( canvas, dispatch );
+					dispatch.clearSelection();
 					dispatch.markDirty();
 				},
 				redo: () => {
-					canvas.add( clone );
-					canvas.setActiveObject( clone );
-					canvas.renderAll();
+					insert();
+					select();
 					syncLayersToStore( canvas, dispatch );
 					dispatch.markDirty();
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
+	);
+
+	const duplicateById = useCallback(
+		( id ) => duplicateMany( [ id ] ),
+		[ duplicateMany ]
+	);
+
+	const duplicateSelected = useCallback( () => {
+		const canvas = fabricRef.current;
+		return duplicateMany(
+			( canvas?.getActiveObjects() ?? [] ).map( ( o ) => o.id )
+		);
+	}, [ duplicateMany ] );
+
+	/** Ids of the selected layers. */
+	const getSelectedIds = useCallback(
+		() =>
+			( fabricRef.current?.getActiveObjects() ?? [] )
+				.map( ( o ) => o.id )
+				.filter( Boolean ),
+		[]
+	);
+
+	/**
+	 * Select layers by id: one as itself, several as a multi-selection,
+	 * none to clear.
+	 *
+	 * @param {string[]} ids Layer ids.
+	 */
+	const selectByIds = useCallback(
+		( ids ) => {
+			if ( ! ids.length ) {
+				fabricRef.current?.discardActiveObject();
+				fabricRef.current?.requestRenderAll();
+				dispatch.clearSelection();
+				return;
+			}
+			frames.selectIds( ids );
+		},
+		[ dispatch, frames ]
 	);
 
 	const deleteById = useCallback(
@@ -1360,6 +1570,15 @@ export function useFabricCanvas(
 			const canvas = fabricRef.current;
 			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
 			if ( ! canvas || ! obj ) {
+				return;
+			}
+			if ( frames.involves( [ obj ] ) ) {
+				canvas.discardActiveObject();
+				dispatch.clearSelection();
+				frames.removeObjects(
+					[ obj ],
+					__( 'Delete layer', 'socialframe' )
+				);
 				return;
 			}
 			canvas.remove( obj );
@@ -1385,7 +1604,7 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
 	const renameById = useCallback(
@@ -1417,44 +1636,6 @@ export function useFabricCanvas(
 	);
 
 	/** Duplicate the currently active object, offset by 20px. */
-	const duplicateSelected = useCallback( async () => {
-		const canvas = fabricRef.current;
-		const obj = canvas?.getActiveObject();
-		if ( ! canvas || ! obj ) {
-			return;
-		}
-		const clone = await obj.clone();
-		clone.set( {
-			id: genId(),
-			left: ( obj.left ?? 0 ) + 20,
-			top: ( obj.top ?? 0 ) + 20,
-		} );
-		if ( obj.name ) {
-			clone.name = obj.name;
-		}
-		canvas.add( clone );
-		canvas.setActiveObject( clone );
-		canvas.renderAll();
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: __( 'Duplicate', 'socialframe' ),
-			undo: () => {
-				canvas.remove( clone );
-				canvas.renderAll();
-				syncLayersToStore( canvas, dispatch );
-				dispatch.markDirty();
-			},
-			redo: () => {
-				canvas.add( clone );
-				canvas.setActiveObject( clone );
-				canvas.renderAll();
-				syncLayersToStore( canvas, dispatch );
-				dispatch.markDirty();
-			},
-		} );
-	}, [ dispatch ] );
-
 	const setLayerLocked = useCallback(
 		( id, locked ) => {
 			const canvas = fabricRef.current;
@@ -1541,24 +1722,62 @@ export function useFabricCanvas(
 				crossOrigin: 'anonymous',
 			} );
 			const newElement = newImg.getElement();
+
+			// An image in a frame is shown whole at its intended width; record its
+			// geometry so undo restores the old size along with the old file.
+			const GEO = [
+				'left',
+				'width',
+				'height',
+				'scaleX',
+				'scaleY',
+				'cropX',
+				'cropY',
+			];
+			const prevGeo = Object.fromEntries(
+				GEO.map( ( k ) => [ k, obj[ k ] ] )
+			);
 			obj.setElement( newElement );
+			const box = frames.imageBox( obj );
+			const fit = box
+				? containInBox(
+						{
+							width: newElement.naturalWidth || newElement.width,
+							height:
+								newElement.naturalHeight || newElement.height,
+						},
+						box
+					)
+				: null;
+			if ( fit ) {
+				obj.set( fit );
+				obj.setCoords();
+			}
+			const nextGeo = Object.fromEntries(
+				GEO.map( ( k ) => [ k, obj[ k ] ] )
+			);
+
 			canvas.renderAll();
 			dispatch.markDirty();
 			dispatch.pushHistory( {
 				label: __( 'Replace image', 'socialframe' ),
 				undo: () => {
 					obj.setElement( prevElement );
+					obj.set( prevGeo );
+					obj.setCoords();
 					canvas.renderAll();
 					dispatch.markDirty();
 				},
 				redo: () => {
 					obj.setElement( newElement );
+					obj.set( nextGeo );
+					obj.setCoords();
 					canvas.renderAll();
 					dispatch.markDirty();
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
 	);
 
 	return {
@@ -1574,6 +1793,10 @@ export function useFabricCanvas(
 		updateSelected,
 		deleteSelected,
 		replaceImage,
+		frames,
+		duplicateMany,
+		getSelectedIds,
+		selectByIds,
 		fillShapeWithImage,
 		updateShapeImageFit,
 		setBackgroundImage,
@@ -1677,6 +1900,14 @@ function syncSelection( obj, dispatch ) {
 	if ( ! obj ) {
 		return;
 	}
+	if ( obj.type === 'activeselection' ) {
+		dispatch.setSelection( {
+			type: 'multi',
+			objectId: null,
+			properties: { ids: obj.getObjects().map( ( o ) => o.id ) },
+		} );
+		return;
+	}
 	const type = getObjectType( obj );
 	const properties = extractProperties( obj, type );
 	dispatch.setSelection( {
@@ -1695,21 +1926,26 @@ function isArtboardObject( o ) {
 }
 
 function syncLayersToStore( canvas, dispatch ) {
-	const objects = canvas
-		.getObjects()
-		.filter( ( o ) => ! isArtboardObject( o ) );
+	const objects = canvas.getObjects();
 	// Ensure every object has a stable ID before syncing to the store.
 	objects.forEach( ( obj ) => {
 		if ( ! obj.id ) {
 			obj.id = genId();
 		}
 	} );
-	const layers = [ ...objects ].reverse().map( ( obj ) => ( {
-		id: obj.id,
-		name: obj.name || getDefaultLayerName( obj ),
-		type: getObjectType( obj ),
-		locked: ! ( obj.selectable ?? true ),
-		visible: obj.visible ?? true,
-	} ) );
-	dispatch.setLayers( layers );
+	const byId = new Map( objects.map( ( o ) => [ o.id, o ] ) );
+	dispatch.setLayers(
+		buildRows( objects ).map( ( row ) => {
+			const obj = byId.get( row.id );
+			return {
+				...row,
+				name:
+					row.kind === 'artboard'
+						? __( 'Artboard', 'socialframe' )
+						: row.name || getDefaultLayerName( obj ),
+				type:
+					row.kind === 'artboard' ? 'artboard' : getObjectType( obj ),
+			};
+		} )
+	);
 }

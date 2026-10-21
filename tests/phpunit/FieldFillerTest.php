@@ -180,6 +180,127 @@ class FieldFillerTest extends RestTestCase {
 	}
 
 	/**
+	 * A one-image canvas whose image may sit in a frame.
+	 *
+	 * @param mixed $item     The image's sfItem.
+	 * @param bool  $in_frame Whether a frame lists the image as a child.
+	 * @return array<string, mixed>
+	 */
+	private function framed_canvas( $item, bool $in_frame = true ): array {
+		return [
+			'objects' => [
+				[
+					'type'    => 'Rect',
+					'id'      => 'frame',
+					'width'   => 1080,
+					'height'  => 1350,
+					'sfFrame' => [ 'children' => $in_frame ? [ 'photo' ] : [] ],
+				],
+				[
+					'type'      => 'Image',
+					'id'        => 'photo',
+					'src'       => 'old.png',
+					'left'      => 0,
+					'top'       => 120,
+					'width'     => 1080,
+					'height'    => 810,
+					'cropX'     => 40,
+					'cropY'     => 30,
+					'scaleX'    => 1,
+					'scaleY'    => 1,
+					'fieldName' => 'photo',
+					'sfItem'    => $item,
+				],
+			],
+		];
+	}
+
+	/**
+	 * A portrait image in a frame is shown whole at its max height, centred.
+	 */
+	public function test_framed_portrait_image_is_contained_not_cropped(): void {
+		$attachment = $this->make_image_attachment( 2048, 2560 );
+		$canvas     = $this->framed_canvas(
+			[
+				'w'         => 1080,
+				'maxHeight' => 810,
+			]
+		);
+
+		$image = FieldFiller::fill( $canvas, [ 'photo' => $attachment ] )['canvas']['objects'][1];
+
+		$this->assertSame( [ 0, 0 ], [ $image['cropX'], $image['cropY'] ] );
+		$this->assertEqualsWithDelta( 2048, $image['width'], 1e-9 );
+		$this->assertEqualsWithDelta( 648, $image['width'] * $image['scaleX'], 1e-6 );
+		$this->assertEqualsWithDelta( 810, $image['height'] * $image['scaleY'], 1e-6 );
+		$this->assertEqualsWithDelta( 216, $image['left'], 1e-6 );
+		$this->assertSame( 120, $image['top'], 'The browser layout owns the top.' );
+	}
+
+	/**
+	 * Without a max height, an image in a frame fills its intended width.
+	 */
+	public function test_framed_landscape_image_fills_intended_width(): void {
+		$attachment = $this->make_image_attachment( 2048, 1152 );
+		$canvas     = $this->framed_canvas( [ 'w' => 1000 ] );
+
+		$image = FieldFiller::fill( $canvas, [ 'photo' => $attachment ] )['canvas']['objects'][1];
+
+		$this->assertEqualsWithDelta( 1000, $image['width'] * $image['scaleX'], 1e-6 );
+		$this->assertEqualsWithDelta( 562.5, $image['height'] * $image['scaleY'], 1e-6 );
+	}
+
+	/**
+	 * Filling portrait, then landscape, then portrait never shrinks the image:
+	 * the box comes from the intended width, not the last result.
+	 */
+	public function test_repeated_fills_keep_the_intended_width(): void {
+		$portrait  = $this->make_image_attachment( 2048, 2560 );
+		$landscape = $this->make_image_attachment( 2048, 1152 );
+		$canvas    = $this->framed_canvas(
+			[
+				'w'         => 1080,
+				'maxHeight' => 810,
+			]
+		);
+
+		foreach ( [ $portrait, $landscape, $portrait, $landscape ] as $attachment ) {
+			$canvas = FieldFiller::fill( $canvas, [ 'photo' => $attachment ] )['canvas'];
+		}
+		$image = $canvas['objects'][1];
+
+		$this->assertEqualsWithDelta( 1080, $image['width'] * $image['scaleX'], 1e-6 );
+	}
+
+	/**
+	 * An image with layout settings that no frame lists is still cover-cropped.
+	 */
+	public function test_item_without_membership_still_covers(): void {
+		$attachment = $this->make_image_attachment( 2048, 2560 );
+		$canvas     = $this->framed_canvas( [ 'w' => 1080 ], false );
+
+		$image = FieldFiller::fill( $canvas, [ 'photo' => $attachment ] )['canvas']['objects'][1];
+
+		$this->assertEqualsWithDelta( 1080, $image['width'] * $image['scaleX'], 1e-6 );
+		$this->assertEqualsWithDelta( 810, $image['height'] * $image['scaleY'], 1e-6 );
+		$this->assertGreaterThan( 0, $image['cropY'] );
+	}
+
+	/**
+	 * Unusable layout settings fall back to the cover crop.
+	 */
+	public function test_invalid_item_falls_back_to_cover(): void {
+		$attachment = $this->make_image_attachment( 2048, 2560 );
+
+		foreach ( [ 'nope', [ 'w' => 1e9 ], [ 'w' => 1080, 'maxHeight' => -5 ] ] as $item ) {
+			$image = FieldFiller::fill( $this->framed_canvas( $item ), [ 'photo' => $attachment ] )['canvas']['objects'][1];
+
+			$this->assertEqualsWithDelta( 810, $image['height'] * $image['scaleY'], 1e-6, wp_json_encode( $item ) );
+			$this->assertGreaterThan( 0, $image['cropY'], wp_json_encode( $item ) );
+		}
+	}
+
+	/**
 	 * A portrait image into a wide box: width fills, top and bottom are cropped.
 	 */
 	public function test_image_cover_crops_tall_image_into_wide_box(): void {

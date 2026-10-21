@@ -6,6 +6,7 @@ import { useFabric } from '../../EditorApp';
 import { Accordion } from './Accordion';
 import { ColorRow } from './ColorRow';
 import { PostTypesSection } from './PostTypesSection';
+import { ArtboardLayoutSection } from './ArtboardLayoutSection';
 
 const FIT_MODES = [
 	{ value: 'cover', label: __( 'Cover', 'socialframe' ) },
@@ -194,6 +195,8 @@ export function ArtboardPanel() {
 					</div>
 				) }
 			</Accordion>
+
+			<ArtboardLayoutSection />
 
 			<PostTypesSection />
 		</div>

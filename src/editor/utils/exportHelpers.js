@@ -9,6 +9,8 @@ import { __, sprintf } from '@wordpress/i18n';
  * @return {Promise<{attachmentId: number, url: string, libraryUrl: string}>} The uploaded attachment data.
  */
 export async function exportDesign( toDataURL, designId, apiFetch ) {
+	// Text is measured with its web font, not a fallback.
+	await document.fonts?.ready;
 	const imageData = toDataURL();
 	if ( ! imageData ) {
 		throw new Error( 'Canvas produced no image data.' );
@@ -34,6 +36,7 @@ export async function exportDesign( toDataURL, designId, apiFetch ) {
  */
 export async function sendPreview( toDataURL, designId, apiFetch ) {
 	try {
+		await document.fonts?.ready;
 		const imageData = toDataURL();
 		if ( ! imageData ) {
 			return;

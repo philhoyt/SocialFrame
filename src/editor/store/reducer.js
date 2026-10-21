@@ -13,12 +13,19 @@ const DEFAULT_STATE = {
 		properties: {},
 	},
 	isDirty: false,
+	// Bumped on every canvas change, undo and redo, so derived work such as
+	// the vertical stack layout can re-run without hooking every path.
+	revision: 0,
 	isSaving: false,
 	lastSaved: null,
 	undoStack: [],
 	undoIndex: -1,
 	layers: [],
 	zoom: 100,
+	// Open layer menu: { x, y } in viewport pixels, or null.
+	contextMenu: null,
+	// Narrow screens: whether the Layers drawer is open.
+	layersOpen: false,
 };
 
 export function reducer( state = DEFAULT_STATE, action ) {
@@ -69,7 +76,7 @@ export function reducer( state = DEFAULT_STATE, action ) {
 			};
 
 		case 'MARK_DIRTY':
-			return { ...state, isDirty: true };
+			return { ...state, isDirty: true, revision: state.revision + 1 };
 
 		case 'MARK_CLEAN':
 			return {
@@ -98,18 +105,37 @@ export function reducer( state = DEFAULT_STATE, action ) {
 			if ( state.undoIndex < 0 ) {
 				return state;
 			}
-			return { ...state, undoIndex: state.undoIndex - 1, isDirty: true };
+			return {
+				...state,
+				undoIndex: state.undoIndex - 1,
+				isDirty: true,
+				revision: state.revision + 1,
+			};
 		}
 
 		case 'REDO': {
 			if ( state.undoIndex >= state.undoStack.length - 1 ) {
 				return state;
 			}
-			return { ...state, undoIndex: state.undoIndex + 1, isDirty: true };
+			return {
+				...state,
+				undoIndex: state.undoIndex + 1,
+				isDirty: true,
+				revision: state.revision + 1,
+			};
 		}
 
 		case 'SET_LAYERS':
 			return { ...state, layers: action.layers };
+
+		case 'OPEN_CONTEXT_MENU':
+			return { ...state, contextMenu: { x: action.x, y: action.y } };
+
+		case 'CLOSE_CONTEXT_MENU':
+			return { ...state, contextMenu: null };
+
+		case 'SET_LAYERS_OPEN':
+			return { ...state, layersOpen: action.open };
 
 		case 'SET_ZOOM':
 			return { ...state, zoom: action.zoom };
