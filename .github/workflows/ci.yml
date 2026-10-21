@@ -73,6 +73,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --no-progress
 
+      - name: Audit Composer dependencies
+        run: composer audit
+
       - name: phpcs
         run: vendor/bin/phpcs
 

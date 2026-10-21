@@ -1,5 +1,7 @@
 # SocialFrame
 
+[![CI](https://github.com/philhoyt/SocialFrame/actions/workflows/ci.yml/badge.svg)](https://github.com/philhoyt/SocialFrame/actions/workflows/ci.yml)
+
 A graphic editor that runs inside your WordPress Admin. It reads your theme's `theme.json` for colors and fonts, lets you pull content from any post directly onto the canvas, and exports full-resolution PNGs to the Media Library.
 
 ---
