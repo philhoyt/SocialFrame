@@ -109,7 +109,13 @@ export function LayerMenu() {
 			.filter( Boolean );
 	};
 	const createProblem = frames.createProblem( roots );
-	const parents = new Set( roots.map( ( id ) => byId.get( id )?.parentId ) );
+	// Content-layout members are top-level rows; their parent is the artboard.
+	const parents = new Set(
+		roots.map( ( id ) => {
+			const r = byId.get( id );
+			return r?.inLayout ? artboard?.id : r?.parentId;
+		} )
+	);
 	const targets = rows.filter(
 		( r ) =>
 			r.isFrame &&
