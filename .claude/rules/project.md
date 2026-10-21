@@ -23,6 +23,8 @@ paths:
 
 Designs are a **shared workspace**: any user with `edit_posts` can list, view, create, edit, export, and duplicate every design. Deletion is the one gated action — it uses the `delete_post` meta capability (`require_delete_graphic` in `AbstractController`), so owners can delete their own designs and deleting another user's design requires `delete_others_posts` (Editor+). `format_design()` exposes a `canDelete` flag so the admin UI hides the delete action accordingly.
 
+The post-editor flow is the exception to `edit_posts`: the panel (`PostEditorPanel::should_load`) and the `/posts/:id/frames` and `/designs/:id/generate` routes check `upload_files` plus the source post's own edit capability (`PostSource::can_generate_for_type` / `can_generate_for_post`, narrowed by the `socialframe_can_generate` filter), so roles that edit only a custom post type can generate for their posts. Unauthorised source posts return 404 from the permission callback. `format_design()` exposes `canEdit` (`edit_posts`) so the panel hides "Edit in SocialFrame" from those users. Regenerating replaces the output's image via `store_png( …, $trusted_replace = true )`, which relies on the `edit_post` check in `FramesController::commit()`.
+
 ## Testing
 
 - **PHP (integration):** `composer test` (or `npm run test:php`) runs PHPUnit against the real WordPress test suite. First-time setup: `bin/install-wp-tests.sh socialframe_tests root '' localhost latest` (needs a running local MySQL and `svn`). Tests live in `tests/phpunit/`, extend `WP_UnitTestCase` / the shared `RestTestCase`, and dispatch real REST requests. Runs on PHP 8.5 with PHPUnit 9.6 + `yoast/phpunit-polyfills`.
