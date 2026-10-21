@@ -21,6 +21,10 @@
 	margin: 0 0 12px;
 }
 
+.socialframe-panel__title--section {
+	margin-top: 20px;
+}
+
 .socialframe-panel__grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;

@@ -26,14 +26,14 @@ A graphic editor that runs inside your WordPress Admin. It reads your theme's th
 
 * Templates — load bundled starter templates or your own saved templates
 * Text — add text at five size presets (Huge, Extra Large, Large, Medium, Small)
-* Elements — add shapes (rectangle, rounded rectangle, circle, triangle, line)
+* Elements — add shapes (rectangle, rounded rectangle, circle, triangle, line) and template fields that are already bound to a post's title, excerpt, content, date, author or featured image
 * Media — insert images from the WordPress Media Library
 * Import Post — search all public post types and import title, featured image, content, excerpt, taxonomy terms, and meta fields directly onto the canvas
 * Layers — an always-visible layer tree with drag and drop into and out of frames, multi-select, a right-click menu, rename, hide, and lock
 
 **Template fields**
 
-Mark any text or image layer as a template field, such as Post title, Featured image, a custom field or a taxonomy. Then create a graphic from any published post, either from the editor's Import Post panel or from the Create graphic link on the Posts, Pages or custom post type list. Each fill creates a new design, and the template is left as it was. Replacement images keep their layer's size and are cropped to fit.
+Mark any text or image layer as a template field, such as Post title, Featured image, a custom field or a taxonomy, or add a ready-bound Post title text or Featured image placeholder from the Elements panel. Then create a graphic from any published post, either from the editor's Import Post panel or from the Create graphic link on the Posts, Pages or custom post type list. Each fill creates a new design, and the template is left as it was. Replacement images keep their layer's size and are cropped to fit.
 
 **Generate from the post editor**
 
@@ -89,7 +89,7 @@ Any user with the edit_posts capability can access SocialFrame, view all designs
 
 = How do I make a graphic for every post from one template? =
 
-Select a text or image layer, open Template field in the properties panel, and choose a source such as Post title or Featured image. Save the design. Then click Create graphic under any published post in the post list and pick that design. A new, filled design opens in the editor.
+Select a text or image layer, open Template field in the properties panel, and choose a source such as Post title or Featured image. Or add a ready-bound field, such as Post title or a Featured image placeholder, from Template fields in the Elements panel. Save the design. Then click Create graphic under any published post in the post list and pick that design. A new, filled design opens in the editor.
 
 = Can I generate the image while writing a post? =
 

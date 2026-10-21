@@ -1,5 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { useFabric } from '../../EditorApp';
+import { FIELD_ITEMS } from '../../utils/fieldSources';
 
 const IconRect = () => (
 	<svg
@@ -145,6 +146,30 @@ const IconLine = () => (
 	</svg>
 );
 
+const IconTextField = () => (
+	<svg
+		width="20"
+		height="20"
+		viewBox="0 0 20 20"
+		fill="currentColor"
+		aria-hidden="true"
+	>
+		<path d="M 3 3 L 17 3 L 17 7 L 15 7 L 15 5 L 11 5 L 11 15 L 13 15 L 13 17 L 7 17 L 7 15 L 9 15 L 9 5 L 5 5 L 5 7 L 3 7 Z" />
+	</svg>
+);
+const IconImageField = () => (
+	<svg
+		width="20"
+		height="20"
+		viewBox="0 0 20 20"
+		fill="currentColor"
+		aria-hidden="true"
+	>
+		<path d="M 1 3 L 19 3 L 19 17 L 1 17 Z M 3 5 L 3 15 L 17 15 L 17 5 Z M 4 14 L 8 9 L 11 12 L 13 10 L 16 14 Z" />
+		<circle cx="13" cy="7.5" r="1.5" />
+	</svg>
+);
+
 const SHAPES = [
 	{
 		type: 'rect',
@@ -215,6 +240,30 @@ export function ElementsPanel() {
 							{ icon }
 						</span>
 						{ label }
+					</button>
+				) ) }
+			</div>
+			<p className="socialframe-panel__title socialframe-panel__title--section">
+				{ __( 'Template fields', 'socialframe' ) }
+			</p>
+			<div className="socialframe-panel__grid">
+				{ FIELD_ITEMS.map( ( item ) => (
+					<button
+						key={ item.name }
+						className="socialframe-panel__btn"
+						onClick={ () => fabric?.addField( item ) }
+					>
+						<span
+							className="socialframe-panel__btn-icon"
+							aria-hidden="true"
+						>
+							{ item.kind === 'image' ? (
+								<IconImageField />
+							) : (
+								<IconTextField />
+							) }
+						</span>
+						{ item.label }
 					</button>
 				) ) }
 			</div>
