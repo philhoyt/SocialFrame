@@ -80,8 +80,8 @@ class FieldFiller {
 	 *
 	 * The object's own type decides what is written: text objects take the
 	 * value as a string, image objects take a positive attachment ID and are
-	 * re-cropped to cover their original box (or, in a vertical stack, shown
-	 * whole inside their maximum box). A name is `filled` when at least
+	 * re-cropped to cover their original box (or, inside a frame, shown whole
+	 * at their intended width). A name is `filled` when at least
 	 * one object took its value, otherwise it is `unmatched`.
 	 *
 	 * @param array<string, mixed>      $canvas Decoded Fabric canvas.
@@ -89,12 +89,13 @@ class FieldFiller {
 	 * @return array{canvas: array<string, mixed>, filled: string[], unmatched: string[]}
 	 */
 	public static function fill( array $canvas, array $values ): array {
-		$filled = [];
-		$images = [];
+		$filled  = [];
+		$images  = [];
+		$members = self::frame_members( $canvas );
 
 		self::each_object(
 			$canvas,
-			function ( array &$obj ) use ( $values, &$filled, &$images ): void {
+			function ( array &$obj ) use ( $values, $members, &$filled, &$images ): void {
 				$name = self::field_name_of( $obj );
 				if ( ! $name || ! array_key_exists( $name, $values ) ) {
 					return;
@@ -116,7 +117,7 @@ class FieldFiller {
 					if ( ! array_key_exists( $value, $images ) ) {
 						$images[ $value ] = self::resolve_image( $value );
 					}
-					if ( $images[ $value ] && self::fit_image( $obj, $images[ $value ] ) ) {
+					if ( $images[ $value ] && self::fit_image( $obj, $images[ $value ], $members ) ) {
 						$filled[ $name ] = true;
 					}
 				}
@@ -136,59 +137,93 @@ class FieldFiller {
 	}
 
 	/**
+	 * Ids of the layers inside a frame, from every frame's `children` list.
+	 *
+	 * The parent's list is the only record of membership (an `sfItem` alone
+	 * does not count), the same rule as the browser layout.
+	 *
+	 * @param array<string, mixed> $canvas Decoded Fabric canvas.
+	 * @return array<string, true>
+	 */
+	private static function frame_members( array $canvas ): array {
+		$members = [];
+		foreach ( (array) ( $canvas['objects'] ?? [] ) as $obj ) {
+			$children = is_array( $obj ) ? ( $obj['sfFrame']['children'] ?? null ) : null;
+			if ( ! is_array( $children ) ) {
+				continue;
+			}
+			foreach ( $children as $id ) {
+				if ( is_string( $id ) && '' !== $id ) {
+					$members[ $id ] = true;
+				}
+			}
+		}
+		return $members;
+	}
+
+	/**
 	 * Point an image object at a new file, sized for its layout.
 	 *
-	 * An image in a vertical stack carries `sfBox`, its maximum box: it is
-	 * shown whole inside it. Any other image is cropped to cover its box.
+	 * An image inside a frame is shown whole: as wide as its intended width
+	 * (`sfItem.w`) allows and no taller than its `maxHeight`. The browser
+	 * layout then sizes and places it in the frame. Any other image is cropped
+	 * to cover its box.
 	 *
-	 * @param array<string, mixed>                        $obj   Image object, modified in place.
-	 * @param array{url: string, width: int, height: int} $image The new image.
+	 * @param array<string, mixed>                        $obj     Image object, modified in place.
+	 * @param array{url: string, width: int, height: int} $image   The new image.
+	 * @param array<string, true>                         $members Ids of frame members.
 	 * @return bool False when the object's geometry is unusable.
 	 */
-	private static function fit_image( array &$obj, array $image ): bool {
-		$box = self::stack_box( $obj['sfBox'] ?? null );
+	private static function fit_image( array &$obj, array $image, array $members ): bool {
+		$box = isset( $obj['id'] ) && is_string( $obj['id'] ) && isset( $members[ $obj['id'] ] )
+			? self::item_box( $obj )
+			: null;
 
 		return $box ? self::contain_image( $obj, $image, $box ) : self::cover_image( $obj, $image );
 	}
 
 	/**
-	 * A stacked image's maximum box, or null when absent or unusable.
+	 * A frame member image's box: its intended width and maximum height.
 	 *
-	 * Mirrors readBox() in src/shared/stackLayout.js.
+	 * Mirrors readItem() in src/shared/frameLayout.js. Falls back to the
+	 * current on-canvas width when no intended width is stored; a height of 0
+	 * means no limit.
 	 *
-	 * @param mixed $raw The object's sfBox.
+	 * @param array<string, mixed> $obj Image object.
 	 * @return array{left: float, width: float, height: float}|null
 	 */
-	private static function stack_box( mixed $raw ): ?array {
-		if ( ! is_array( $raw ) ) {
+	private static function item_box( array $obj ): ?array {
+		$item = $obj['sfItem'] ?? null;
+		if ( ! is_array( $item ) ) {
 			return null;
 		}
 
-		$num = fn( $v ): ?float => is_int( $v ) || is_float( $v ) ? ( is_finite( (float) $v ) ? (float) $v : null ) : null;
+		$num = fn( $v ): ?float => ( is_int( $v ) || is_float( $v ) ) && is_finite( (float) $v ) ? (float) $v : null;
 
-		$left   = $num( $raw['left'] ?? 0 );
-		$width  = $num( $raw['width'] ?? null );
-		$height = $num( $raw['height'] ?? null );
+		$width = $num( $item['w'] ?? null );
+		if ( null === $width || $width <= 0 ) {
+			$width = ( $num( $obj['width'] ?? null ) ?? 0.0 ) * ( $num( $obj['scaleX'] ?? 1 ) ?? 1.0 );
+		}
+		$max  = $num( $item['maxHeight'] ?? 0 ) ?? 0.0;
+		$left = $num( $obj['left'] ?? 0 ) ?? 0.0;
 
-		if ( null === $left || null === $width || null === $height
-			|| $width <= 0 || $height <= 0 || $width > 10000 || $height > 10000 || abs( $left ) > 10000
-		) {
+		if ( $width <= 0 || $width > 10000 || $max < 0 || $max > 10000 ) {
 			return null;
 		}
 
 		return [
 			'left'   => $left,
 			'width'  => $width,
-			'height' => $height,
+			'height' => $max,
 		];
 	}
 
 	/**
-	 * Show a new file whole inside a stacked image's maximum box: as wide as
-	 * the box allows, never taller, centred horizontally, never cropped.
-	 * The vertical position is left to the browser layout.
+	 * Show a new file whole inside a box: as wide as the box allows, never
+	 * taller (a height of 0 means no limit), centred horizontally, never
+	 * cropped. The browser layout positions it.
 	 *
-	 * Mirrors containInBox() in src/shared/stackLayout.js.
+	 * Mirrors containInBox() in src/shared/frameLayout.js.
 	 *
 	 * @param array<string, mixed>                            $obj   Image object, modified in place.
 	 * @param array{url: string, width: int, height: int}     $image The new image.
@@ -203,7 +238,9 @@ class FieldFiller {
 			return false;
 		}
 
-		$scale = min( $box['width'] / $nat_w, $box['height'] / $nat_h );
+		$scale = $box['height'] > 0
+			? min( $box['width'] / $nat_w, $box['height'] / $nat_h )
+			: $box['width'] / $nat_w;
 
 		$obj['src']    = $image['url'];
 		$obj['width']  = $nat_w;
