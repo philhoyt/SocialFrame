@@ -3,7 +3,7 @@ Contributors:      philhoyt
 Tags:              social media, graphics, editor, canvas, design
 Requires at least: 7.0
 Tested up to:      7.1
-Stable tag:        1.0.0
+Stable tag:        1.1.0
 Requires PHP:      8.1
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -104,17 +104,27 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 
 == Changelog ==
 
-= Unreleased =
-* Added: Template fields. Mark text and image layers to be filled from a post's title, excerpt, content, date, author, featured image, custom fields or terms.
-* Added: Create graphic row action on post lists, and Create filled copy in the Import Post panel. Filling always creates a new design.
-* Added: REST endpoints `GET /designs/{id}/fields` and `POST /designs/{id}/fill`, and `has_fields` / `type=any` filters on `GET /designs`.
-* Added: `socialframe_post_field_values` filter.
-* Added: Assign designs to post types and generate them from a SocialFrame panel in the block editor. Each post keeps one generated design and image per assigned design, and Regenerate replaces the image in place.
-* Added: REST endpoints `GET /posts/{id}/frames` and `POST /designs/{id}/generate`, the `assigned_to` filter on `GET /designs`, `postTypes` on `PUT /designs/{id}`, and the `socialframe_frame_post_types` filter.
-* Fixed: Duplicated layers keep their shape type (star, arrow and similar) and template field.
-* Changed: Updated the Fabric.js canvas library to version 7. Existing designs render the same.
-* Fixed: Export PNG saves at the format's exact size on high-DPI screens instead of at twice the size.
-* Fixed: Saves run one at a time, so an older autosave can no longer overwrite a newer save, and a failed manual save now always shows an error.
+= 1.1.0 =
+* Security: Post import and template fills only read published posts of public post types that you can read, and never expose password-protected content you cannot edit.
+* Security: Exporting to the Media Library now requires the Upload Files capability.
+* Security: Preview images get unguessable file names, and deleting a design can no longer remove files outside its own preview folder.
+* Add: Template fields. Mark text and image layers to be filled from a post's title, excerpt, content, date, author, featured image, custom fields or terms. Filling always creates a new design and leaves the template unchanged.
+* Add: Create graphic link on Posts, Pages and custom post type lists, and Create filled copy in the Import Post panel.
+* Add: Assign designs to post types and generate them from a SocialFrame panel in the block editor sidebar. Each post keeps one generated image per design, and Regenerate replaces it in place.
+* Add: Custom canvas sizes on the New Design screen.
+* Add: REST endpoints `GET /designs/{id}/fields`, `POST /designs/{id}/fill`, `GET /posts/{id}/frames` and `POST /designs/{id}/generate`, new filters on `GET /designs`, and the `socialframe_post_field_values` and `socialframe_frame_post_types` filters.
+* Change: Requires WordPress 7.0 or later. Tested up to 7.1.
+* Change: Updated the Fabric.js canvas library to version 7. Existing designs render the same.
+* Fix: Duplicating a design no longer corrupts text with quotes or line breaks, and keeps custom canvas sizes.
+* Fix: Libraries with more than 100 designs or templates now list all of them.
+* Fix: Undo and redo work again, and layer names survive a reload.
+* Fix: Duplicated layers keep their shape type and template field.
+* Fix: Saves run one at a time, so an older autosave can no longer overwrite a newer save. Failed saves now show an error.
+* Fix: Saved templates get a thumbnail.
+* Fix: Export PNG saves at the format's exact size on high-DPI screens instead of twice the size.
+* Fix: Keyboard shortcuts no longer fire while typing or override browser zoom, and the Layers panel works with a keyboard and screen readers.
+* Fix: Undo labels and generated design titles are translatable.
+* Fix: Uninstalling removes every design and its preview images.
 
 = 1.0.0 =
 * Initial release.
@@ -127,6 +137,9 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 * Undo / redo, auto-save, and duplicate support.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Requires WordPress 7.0. Adds template fields, generating designs from the block editor, and security fixes for post import, export and previews.
 
 = 1.0.0 =
 Initial release — no upgrade steps required.
