@@ -644,6 +644,10 @@ export function useFabricCanvas(
 		const prevActive = canvas.getActiveObject();
 		canvas.discardActiveObject();
 
+		// Render at 1x so the export matches the format size on high-DPI
+		// screens too; setDimensions() reads the retina scaling when called.
+		const prevRetina = canvas.enableRetinaScaling;
+		canvas.enableRetinaScaling = false;
 		canvas.setDimensions( { width: artW, height: artH } );
 		canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
 		canvas.renderAll();
@@ -652,10 +656,11 @@ export function useFabricCanvas(
 		// an offscreen canvas internally whose context is null after setDimensions().
 		const dataURL = canvas.lowerCanvasEl.toDataURL( 'image/png' );
 
-		// Restore viewport, shadow, and selection.
+		// Restore retina scaling, viewport, shadow, and selection.
 		if ( artboard ) {
 			artboard.set( 'shadow', prevShadow );
 		}
+		canvas.enableRetinaScaling = prevRetina;
 		canvas.setDimensions( { width: prevW, height: prevH } );
 		canvas.setViewportTransform( prevVT );
 		if ( prevActive ) {
