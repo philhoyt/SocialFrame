@@ -162,7 +162,7 @@ export function FrameRow( { frame, postId, onChanged } ) {
 						{ __( 'Share to Phone', 'socialframe' ) }
 					</Button>
 				) }
-				{ output && (
+				{ output?.design.canEdit && (
 					<ExternalLink href={ output.design.editUrl }>
 						{ __( 'Edit in SocialFrame', 'socialframe' ) }
 					</ExternalLink>
