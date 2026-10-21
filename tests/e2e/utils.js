@@ -21,4 +21,39 @@ async function deleteAllDesigns( requestUtils ) {
 	}
 }
 
-module.exports = { deleteAllDesigns };
+/**
+ * Run a function against the editor's canvas API in the page.
+ *
+ * @param {Object}                                 page Playwright page.
+ * @param {(api: Object, arg: unknown) => unknown} fn   Receives the editor API; must be serialisable.
+ * @param {unknown}                                arg  Argument.
+ * @return {Promise<unknown>} Its result.
+ */
+function withApi( page, fn, arg ) {
+	return page.evaluate(
+		( [ source, value ] ) => {
+			const el = document.querySelector( 'canvas.lower-canvas' );
+			let f =
+				el[
+					Object.keys( el ).find( ( k ) =>
+						k.startsWith( '__reactFiber' )
+					)
+				];
+			while ( f ) {
+				const v = f.memoizedProps?.value;
+				if ( v && typeof v.toDataURL === 'function' ) {
+					return new Function(
+						'api',
+						'arg',
+						`return (${ source })( api, arg );`
+					)( v, value );
+				}
+				f = f.return;
+			}
+			return null;
+		},
+		[ fn.toString(), arg ]
+	);
+}
+
+module.exports = { deleteAllDesigns, withApi };
