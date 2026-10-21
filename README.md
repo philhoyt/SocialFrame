@@ -182,6 +182,7 @@ Templates filled from posts get content of unknown size. Frames lay layers out f
 **A layer in a frame** (**Frame placement**)
 - **Width:** fixed, or fill the frame.
 - **Maximum height** for images, which are always shown whole, never cropped.
+- **Corner Radius** for images is set under **Position**. It is in canvas pixels, so the corners keep their size when a frame resizes the image or a template fill swaps the photo.
 - **Shrink to fit** and **Minimum size** for wrapping text.
 - **Move earlier / later**, and **Remove from frame**.
 

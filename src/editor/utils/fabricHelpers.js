@@ -337,7 +337,7 @@ export function extractProperties( obj, type ) {
 	}
 
 	if ( type === 'image' ) {
-		return { ...base };
+		return { ...base, sfRadius: obj.sfRadius ?? 0 };
 	}
 
 	// Shape.

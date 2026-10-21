@@ -601,4 +601,58 @@ test.describe.serial( 'Frames', () => {
 		);
 		expect( differing ).toBe( 0 );
 	} );
+
+	test( 'rounds the photo’s corners through fills and frame resizing', async ( {
+		admin,
+		editor,
+		page,
+		requestUtils,
+	} ) => {
+		await admin.visitAdminPage(
+			'admin.php',
+			`page=socialframe-editor&id=${ designId }`
+		);
+		await expect( page.locator( 'canvas.lower-canvas' ) ).toBeVisible();
+		await clickLayer( page, 'photo' );
+		const radius = page.getByRole( 'spinbutton', {
+			name: 'Corner Radius',
+		} );
+		await radius.fill( '40' );
+		await radius.press( 'Enter' );
+		await page.getByRole( 'button', { name: 'Save', exact: true } ).click();
+		await expect
+			.poll( async () => ( await saved( requestUtils ) ).photo?.sfRadius )
+			.toBe( 40 );
+
+		// Landscape: 960×540 from (60, 60). The corner is cut, the edges are not.
+		await requestUtils.rest( {
+			path: `/wp/v2/posts/${ postId }`,
+			method: 'POST',
+			data: { featured_media: landscape.id, content: 'Short beta.' },
+		} );
+		let result = await generate( { admin, editor, page } );
+		expect( result.design.id ).toBeTruthy();
+		let px = await pixels( page, result.imageUrl, [
+			[ 62, 62 ],
+			[ 1017, 597 ],
+			[ 540, 61 ],
+			[ 61, 300 ],
+		] );
+		expect( px.map( isRed ) ).toEqual( [ false, false, true, true ] );
+
+		// Portrait: 648×810 from (216, 60), so the same radius on a narrower image.
+		await requestUtils.rest( {
+			path: `/wp/v2/posts/${ postId }`,
+			method: 'POST',
+			data: { featured_media: portrait.id },
+		} );
+		result = await generate( { admin, editor, page } );
+		px = await pixels( page, result.imageUrl, [
+			[ 218, 62 ],
+			[ 862, 868 ],
+			[ 540, 61 ],
+			[ 217, 400 ],
+		] );
+		expect( px.map( isRed ) ).toEqual( [ false, false, true, true ] );
+	} );
 } );
