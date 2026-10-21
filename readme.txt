@@ -3,7 +3,7 @@ Contributors:      philhoyt
 Tags:              social media, graphics, editor, canvas, design
 Requires at least: 7.0
 Tested up to:      7.1
-Stable tag:        1.2.0
+Stable tag:        1.3.0
 Requires PHP:      8.1
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -105,6 +105,12 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 4. The admin designs list built with WordPress DataViews.
 
 == Changelog ==
+
+= 1.3.0 =
+* Add: Anyone who can edit a post and upload files can generate its images from the SocialFrame panel in the block editor, including roles that edit only a custom post type and lack the Edit Posts capability. Edit in SocialFrame is hidden from users who cannot open the design editor. Developers can narrow who may generate with the socialframe_can_generate filter.
+* Add: A Template fields group in the Elements panel inserts post title, excerpt, content, date and author text, and a featured image placeholder, already bound to their field.
+* Fix: Regenerating an image now replaces the existing Media Library item even when another user created it, instead of adding a new one and leaving the old one behind.
+* Fix: PHP 8.1 deprecation notices from the hidden editor page.
 
 = 1.2.0 =
 * Add: Frames. Lay layers out with a direction, padding, gap and alignment, nest frames for rows, and let the artboard lay out the card. Framed images are shown whole at their own aspect ratio, and text set to shrink fits its frame, then is shortened with "…" in exports.
