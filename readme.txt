@@ -105,7 +105,7 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 == Changelog ==
 
 = Unreleased =
-* Add: Vertical stack. Layers flow top to bottom with the spacing you give them, stacked images are shown whole at their own aspect ratio, and text set to shrink fits the canvas, then is shortened with "…" in exports.
+* Add: Frames. Lay layers out with a direction, padding, gap and alignment, nest frames for rows, and let the artboard lay out the card. Framed images are shown whole at their own aspect ratio, and text set to shrink fits its frame, then is shortened with "…" in exports.
 
 = 1.1.0 =
 * Security: Post import and template fills only read published posts of public post types that you can read, and never expose password-protected content you cannot edit.

@@ -163,20 +163,31 @@ Developers can narrow the post types offered with the `socialframe_frame_post_ty
 add_filter( 'socialframe_frame_post_types', fn( $types ) => array_intersect( $types, [ 'post', 'event' ] ) );
 ```
 
-### Vertical stack
-Templates filled from posts get content of unknown size. A vertical stack lets layers flow top to bottom, so a tall photo or a long title pushes the layers below it down instead of overlapping them.
+### Frames
+Templates filled from posts get content of unknown size. Frames lay layers out for you, so a tall photo or a long title pushes what follows instead of overlapping it.
 
-1. Lay the layers out where you want them, with the spacing you want
-2. Select a layer and tick **Part of the vertical stack** under **Stack** in the properties panel. Do this for each layer in the flow
-3. Layers that sit side by side (for example a badge and the text on it) join one row and move together
+**Creating frames**
+1. Shift-click two or more layers and choose **Create frame**. The direction and gap are worked out from where the layers sit.
+2. If one selected rectangle surrounds the others (a badge behind its text, say), it becomes the frame and its fill is the background.
+3. Frames nest: select a frame and another layer to put them side by side in a row.
+4. To use the whole card, click an empty part of the canvas and tick **Lay out content** under **Content layout**. Then select a layer and use **Frame placement → Add to frame → Artboard**.
 
-**How it behaves**
-- The space above each row is kept as you drew it. Dragging a stacked layer up or down changes that space, and **Move row up** / **Move row down** change the order.
-- A stacked image's box is its maximum size. A filled or replaced image is shown whole inside it, as wide as the box allows and centred, never cropped.
-- If the stack runs past the bottom of the canvas (minus the **Bottom padding** set with the artboard selected), text with **Shrink to fit** gets smaller down to its **Minimum size**, then is shortened with "…" in exports and generated images. The design keeps the full text, and the editor marks the overflow in red.
-- Rotated, skewed and grouped layers can't join, and only text boxes that wrap can shrink.
+**Frame settings** (select the frame, or the artboard for its content layout)
+- **Direction:** vertical or horizontal.
+- **Gap:** space between layers.
+- **Padding:** one value, or per side.
+- **Align horizontally / vertically:** start, centre or end.
+- **Width / Height:** fixed, or fit the content.
 
-The layout runs in the browser: in the editor, on export, and when generating from the block editor. Designs filled through `POST /designs/{id}/fill` and rendered elsewhere get the stacked image's size but not the reflowed positions.
+**A layer in a frame** (**Frame placement**)
+- **Width:** fixed, or fill the frame.
+- **Maximum height** for images, which are always shown whole, never cropped.
+- **Shrink to fit** and **Minimum size** for wrapping text.
+- **Move earlier / later**, and **Remove from frame**.
+
+A frame places its layers, so dragging a layer inside one snaps it back; drag the frame to move them together. When a frame with a fixed height runs out of room, text with **Shrink to fit** gets smaller down to its minimum size, then is shortened with "…" in exports and generated images. The design keeps the full text, and the editor outlines what doesn't fit in red. Rotated, skewed and grouped layers can't be in a frame.
+
+The layout runs in the browser: in the editor, on export, and when generating from the block editor. Designs filled through `POST /designs/{id}/fill` and rendered elsewhere get each framed image's size but not the frame positions.
 
 ### Exporting
 1. Click **Export PNG** in the top-right toolbar
