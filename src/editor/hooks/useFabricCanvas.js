@@ -5,7 +5,9 @@ import * as fabric from 'fabric';
 import { AligningGuidelines } from 'fabric/extensions';
 
 import { configureFabric } from '../../shared/configureFabric';
+import { containInBox, readBox } from '../../shared/stackLayout';
 import { STORE_KEY } from '../store';
+import { useStackLayout } from './useStackLayout';
 import { FORMATS } from '../utils/formats';
 import {
 	createShape,
@@ -56,6 +58,7 @@ export function useFabricCanvas(
 	const isPanningRef = useRef( false );
 	const panStartRef = useRef( { x: 0, y: 0 } );
 	const dispatch = useDispatch( STORE_KEY );
+	const stack = useStackLayout( fabricRef, dispatch );
 
 	// Initialize Fabric once on mount.
 	useEffect( () => {
@@ -203,6 +206,7 @@ export function useFabricCanvas(
 					syncLayersToStore( canvas, dispatch );
 					canvas.renderAll();
 					fitToScreen();
+					stack.schedule();
 				} );
 			} catch ( e ) {
 				// eslint-disable-next-line no-console
@@ -268,6 +272,12 @@ export function useFabricCanvas(
 
 			const obj = e.target;
 			if ( ! obj || isArtboardObject( obj ) ) {
+				return;
+			}
+
+			// Stack members record their own history: a drag there also
+			// changes the row's gap.
+			if ( stack.handleModified( e ) ) {
 				return;
 			}
 
@@ -420,6 +430,9 @@ export function useFabricCanvas(
 			}
 		} );
 
+		// Reflow the stack while text is typed.
+		canvas.on( 'text:changed', () => stack.schedule() );
+
 		// ── Auto-delete empty text objects ────────────────────────────────────
 		canvas.on( 'text:editing:exited', ( e ) => {
 			const obj = e.target;
@@ -571,6 +584,39 @@ export function useFabricCanvas(
 			}
 
 			ctx.restore();
+
+			// Vertical stack: a dashed line where the stack must end, and an
+			// outline on text that will be shortened on export.
+			const layout = stack.result.current;
+			if (
+				stack.exporting.current ||
+				! layout.overflow ||
+				layout.limit === null
+			) {
+				return;
+			}
+			ctx.save();
+			ctx.strokeStyle = '#d63638';
+			ctx.lineWidth = 2;
+			ctx.setLineDash( [ 6, 4 ] );
+			const limitY = panY + layout.limit * zoom;
+			ctx.beginPath();
+			ctx.moveTo( artL, limitY );
+			ctx.lineTo( artR, limitY );
+			ctx.stroke();
+			for ( const id of layout.truncated ) {
+				const target = canvas.getObjects().find( ( o ) => o.id === id );
+				if ( ! target ) {
+					continue;
+				}
+				ctx.strokeRect(
+					panX + target.left * zoom,
+					panY + target.top * zoom,
+					target.getScaledWidth() * zoom,
+					target.getScaledHeight() * zoom
+				);
+			}
+			ctx.restore();
 		};
 		canvas.on( 'after:render', drawOverlay );
 
@@ -613,55 +659,60 @@ export function useFabricCanvas(
 	 * Temporarily resets the canvas to artboard dimensions + identity viewport
 	 * so the export is pixel-perfect regardless of current zoom/pan.
 	 */
-	const toDataURL = useCallback( () => {
-		const canvas = fabricRef.current;
-		const artboard = artboardRectRef.current;
-		if ( ! canvas ) {
-			return null;
-		}
+	const toDataURL = useCallback(
+		() =>
+			// Stack text that doesn't fit is shortened for the export only.
+			stack.forExport( () => {
+				const canvas = fabricRef.current;
+				const artboard = artboardRectRef.current;
+				if ( ! canvas ) {
+					return null;
+				}
 
-		const artW = artboardWRef.current;
-		const artH = artboardHRef.current;
-		const prevVT = [ ...canvas.viewportTransform ];
-		const prevW = canvas.width;
-		const prevH = canvas.height;
+				const artW = artboardWRef.current;
+				const artH = artboardHRef.current;
+				const prevVT = [ ...canvas.viewportTransform ];
+				const prevW = canvas.width;
+				const prevH = canvas.height;
 
-		// Temporarily disable artboard shadow for a clean export.
-		const prevShadow = artboard?.shadow ?? null;
-		if ( artboard ) {
-			artboard.set( 'shadow', null );
-		}
+				// Temporarily disable artboard shadow for a clean export.
+				const prevShadow = artboard?.shadow ?? null;
+				if ( artboard ) {
+					artboard.set( 'shadow', null );
+				}
 
-		// Deselect any active object so transform handles don't appear in the export.
-		const prevActive = canvas.getActiveObject();
-		canvas.discardActiveObject();
+				// Deselect any active object so transform handles don't appear in the export.
+				const prevActive = canvas.getActiveObject();
+				canvas.discardActiveObject();
 
-		// Render at 1x so the export matches the format size on high-DPI
-		// screens too; setDimensions() reads the retina scaling when called.
-		const prevRetina = canvas.enableRetinaScaling;
-		canvas.enableRetinaScaling = false;
-		canvas.setDimensions( { width: artW, height: artH } );
-		canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
-		canvas.renderAll();
+				// Render at 1x so the export matches the format size on high-DPI
+				// screens too; setDimensions() reads the retina scaling when called.
+				const prevRetina = canvas.enableRetinaScaling;
+				canvas.enableRetinaScaling = false;
+				canvas.setDimensions( { width: artW, height: artH } );
+				canvas.setViewportTransform( [ 1, 0, 0, 1, 0, 0 ] );
+				canvas.renderAll();
 
-		// Read pixels directly from the lower canvas — Fabric v6's toDataURL() creates
-		// an offscreen canvas internally whose context is null after setDimensions().
-		const dataURL = canvas.lowerCanvasEl.toDataURL( 'image/png' );
+				// Read pixels directly from the lower canvas — Fabric v6's toDataURL() creates
+				// an offscreen canvas internally whose context is null after setDimensions().
+				const dataURL = canvas.lowerCanvasEl.toDataURL( 'image/png' );
 
-		// Restore retina scaling, viewport, shadow, and selection.
-		if ( artboard ) {
-			artboard.set( 'shadow', prevShadow );
-		}
-		canvas.enableRetinaScaling = prevRetina;
-		canvas.setDimensions( { width: prevW, height: prevH } );
-		canvas.setViewportTransform( prevVT );
-		if ( prevActive ) {
-			canvas.setActiveObject( prevActive );
-		}
-		canvas.renderAll();
+				// Restore retina scaling, viewport, shadow, and selection.
+				if ( artboard ) {
+					artboard.set( 'shadow', prevShadow );
+				}
+				canvas.enableRetinaScaling = prevRetina;
+				canvas.setDimensions( { width: prevW, height: prevH } );
+				canvas.setViewportTransform( prevVT );
+				if ( prevActive ) {
+					canvas.setActiveObject( prevActive );
+				}
+				canvas.renderAll();
 
-		return dataURL;
-	}, [] );
+				return dataURL;
+			} ),
+		[ stack ]
+	);
 
 	const loadFromJSON = useCallback(
 		( json ) => {
@@ -842,12 +893,13 @@ export function useFabricCanvas(
 	);
 
 	const updateSelected = useCallback(
-		( props, label = 'Update' ) => {
+		( changes, label = 'Update' ) => {
 			const canvas = fabricRef.current;
 			const obj = canvas?.getActiveObject();
 			if ( ! obj ) {
 				return;
 			}
+			const props = stack.withStackBase( obj, changes );
 
 			const prevProps = {};
 			Object.keys( props ).forEach( ( k ) => {
@@ -883,7 +935,7 @@ export function useFabricCanvas(
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, stack ]
 	);
 
 	const deleteSelected = useCallback( () => {
@@ -1326,6 +1378,9 @@ export function useFabricCanvas(
 				id: genId(),
 				left: ( obj.left ?? 0 ) + 20,
 				top: ( obj.top ?? 0 ) + 20,
+				// A copy would sit on its source's row; it starts outside the stack.
+				sfStackItem: undefined,
+				sfBox: undefined,
 			} );
 			if ( obj.name ) {
 				clone.name = obj.name;
@@ -1428,6 +1483,9 @@ export function useFabricCanvas(
 			id: genId(),
 			left: ( obj.left ?? 0 ) + 20,
 			top: ( obj.top ?? 0 ) + 20,
+			// A copy would sit on its source's row; it starts outside the stack.
+			sfStackItem: undefined,
+			sfBox: undefined,
 		} );
 		if ( obj.name ) {
 			clone.name = obj.name;
@@ -1541,18 +1599,56 @@ export function useFabricCanvas(
 				crossOrigin: 'anonymous',
 			} );
 			const newElement = newImg.getElement();
+
+			// A stacked image is shown whole inside its box; record its
+			// geometry so undo restores the old size along with the old file.
+			const GEO = [
+				'left',
+				'width',
+				'height',
+				'scaleX',
+				'scaleY',
+				'cropX',
+				'cropY',
+			];
+			const prevGeo = Object.fromEntries(
+				GEO.map( ( k ) => [ k, obj[ k ] ] )
+			);
 			obj.setElement( newElement );
+			const box = readBox( obj.sfBox );
+			const fit = box
+				? containInBox(
+						{
+							width: newElement.naturalWidth || newElement.width,
+							height:
+								newElement.naturalHeight || newElement.height,
+						},
+						box
+					)
+				: null;
+			if ( fit ) {
+				obj.set( fit );
+				obj.setCoords();
+			}
+			const nextGeo = Object.fromEntries(
+				GEO.map( ( k ) => [ k, obj[ k ] ] )
+			);
+
 			canvas.renderAll();
 			dispatch.markDirty();
 			dispatch.pushHistory( {
 				label: __( 'Replace image', 'socialframe' ),
 				undo: () => {
 					obj.setElement( prevElement );
+					obj.set( prevGeo );
+					obj.setCoords();
 					canvas.renderAll();
 					dispatch.markDirty();
 				},
 				redo: () => {
 					obj.setElement( newElement );
+					obj.set( nextGeo );
+					obj.setCoords();
 					canvas.renderAll();
 					dispatch.markDirty();
 				},
@@ -1574,6 +1670,7 @@ export function useFabricCanvas(
 		updateSelected,
 		deleteSelected,
 		replaceImage,
+		stack,
 		fillShapeWithImage,
 		updateShapeImageFit,
 		setBackgroundImage,

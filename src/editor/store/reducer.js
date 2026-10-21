@@ -13,6 +13,9 @@ const DEFAULT_STATE = {
 		properties: {},
 	},
 	isDirty: false,
+	// Bumped on every canvas change, undo and redo, so derived work such as
+	// the vertical stack layout can re-run without hooking every path.
+	revision: 0,
 	isSaving: false,
 	lastSaved: null,
 	undoStack: [],
@@ -69,7 +72,7 @@ export function reducer( state = DEFAULT_STATE, action ) {
 			};
 
 		case 'MARK_DIRTY':
-			return { ...state, isDirty: true };
+			return { ...state, isDirty: true, revision: state.revision + 1 };
 
 		case 'MARK_CLEAN':
 			return {
@@ -98,14 +101,24 @@ export function reducer( state = DEFAULT_STATE, action ) {
 			if ( state.undoIndex < 0 ) {
 				return state;
 			}
-			return { ...state, undoIndex: state.undoIndex - 1, isDirty: true };
+			return {
+				...state,
+				undoIndex: state.undoIndex - 1,
+				isDirty: true,
+				revision: state.revision + 1,
+			};
 		}
 
 		case 'REDO': {
 			if ( state.undoIndex >= state.undoStack.length - 1 ) {
 				return state;
 			}
-			return { ...state, undoIndex: state.undoIndex + 1, isDirty: true };
+			return {
+				...state,
+				undoIndex: state.undoIndex + 1,
+				isDirty: true,
+				revision: state.revision + 1,
+			};
 		}
 
 		case 'SET_LAYERS':
