@@ -365,6 +365,43 @@ test.describe.serial( 'Frames', () => {
 				.click();
 		}
 
+		// A typed gap applies when you click away to the canvas, which
+		// deselects the frame and closes its panel.
+		await withApi(
+			page,
+			( api, target ) => api.selectById( target ),
+			rowId
+		);
+		const frameToggle = page.getByRole( 'button', {
+			name: 'Frame',
+			exact: true,
+		} );
+		const gapField = page.getByRole( 'spinbutton', { name: 'Gap' } );
+		if ( ! ( await gapField.isVisible() ) ) {
+			await frameToggle.click();
+		}
+		await gapField.fill( '16' );
+		const canvasBox = await page
+			.locator( 'canvas.upper-canvas' )
+			.boundingBox();
+		await page.mouse.click(
+			canvasBox.x + 10,
+			canvasBox.y + canvasBox.height - 10
+		);
+		await expect
+			.poll( () =>
+				withApi(
+					page,
+					( api, target ) =>
+						api
+							.getFabric()
+							.getObjects()
+							.find( ( o ) => o.id === target ).sfFrame.gap,
+					rowId
+				)
+			)
+			.toBe( 16 );
+
 		// Photo fills the width up to 810 tall; title and content fill; content shrinks.
 		const setItem = ( id, props ) =>
 			withApi(
