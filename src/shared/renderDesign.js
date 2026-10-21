@@ -6,6 +6,7 @@
  */
 
 import { configureFabric } from './configureFabric';
+import { applyStackLayout } from './stackLayout';
 
 const TEXT_TYPES = [ 'text', 'i-text', 'itext', 'textbox' ];
 const LOAD_TIMEOUT_MS = 30000;
@@ -159,6 +160,10 @@ export async function renderDesign( fabricJson, size = {} ) {
 		// metrics; drop them and re-measure.
 		fabric.cache.clearFontCache();
 		canvas.getObjects().forEach( ( obj ) => obj.initDimensions?.() );
+
+		// Flow a vertical stack around the filled content; overflowing
+		// flexible text is shortened, since this render is the output.
+		applyStackLayout( canvas, { truncate: true } );
 
 		canvas.renderAll();
 		return canvas.lowerCanvasEl.toDataURL( 'image/png' );
