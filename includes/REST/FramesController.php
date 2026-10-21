@@ -53,7 +53,7 @@ class FramesController extends AbstractController {
 			[
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_frames' ],
-				'permission_callback' => [ $this, 'require_edit_posts' ],
+				'permission_callback' => [ $this, 'require_frames_access' ],
 				'args'                => [ 'id' => $id_arg ],
 			]
 		);
@@ -64,7 +64,7 @@ class FramesController extends AbstractController {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'generate' ],
-				'permission_callback' => [ $this, 'require_upload_files' ],
+				'permission_callback' => [ $this, 'require_post_generate_access' ],
 				'args'                => [
 					'id'        => $id_arg,
 					'post_id'   => array_merge( $id_arg, [ 'required' => true ] ),
@@ -80,6 +80,48 @@ class FramesController extends AbstractController {
 				],
 			]
 		);
+	}
+
+	/**
+	 * Permission callback for GET /posts/:id/frames.
+	 *
+	 * @param WP_REST_Request $request Full request data.
+	 */
+	public function require_frames_access( WP_REST_Request $request ): bool|WP_Error {
+		return $this->require_generate_access( (int) $request->get_param( 'id' ) );
+	}
+
+	/**
+	 * Permission callback for POST /designs/:id/generate.
+	 *
+	 * @param WP_REST_Request $request Full request data.
+	 */
+	public function require_post_generate_access( WP_REST_Request $request ): bool|WP_Error {
+		return $this->require_generate_access( (int) $request->get_param( 'post_id' ) );
+	}
+
+	/**
+	 * Whether the current user may generate from this source post.
+	 *
+	 * Gated on the post rather than core edit_posts, so a role that edits
+	 * only a custom post type can generate for its posts. Users without
+	 * upload_files get the usual 401/403; a post the user cannot generate
+	 * from gets the same 404 the callbacks return, before any design is
+	 * loaded, so callers cannot probe which posts or designs exist.
+	 *
+	 * @param int $post_id Source post ID.
+	 */
+	private function require_generate_access( int $post_id ): bool|WP_Error {
+		if ( ! current_user_can( 'upload_files' ) ) {
+			return false;
+		}
+
+		$post = $this->get_source_post( $post_id );
+		if ( is_wp_error( $post ) ) {
+			return $post;
+		}
+
+		return PostSource::can_generate_for_post( $post );
 	}
 
 	/**
@@ -207,11 +249,17 @@ class FramesController extends AbstractController {
 	 * @param string   $image_data PNG data URI rendered from that JSON.
 	 */
 	private function commit( \WP_Post $design, \WP_Post $source, string $encoded, string $image_data ): WP_REST_Response|WP_Error {
+		// Replacing the output's image below skips the attachment's own
+		// edit_post check, so this is the guard it relies on.
+		if ( ! current_user_can( 'edit_post', $source->ID ) ) {
+			return new WP_Error( 'post_not_found', __( 'Post not found.', 'socialframe' ), [ 'status' => 404 ] );
+		}
+
 		$title  = $this->filled_title( $design, $source );
 		$output = $this->find_outputs( $source->ID, [ $design->ID ] )[ $design->ID ] ?? null;
 
 		if ( $output ) {
-			$stored = $this->store_png( $output, $image_data, false, (int) get_post_meta( $output->ID, 'socialframe_image_id', true ) );
+			$stored = $this->store_png( $output, $image_data, false, (int) get_post_meta( $output->ID, 'socialframe_image_id', true ), true );
 			if ( is_wp_error( $stored ) ) {
 				return $stored;
 			}
