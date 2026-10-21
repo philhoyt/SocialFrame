@@ -3,6 +3,16 @@ import { Modal, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import QRCode from 'qrcode';
 
+/**
+ * A QR code and link for downloading an image on a phone.
+ *
+ * Shared by the editor's Export and the block editor's SocialFrame panel.
+ * Callers import `ShareModal.css` themselves.
+ *
+ * @param {Object}     props         Component props.
+ * @param {string}     props.url     Image URL.
+ * @param {() => void} props.onClose Called when the modal closes.
+ */
 export function ShareModal( { url, onClose } ) {
 	const canvasRef = useRef( null );
 	const [ copied, setCopied ] = useState( false );

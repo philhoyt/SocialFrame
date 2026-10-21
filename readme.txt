@@ -104,6 +104,9 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 
 == Changelog ==
 
+= Unreleased =
+* Add: Share to Phone in the block editor's SocialFrame panel. Generating or regenerating an image opens the QR code, and the panel can reopen it.
+
 = 1.1.0 =
 * Security: Post import and template fills only read published posts of public post types that you can read, and never expose password-protected content you cannot edit.
 * Security: Exporting to the Media Library now requires the Upload Files capability.
