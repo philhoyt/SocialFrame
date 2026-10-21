@@ -9,6 +9,8 @@ export const getSelectionType = ( state ) => state.selection.type;
 export const getSelectionProps = ( state ) => state.selection.properties;
 export const isDirty = ( state ) => state.isDirty;
 export const getRevision = ( state ) => state.revision;
+export const getContextMenu = ( state ) => state.contextMenu;
+export const isLayersOpen = ( state ) => state.layersOpen;
 export const isSaving = ( state ) => state.isSaving;
 export const getLastSaved = ( state ) => state.lastSaved;
 export const getUndoStack = ( state ) => state.undoStack;

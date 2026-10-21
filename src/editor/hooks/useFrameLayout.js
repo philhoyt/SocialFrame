@@ -27,6 +27,9 @@ const GEOMETRY = [
 	'cropX',
 	'cropY',
 	'fontSize',
+	'visible',
+	'selectable',
+	'evented',
 ];
 
 const DEFAULT_FRAME = {
@@ -72,6 +75,45 @@ function findArtboard( canvas ) {
 	return canvas
 		?.getObjects()
 		.find( ( o ) => o.isArtboard || o.id === 'artboard' );
+}
+
+/**
+ * The top-most of these ids (a frame's layers travel with it), without
+ * the artboard.
+ *
+ * @param {Object}   t   Tree.
+ * @param {string[]} ids Ids.
+ * @return {string[]} Top-most ids.
+ */
+function rootsIn( t, ids ) {
+	const set = new Set( ids );
+	return ids.filter( ( id ) => {
+		if ( t.byId.get( id )?.isArtboard || ! t.byId.has( id ) ) {
+			return false;
+		}
+		let up = t.parent.get( id );
+		while ( up !== undefined ) {
+			if ( set.has( up ) ) {
+				return false;
+			}
+			up = t.parent.get( up );
+		}
+		return true;
+	} );
+}
+
+/**
+ * A layer plus, for a frame, every layer inside it.
+ *
+ * @param {Object} t  Tree.
+ * @param {string} id Layer id.
+ * @return {string[]} Ids.
+ */
+function subtree( t, id ) {
+	return [
+		id,
+		...( t.children.get( id ) ?? [] ).flatMap( ( c ) => subtree( t, c ) ),
+	];
 }
 
 /**
@@ -275,21 +317,77 @@ export function useFrameLayout( fabricRef, dispatch, syncLayers ) {
 	 * @param {() => (boolean|void)} mutate Applies the change; returns false to cancel.
 	 * @param {Object|null}          before Snapshot to undo to (defaults to now).
 	 */
+	/**
+	 * Select layers by id: one as itself, several as a multi-selection.
+	 *
+	 * @param {string[]} ids Layer ids.
+	 */
+	const selectIds = useCallback(
+		( ids ) => {
+			const canvas = fabricRef.current;
+			if ( ! canvas ) {
+				return;
+			}
+			const objs = ids
+				.map( ( id ) =>
+					canvas.getObjects().find( ( o ) => o.id === id )
+				)
+				.filter( ( o ) => o && ! o.isArtboard && o.visible !== false );
+			canvas.discardActiveObject();
+			if ( objs.length === 1 ) {
+				canvas.setActiveObject( objs[ 0 ] );
+			} else if ( objs.length > 1 ) {
+				canvas.setActiveObject(
+					new fabric.ActiveSelection( objs, { canvas } )
+				);
+			}
+			canvas.requestRenderAll();
+		},
+		[ fabricRef ]
+	);
+
+	/**
+	 * Change frames and record the change as one undo step.
+	 *
+	 * A multi-selection is dropped first (its members are positioned
+	 * relative to it) and selected again afterwards. If `mutate` throws or
+	 * returns false, everything it changed is put back.
+	 *
+	 * @param {string}               label  History label.
+	 * @param {() => (boolean|void)} mutate Applies the change; returns false to cancel.
+	 * @param {Object|null}          before Snapshot to undo to (defaults to now).
+	 */
 	const commit = useCallback(
 		( label, mutate, before = null ) => {
 			const canvas = fabricRef.current;
 			if ( ! canvas ) {
 				return;
 			}
+			const active = canvas.getActiveObject();
+			const reselect =
+				active?.type === 'activeselection'
+					? active.getObjects().map( ( o ) => o.id )
+					: null;
+			if ( reselect ) {
+				canvas.discardActiveObject();
+			}
 			const from = before ?? snapshot();
 			busyRef.current = true;
 			let result;
 			try {
 				result = mutate();
+			} catch ( error ) {
+				busyRef.current = false;
+				restore( from );
+				throw error;
 			} finally {
 				busyRef.current = false;
 			}
 			if ( result === false ) {
+				restore( from );
+				if ( reselect ) {
+					selectIds( reselect );
+				}
 				return;
 			}
 			normalise();
@@ -302,8 +400,24 @@ export function useFrameLayout( fabricRef, dispatch, syncLayers ) {
 				undo: () => restore( from ),
 				redo: () => restore( to ),
 			} );
+			if ( reselect ) {
+				selectIds(
+					reselect.filter( ( id ) =>
+						canvas.getObjects().some( ( o ) => o.id === id )
+					)
+				);
+			}
 		},
-		[ fabricRef, snapshot, normalise, run, syncLayers, restore, dispatch ]
+		[
+			fabricRef,
+			snapshot,
+			normalise,
+			run,
+			syncLayers,
+			restore,
+			dispatch,
+			selectIds,
+		]
 	);
 
 	/**
@@ -679,52 +793,86 @@ export function useFrameLayout( fabricRef, dispatch, syncLayers ) {
 	);
 
 	/**
-	 * Remove a frame but keep its layers: they take its place in its parent
-	 * (or become free). A frame with no fill is deleted; one with a fill
-	 * stays as a plain rectangle.
+	 * Remove a frame's layout but keep its layers: they take its place in
+	 * its parent (or become free). A frame with no fill is deleted; one with
+	 * a fill stays as a plain rectangle.
+	 *
+	 * @param {Object} t       Tree (read before any change in this batch).
+	 * @param {string} frameId Frame id.
 	 */
-	const removeFrame = useCallback(
-		( frameId ) => {
+	const dissolve = useCallback(
+		( t, frameId ) => {
 			const canvas = fabricRef.current;
-			const t = tree();
 			const rect = t.byId.get( frameId );
 			if ( ! rect?.sfFrame ) {
 				return;
 			}
-			commit( __( 'Remove frame', 'socialframe' ), () => {
-				const kids = t.children.get( frameId ) ?? [];
-				const parentId = t.parent.get( frameId );
-				const parent =
-					parentId !== undefined ? t.byId.get( parentId ) : null;
-				if ( parent?.sfFrame ) {
-					const at = parent.sfFrame.children.indexOf( frameId );
-					const next = [ ...parent.sfFrame.children ];
-					next.splice( at, 1, ...kids );
-					parent.sfFrame = { ...parent.sfFrame, children: next };
-				} else {
-					for ( const c of kids ) {
-						const obj = t.byId.get( c );
-						const item = readItem( obj?.sfItem );
-						if ( obj && item?.flex && item.fontSize ) {
-							obj.set( { fontSize: item.fontSize } );
-						}
-						if ( obj ) {
-							obj.sfItem = undefined;
-						}
+			const kids = rect.sfFrame.children.filter( ( c ) =>
+				t.byId.has( c )
+			);
+			const parent = canvas
+				.getObjects()
+				.find(
+					( o ) =>
+						o !== rect && o.sfFrame?.children?.includes( frameId )
+				);
+			if ( parent ) {
+				const at = parent.sfFrame.children.indexOf( frameId );
+				const next = [ ...parent.sfFrame.children ];
+				next.splice( at, 1, ...kids );
+				parent.sfFrame = { ...parent.sfFrame, children: next };
+			} else {
+				for ( const c of kids ) {
+					const obj = t.byId.get( c );
+					const item = readItem( obj?.sfItem );
+					if ( item?.flex && item.fontSize ) {
+						obj.set( { fontSize: item.fontSize } );
+					}
+					obj.sfItem = undefined;
+				}
+			}
+			rect.sfFrame = undefined;
+			if ( rect.isArtboard ) {
+				return;
+			}
+			if ( isClear( rect.fill ) ) {
+				canvas.remove( rect );
+			} else if ( ! parent ) {
+				rect.sfItem = undefined;
+			}
+		},
+		[ fabricRef ]
+	);
+
+	/**
+	 * Remove several frames, keeping their layers, as one undo step.
+	 *
+	 * @param {string[]} ids Frame ids (the artboard turns its layout off).
+	 */
+	const removeFrames = useCallback(
+		( ids ) => {
+			const t = tree();
+			const frameIds = ids.filter( ( id ) => t.frames.has( id ) );
+			if ( ! frameIds.length ) {
+				return;
+			}
+			commit(
+				frameIds.length > 1
+					? __( 'Remove frames', 'socialframe' )
+					: __( 'Remove frame', 'socialframe' ),
+				() => {
+					for ( const id of frameIds ) {
+						dissolve( t, id );
 					}
 				}
-				rect.sfFrame = undefined;
-				if ( rect.isArtboard ) {
-					return;
-				}
-				if ( isClear( rect.fill ) ) {
-					canvas.remove( rect );
-				} else {
-					rect.sfItem = parent ? rect.sfItem : undefined;
-				}
-			} );
+			);
 		},
-		[ fabricRef, tree, commit ]
+		[ tree, commit, dissolve ]
+	);
+
+	const removeFrame = useCallback(
+		( frameId ) => removeFrames( [ frameId ] ),
+		[ removeFrames ]
 	);
 
 	const setFrame = useCallback(
@@ -799,8 +947,8 @@ export function useFrameLayout( fabricRef, dispatch, syncLayers ) {
 	);
 
 	/**
-	 * Delete layers that take part in frames, as one undo step that also
-	 * restores their frame membership.
+	 * Delete layers as one undo step. Deleting a frame deletes the layers in
+	 * it; the artboard is never deleted.
 	 *
 	 * @param {Object[]} objs  Objects to delete.
 	 * @param {string}   label History label.
@@ -808,40 +956,292 @@ export function useFrameLayout( fabricRef, dispatch, syncLayers ) {
 	const removeObjects = useCallback(
 		( objs, label ) => {
 			const canvas = fabricRef.current;
+			const t = tree();
+			const roots = rootsIn(
+				t,
+				objs.map( ( o ) => o.id )
+			);
+			if ( ! roots.length ) {
+				return;
+			}
 			commit( label, () => {
-				const t = tree();
-				for ( const obj of objs ) {
-					const kids = t.children.get( obj.id );
-					if ( kids ) {
-						for ( const c of kids ) {
-							const child = t.byId.get( c );
-							if ( child && ! objs.includes( child ) ) {
-								release( t, child );
-								if ( t.parent.get( obj.id ) !== undefined ) {
-									// Lift the child into the deleted frame's parent.
-									const parent = t.byId.get(
-										t.parent.get( obj.id )
-									);
-									child.sfItem = itemFor( child );
-									parent.sfFrame = {
-										...parent.sfFrame,
-										children: [
-											...parent.sfFrame.children,
-											c,
-										],
-									};
-								}
-							}
-						}
-					}
-					if ( t.parent.has( obj.id ) ) {
+				for ( const id of roots ) {
+					const obj = t.byId.get( id );
+					if ( t.parent.has( id ) ) {
 						release( t, obj );
 					}
-					canvas.remove( obj );
+					for ( const sid of subtree( t, id ) ) {
+						const target = t.byId.get( sid );
+						if ( target ) {
+							canvas.remove( target );
+						}
+					}
 				}
 			} );
 		},
-		[ fabricRef, commit, tree, release, itemFor ]
+		[ fabricRef, commit, tree, release ]
+	);
+
+	/**
+	 * Lock, unlock, hide or show layers as one undo step. A frame passes the
+	 * change to every layer inside it.
+	 *
+	 * @param {string[]} ids   Layer ids.
+	 * @param {Object}   props `{ visible }` and/or `{ locked }`.
+	 * @param {string}   label History label.
+	 */
+	const setLayersProps = useCallback(
+		( ids, props, label ) => {
+			const t = tree();
+			const targets = rootsIn( t, ids ).flatMap( ( id ) =>
+				subtree( t, id )
+			);
+			if ( ! targets.length ) {
+				return;
+			}
+			commit( label, () => {
+				for ( const id of targets ) {
+					const obj = t.byId.get( id );
+					if ( ! obj ) {
+						continue;
+					}
+					const next = {};
+					if ( props.visible !== undefined ) {
+						next.visible = props.visible;
+					}
+					if ( props.locked !== undefined ) {
+						next.selectable = ! props.locked;
+						next.evented = ! props.locked;
+					}
+					obj.set( next );
+				}
+			} );
+		},
+		[ tree, commit ]
+	);
+
+	/**
+	 * Plain stand-ins for the canvas objects, to try a membership change on
+	 * before making it.
+	 *
+	 * @return {Object[]} Copies with id, type, geometry flags and frame data.
+	 */
+	const plainObjects = useCallback(
+		() =>
+			( fabricRef.current?.getObjects() ?? [] ).map( ( o ) => ( {
+				id: o.id,
+				type: o.type,
+				isArtboard: o.isArtboard,
+				angle: o.angle,
+				skewX: o.skewX,
+				skewY: o.skewY,
+				originX: o.originX,
+				originY: o.originY,
+				sfFrame: copy( o.sfFrame ),
+			} ) ),
+		[ fabricRef ]
+	);
+
+	/**
+	 * Move layers into a frame, or to a place in top-level z-order, as one
+	 * undo step.
+	 *
+	 * - `{ parentId, index }`: into that frame (or the artboard's content
+	 *   layout) at `index`, counted without the moved layers.
+	 * - `{ before }`, `{ after }` or `{ edge: 'top' | 'bottom' }`: out of any
+	 *   frame and into that place in z-order, as one block. A frame moves with
+	 *   everything in it.
+	 *
+	 * The whole change is tried on copies first; if any moved layer would
+	 * break a frame rule or limit, nothing changes.
+	 *
+	 * @param {string[]} ids    Layer ids.
+	 * @param {Object}   target Where to put them.
+	 * @return {boolean} True when the move happened.
+	 */
+	const moveLayers = useCallback(
+		( ids, target ) => {
+			const canvas = fabricRef.current;
+			const t = tree();
+			const roots = rootsIn( t, ids ).filter( ( id ) =>
+				canJoin( t.byId.get( id ) )
+			);
+			if ( ! canvas || ! roots.length || ! target ) {
+				return false;
+			}
+
+			if ( target.parentId !== undefined ) {
+				const parentId = target.parentId;
+				if (
+					! t.frames.has( parentId ) ||
+					roots.some( ( id ) => ! canAdd( t, id, parentId ) )
+				) {
+					return false;
+				}
+				// Try it on copies: every moved layer must end up in the frame.
+				const trial = plainObjects();
+				const byId = new Map( trial.map( ( o ) => [ o.id, o ] ) );
+				for ( const o of trial ) {
+					if ( o.sfFrame ) {
+						o.sfFrame.children = o.sfFrame.children.filter(
+							( c ) => ! roots.includes( c )
+						);
+					}
+				}
+				const kids = byId.get( parentId ).sfFrame.children;
+				const at = Math.max(
+					0,
+					Math.min( kids.length, target.index ?? kids.length )
+				);
+				kids.splice( at, 0, ...roots );
+				const tried = readTree( trial );
+				if (
+					roots.some( ( id ) => tried.parent.get( id ) !== parentId )
+				) {
+					return false;
+				}
+
+				commit( __( 'Move layers', 'socialframe' ), () => {
+					for ( const o of canvas.getObjects() ) {
+						if ( o.sfFrame ) {
+							o.sfFrame = copy( byId.get( o.id ).sfFrame );
+						}
+					}
+					for ( const id of roots ) {
+						const obj = t.byId.get( id );
+						obj.sfItem = itemFor( obj );
+					}
+				} );
+				return true;
+			}
+
+			// Top level: out of frames (the content layout keeps its members),
+			// then placed as one block in z-order.
+			const anchorId = target.before ?? target.after;
+			if (
+				anchorId !== undefined &&
+				( ! t.byId.has( anchorId ) || roots.includes( anchorId ) )
+			) {
+				return false;
+			}
+			commit( __( 'Move layers', 'socialframe' ), () => {
+				for ( const id of roots ) {
+					const parent = t.byId.get( t.parent.get( id ) );
+					if ( parent && ! parent.isArtboard ) {
+						release( t, t.byId.get( id ) );
+					}
+				}
+				const block = new Set(
+					roots
+						.flatMap( ( id ) => subtree( t, id ) )
+						.map( ( id ) => t.byId.get( id ) )
+				);
+				const objs = canvas.getObjects();
+				const moving = objs.filter( ( o ) => block.has( o ) );
+				const rest = objs.filter( ( o ) => ! block.has( o ) );
+				let at;
+				if ( target.edge === 'bottom' ) {
+					at = Math.min( 1, rest.length );
+				} else if ( target.edge === 'top' ) {
+					at = rest.length;
+				} else {
+					const anchor = new Set(
+						subtree( t, anchorId ).map( ( id ) => t.byId.get( id ) )
+					);
+					const first = rest.findIndex( ( o ) => anchor.has( o ) );
+					const last =
+						rest.length -
+						1 -
+						[ ...rest ]
+							.reverse()
+							.findIndex( ( o ) => anchor.has( o ) );
+					// The tree lists top layers first: "before" is above (later).
+					at = target.before !== undefined ? last + 1 : first;
+				}
+				at = Math.max( 1, Math.min( rest.length, at ) );
+				[
+					...rest.slice( 0, at ),
+					...moving,
+					...rest.slice( at ),
+				].forEach( ( o, i ) => canvas.moveObjectTo( o, i ) );
+			} );
+			return true;
+		},
+		[ fabricRef, tree, commit, plainObjects, itemFor, release ]
+	);
+
+	/**
+	 * Bring layers forward or send them back one step. Layers in a frame
+	 * move within its layout order; others move in z-order with any frame
+	 * contents.
+	 *
+	 * @param {string[]} ids Layer ids.
+	 * @param {number}   dir 1 forward, -1 back.
+	 */
+	const shiftLayers = useCallback(
+		( ids, dir ) => {
+			const canvas = fabricRef.current;
+			const t = tree();
+			const roots = rootsIn( t, ids );
+			if ( ! canvas || ! roots.length ) {
+				return;
+			}
+			commit(
+				dir > 0
+					? __( 'Bring forward', 'socialframe' )
+					: __( 'Send backward', 'socialframe' ),
+				() => {
+					let changed = false;
+					for ( const id of dir > 0
+						? [ ...roots ].reverse()
+						: roots ) {
+						const parent = t.byId.get( t.parent.get( id ) );
+						if ( parent && ! parent.isArtboard ) {
+							const kids = [ ...parent.sfFrame.children ];
+							const i = kids.indexOf( id );
+							const j = i - dir;
+							if ( i >= 0 && j >= 0 && j < kids.length ) {
+								[ kids[ i ], kids[ j ] ] = [
+									kids[ j ],
+									kids[ i ],
+								];
+								parent.sfFrame = {
+									...parent.sfFrame,
+									children: kids,
+								};
+								changed = true;
+							}
+							continue;
+						}
+						const block = new Set(
+							subtree( t, id ).map( ( b ) => t.byId.get( b ) )
+						);
+						const objs = canvas.getObjects();
+						const moving = objs.filter( ( o ) => block.has( o ) );
+						const rest = objs.filter( ( o ) => ! block.has( o ) );
+						const first = objs.indexOf( moving[ 0 ] );
+						const below = objs
+							.slice( 0, first )
+							.filter( ( o ) => ! block.has( o ) ).length;
+						const at = Math.max(
+							1,
+							Math.min( rest.length, below + dir )
+						);
+						if ( at === below ) {
+							continue;
+						}
+						[
+							...rest.slice( 0, at ),
+							...moving,
+							...rest.slice( at ),
+						].forEach( ( o, k ) => canvas.moveObjectTo( o, k ) );
+						changed = true;
+					}
+					return changed;
+				}
+			);
+		},
+		[ fabricRef, tree, commit ]
 	);
 
 	/**
@@ -1172,6 +1572,11 @@ export function useFrameLayout( fabricRef, dispatch, syncLayers ) {
 			removeFromFrame,
 			moveInFrame,
 			moveLayer,
+			moveLayers,
+			shiftLayers,
+			selectIds,
+			setLayersProps,
+			removeFrames,
 			removeFrame,
 			setFrame,
 			setItem,
@@ -1196,6 +1601,11 @@ export function useFrameLayout( fabricRef, dispatch, syncLayers ) {
 			removeFromFrame,
 			moveInFrame,
 			moveLayer,
+			moveLayers,
+			shiftLayers,
+			selectIds,
+			setLayersProps,
+			removeFrames,
 			removeFrame,
 			setFrame,
 			setItem,

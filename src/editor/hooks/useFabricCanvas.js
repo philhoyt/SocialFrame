@@ -8,6 +8,7 @@ import { configureFabric } from '../../shared/configureFabric';
 import { containInBox, readTree } from '../../shared/frameLayout';
 import { STORE_KEY } from '../store';
 import { useFrameLayout } from './useFrameLayout';
+import { buildRows } from '../utils/layerTree';
 import { FORMATS } from '../utils/formats';
 import {
 	createShape,
@@ -351,6 +352,22 @@ export function useFabricCanvas(
 			frames.handleRemoved( e.target );
 			dispatch.markDirty();
 			syncLayersToStore( canvas, dispatch );
+		} );
+
+		// Right-click opens the layer menu at the pointer. A layer outside the
+		// selection becomes the selection first; empty canvas clears it.
+		canvas.on( 'contextmenu', ( opt ) => {
+			const target = opt.target;
+			if ( target && ! isArtboardObject( target ) ) {
+				if ( ! canvas.getActiveObjects().includes( target ) ) {
+					canvas.setActiveObject( target );
+				}
+			} else {
+				canvas.discardActiveObject();
+				dispatch.clearSelection();
+			}
+			canvas.requestRenderAll();
+			dispatch.openContextMenu( { x: opt.e.clientX, y: opt.e.clientY } );
 		} );
 
 		// A dragged frame takes its layers along as it moves.
@@ -1392,50 +1409,160 @@ export function useFabricCanvas(
 		[ dispatch, frames ]
 	);
 
-	const duplicateById = useCallback(
-		async ( id ) => {
+	/**
+	 * Duplicate layers as one undo step. A frame is copied with the layers
+	 * inside it (new ids, its list remapped); a copied layer that was in a
+	 * frame starts outside it. Copies sit 20px down and right, just above
+	 * the originals, and become the selection. If any copy fails, nothing is
+	 * added.
+	 *
+	 * @param {string[]} ids Layer ids.
+	 */
+	const duplicateMany = useCallback(
+		async ( ids ) => {
 			const canvas = fabricRef.current;
-			const obj = canvas?.getObjects().find( ( o ) => o.id === id );
-			if ( ! canvas || ! obj ) {
+			if ( ! canvas || ! ids?.length ) {
 				return;
 			}
-			const clone = await obj.clone();
-			clone.set( {
-				id: genId(),
-				left: ( obj.left ?? 0 ) + 20,
-				top: ( obj.top ?? 0 ) + 20,
-				// A copy starts outside any frame; a copied frame starts empty.
-				sfItem: undefined,
-				sfFrame: obj.sfFrame
-					? { ...obj.sfFrame, children: [] }
-					: undefined,
+			canvas.discardActiveObject();
+			const tree = readTree( canvas.getObjects() );
+			const chosen = new Set( ids );
+			const roots = ids.filter( ( id ) => {
+				const obj = tree.byId.get( id );
+				if ( ! obj || isArtboardObject( obj ) ) {
+					return false;
+				}
+				let up = tree.parent.get( id );
+				while ( up !== undefined ) {
+					if ( chosen.has( up ) ) {
+						return false;
+					}
+					up = tree.parent.get( up );
+				}
+				return true;
 			} );
-			if ( obj.name ) {
-				clone.name = obj.name;
+			if ( ! roots.length ) {
+				return;
 			}
-			canvas.add( clone );
-			canvas.setActiveObject( clone );
-			canvas.renderAll();
+			const withLayers = ( id ) => [
+				id,
+				...( tree.children.get( id ) ?? [] ).flatMap( withLayers ),
+			];
+			const sources = roots
+				.flatMap( withLayers )
+				.map( ( id ) => tree.byId.get( id ) )
+				.filter( Boolean )
+				.sort(
+					( a, b ) =>
+						canvas.getObjects().indexOf( a ) -
+						canvas.getObjects().indexOf( b )
+				);
+			const newIds = new Map( sources.map( ( o ) => [ o.id, genId() ] ) );
+
+			let clones;
+			try {
+				clones = await Promise.all( sources.map( ( o ) => o.clone() ) );
+			} catch {
+				return;
+			}
+			clones.forEach( ( clone, i ) => {
+				const src = sources[ i ];
+				clone.set( {
+					id: newIds.get( src.id ),
+					left: ( src.left ?? 0 ) + 20,
+					top: ( src.top ?? 0 ) + 20,
+				} );
+				if ( src.name ) {
+					clone.name = src.name;
+				}
+				clone.sfFrame = src.sfFrame
+					? {
+							...JSON.parse( JSON.stringify( src.sfFrame ) ),
+							children: src.sfFrame.children
+								.filter( ( c ) => newIds.has( c ) )
+								.map( ( c ) => newIds.get( c ) ),
+						}
+					: undefined;
+				clone.sfItem =
+					roots.includes( src.id ) || ! src.sfItem
+						? undefined
+						: { ...src.sfItem };
+			} );
+
+			const top = Math.max(
+				...sources.map( ( o ) => canvas.getObjects().indexOf( o ) )
+			);
+			const insert = () =>
+				clones.forEach( ( clone, i ) =>
+					canvas.insertAt( top + 1 + i, clone )
+				);
+			const remove = () =>
+				clones.forEach( ( clone ) => canvas.remove( clone ) );
+			const select = () =>
+				frames.selectIds( roots.map( ( id ) => newIds.get( id ) ) );
+
+			insert();
+			select();
 			syncLayersToStore( canvas, dispatch );
 			dispatch.markDirty();
 			dispatch.pushHistory( {
-				label: __( 'Duplicate layer', 'socialframe' ),
+				label: __( 'Duplicate', 'socialframe' ),
 				undo: () => {
-					canvas.remove( clone );
-					canvas.renderAll();
+					canvas.discardActiveObject();
+					remove();
 					syncLayersToStore( canvas, dispatch );
+					dispatch.clearSelection();
 					dispatch.markDirty();
 				},
 				redo: () => {
-					canvas.add( clone );
-					canvas.setActiveObject( clone );
-					canvas.renderAll();
+					insert();
+					select();
 					syncLayersToStore( canvas, dispatch );
 					dispatch.markDirty();
 				},
 			} );
 		},
-		[ dispatch ]
+		[ dispatch, frames ]
+	);
+
+	const duplicateById = useCallback(
+		( id ) => duplicateMany( [ id ] ),
+		[ duplicateMany ]
+	);
+
+	const duplicateSelected = useCallback( () => {
+		const canvas = fabricRef.current;
+		return duplicateMany(
+			( canvas?.getActiveObjects() ?? [] ).map( ( o ) => o.id )
+		);
+	}, [ duplicateMany ] );
+
+	/** Ids of the selected layers. */
+	const getSelectedIds = useCallback(
+		() =>
+			( fabricRef.current?.getActiveObjects() ?? [] )
+				.map( ( o ) => o.id )
+				.filter( Boolean ),
+		[]
+	);
+
+	/**
+	 * Select layers by id: one as itself, several as a multi-selection,
+	 * none to clear.
+	 *
+	 * @param {string[]} ids Layer ids.
+	 */
+	const selectByIds = useCallback(
+		( ids ) => {
+			if ( ! ids.length ) {
+				fabricRef.current?.discardActiveObject();
+				fabricRef.current?.requestRenderAll();
+				dispatch.clearSelection();
+				return;
+			}
+			frames.selectIds( ids );
+		},
+		[ dispatch, frames ]
 	);
 
 	const deleteById = useCallback(
@@ -1509,47 +1636,6 @@ export function useFabricCanvas(
 	);
 
 	/** Duplicate the currently active object, offset by 20px. */
-	const duplicateSelected = useCallback( async () => {
-		const canvas = fabricRef.current;
-		const obj = canvas?.getActiveObject();
-		if ( ! canvas || ! obj ) {
-			return;
-		}
-		const clone = await obj.clone();
-		clone.set( {
-			id: genId(),
-			left: ( obj.left ?? 0 ) + 20,
-			top: ( obj.top ?? 0 ) + 20,
-			// A copy starts outside any frame; a copied frame starts empty.
-			sfItem: undefined,
-			sfFrame: obj.sfFrame ? { ...obj.sfFrame, children: [] } : undefined,
-		} );
-		if ( obj.name ) {
-			clone.name = obj.name;
-		}
-		canvas.add( clone );
-		canvas.setActiveObject( clone );
-		canvas.renderAll();
-		syncLayersToStore( canvas, dispatch );
-		dispatch.markDirty();
-		dispatch.pushHistory( {
-			label: __( 'Duplicate', 'socialframe' ),
-			undo: () => {
-				canvas.remove( clone );
-				canvas.renderAll();
-				syncLayersToStore( canvas, dispatch );
-				dispatch.markDirty();
-			},
-			redo: () => {
-				canvas.add( clone );
-				canvas.setActiveObject( clone );
-				canvas.renderAll();
-				syncLayersToStore( canvas, dispatch );
-				dispatch.markDirty();
-			},
-		} );
-	}, [ dispatch ] );
-
 	const setLayerLocked = useCallback(
 		( id, locked ) => {
 			const canvas = fabricRef.current;
@@ -1708,6 +1794,9 @@ export function useFabricCanvas(
 		deleteSelected,
 		replaceImage,
 		frames,
+		duplicateMany,
+		getSelectedIds,
+		selectByIds,
 		fillShapeWithImage,
 		updateShapeImageFit,
 		setBackgroundImage,
@@ -1837,44 +1926,26 @@ function isArtboardObject( o ) {
 }
 
 function syncLayersToStore( canvas, dispatch ) {
-	const objects = canvas
-		.getObjects()
-		.filter( ( o ) => ! isArtboardObject( o ) );
+	const objects = canvas.getObjects();
 	// Ensure every object has a stable ID before syncing to the store.
 	objects.forEach( ( obj ) => {
 		if ( ! obj.id ) {
 			obj.id = genId();
 		}
 	} );
-	// Top layer first; a frame's layers follow it, indented, in layout order.
-	const tree = readTree( canvas.getObjects() );
-	const inFrame = ( id ) => {
-		const p = tree.parent.get( id );
-		return p !== undefined && ! tree.byId.get( p )?.isArtboard;
-	};
-	const layers = [];
-	const add = ( obj, depth ) => {
-		layers.push( {
-			id: obj.id,
-			name: obj.name || getDefaultLayerName( obj ),
-			type: getObjectType( obj ),
-			locked: ! ( obj.selectable ?? true ),
-			visible: obj.visible ?? true,
-			depth,
-			isFrame: tree.frames.has( obj.id ),
-			inFrame: tree.parent.has( obj.id ),
-		} );
-		for ( const c of tree.children.get( obj.id ) ?? [] ) {
-			const child = tree.byId.get( c );
-			if ( child ) {
-				add( child, depth + 1 );
-			}
-		}
-	};
-	for ( const obj of [ ...objects ].reverse() ) {
-		if ( ! inFrame( obj.id ) ) {
-			add( obj, 0 );
-		}
-	}
-	dispatch.setLayers( layers );
+	const byId = new Map( objects.map( ( o ) => [ o.id, o ] ) );
+	dispatch.setLayers(
+		buildRows( objects ).map( ( row ) => {
+			const obj = byId.get( row.id );
+			return {
+				...row,
+				name:
+					row.kind === 'artboard'
+						? __( 'Artboard', 'socialframe' )
+						: row.name || getDefaultLayerName( obj ),
+				type:
+					row.kind === 'artboard' ? 'artboard' : getObjectType( obj ),
+			};
+		} )
+	);
 }

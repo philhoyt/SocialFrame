@@ -3,6 +3,7 @@ import { Button, Tooltip } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
+import { LAYERS_TOGGLE_ID } from '../Layers/LayersColumn';
 import './IconNav.css';
 
 /*
@@ -139,16 +140,14 @@ const PANELS = [
 		icon: <IconPosts />,
 		label: __( 'Import Post', 'socialframe' ),
 	},
-	{
-		id: 'layers',
-		icon: <IconLayers />,
-		label: __( 'Layers', 'socialframe' ),
-	},
 ];
 
 export function IconNav() {
 	const activePanel = useSelect( ( select ) =>
 		select( STORE_KEY ).getActivePanel()
+	);
+	const layersOpen = useSelect( ( select ) =>
+		select( STORE_KEY ).isLayersOpen()
 	);
 	const dispatch = useDispatch( STORE_KEY );
 
@@ -171,6 +170,19 @@ export function IconNav() {
 					</Button>
 				</Tooltip>
 			) ) }
+			<Tooltip text={ __( 'Layers', 'socialframe' ) } placement="right">
+				<Button
+					id={ LAYERS_TOGGLE_ID }
+					className={ `socialframe-icon-nav__btn socialframe-icon-nav__btn--layers${
+						layersOpen ? ' is-active' : ''
+					}` }
+					onClick={ () => dispatch.setLayersOpen( ! layersOpen ) }
+					aria-expanded={ layersOpen }
+					aria-label={ __( 'Layers', 'socialframe' ) }
+				>
+					<IconLayers />
+				</Button>
+			</Tooltip>
 		</nav>
 	);
 }

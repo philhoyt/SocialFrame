@@ -19,7 +19,9 @@ function isTypingContext( el ) {
 	return (
 		[ 'INPUT', 'TEXTAREA', 'SELECT' ].includes( el.tagName ) ||
 		el.isContentEditable ||
-		!! el.closest( '[role="dialog"], .components-modal__frame' )
+		!! el.closest(
+			'[role="dialog"], .components-modal__frame, [role="tree"], [role="menu"]'
+		)
 	);
 }
 
@@ -34,7 +36,8 @@ function isTypingContext( el ) {
  * @return {string|null} One of undo, redo, duplicate, zoomIn, zoomOut, fit, delete.
  */
 export function resolveShortcut( e ) {
-	if ( isTypingContext( e.target ) ) {
+	// The Layers tree and its menu handle their own keys.
+	if ( e.defaultPrevented || isTypingContext( e.target ) ) {
 		return null;
 	}
 
@@ -88,7 +91,8 @@ export function useKeyboardShortcuts( fabricApi, designId ) {
 		const actions = {
 			undo: () => dispatch.undoAction(),
 			redo: () => dispatch.redoAction(),
-			duplicate: () => fabricApi?.duplicateSelected?.(),
+			duplicate: () =>
+				fabricApi?.duplicateMany?.( fabricApi.getSelectedIds() ),
 			zoomIn: () => fabricApi?.zoomIn?.(),
 			zoomOut: () => fabricApi?.zoomOut?.(),
 			fit: () => fabricApi?.fitView?.(),
