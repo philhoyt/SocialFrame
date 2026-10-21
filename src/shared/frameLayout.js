@@ -305,8 +305,17 @@ export function resolveWidths( tree, sizes, rootId, rootW ) {
 
 	const intrinsic = ( id ) => {
 		const frame = tree.frames.get( id );
+		const node = sizes[ id ];
+		if ( ! frame && node?.image && node.maxHeight > 0 ) {
+			// An image capped by its height is narrower than its slot; size
+			// hugging frames to what it draws.
+			const { width: natW, height: natH } = node.image;
+			const capped =
+				natH > 0 ? ( natW * node.maxHeight ) / natH : Infinity;
+			return Math.min( node.w ?? 0, capped );
+		}
 		if ( ! frame || frame.width === 'fixed' ) {
-			return sizes[ id ]?.w ?? 0;
+			return node?.w ?? 0;
 		}
 		const kids = tree.children.get( id ) ?? [];
 		const pad = frame.padding.left + frame.padding.right;

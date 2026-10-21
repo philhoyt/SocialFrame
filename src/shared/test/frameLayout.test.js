@@ -279,6 +279,38 @@ describe( 'three-pass layout', () => {
 		expect( pos( result, 'l' ) ).toEqual( { left: 0, top: 810 } );
 	} );
 
+	it( 'hugs images at the width they draw, not their slot', () => {
+		const objects = [
+			{
+				id: 'row',
+				type: 'rect',
+				sfFrame: frame( {
+					direction: 'row',
+					gap: 20,
+					width: 'hug',
+					height: 'hug',
+					children: [ 'a', 'b' ],
+				} ),
+			},
+			{ id: 'a', type: 'image' },
+			{ id: 'b', type: 'image' },
+		];
+		const portrait = { width: 1000, height: 2000 };
+		const result = layout(
+			objects,
+			{
+				row: {},
+				a: { w: 400, image: portrait, maxHeight: 600 },
+				b: { w: 400, image: portrait, maxHeight: 600 },
+			},
+			'row'
+		);
+
+		// 1000×2000 capped at 600 tall is 300 wide, not its 400 slot.
+		expect( result.widths.get( 'row' ) ).toBe( 300 + 20 + 300 );
+		expect( pos( result, 'b' ).left ).toBe( 320 );
+	} );
+
 	it( 'centres a short column vertically and reports overflow per axis', () => {
 		const objects = [
 			{
