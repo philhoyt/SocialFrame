@@ -92,3 +92,5 @@ export const openContextMenu = ( { x, y } ) => ( {
 } );
 
 export const closeContextMenu = () => ( { type: 'CLOSE_CONTEXT_MENU' } );
+
+export const setLayersOpen = ( open ) => ( { type: 'SET_LAYERS_OPEN', open } );

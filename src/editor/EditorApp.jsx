@@ -18,6 +18,7 @@ import { Canvas } from './components/Canvas';
 import { Header } from './components/Header';
 import { IconNav } from './components/IconNav';
 import { ContentPanel } from './components/ContentPanel';
+import { LayersColumn } from './components/Layers/LayersColumn';
 import { PropertiesPanel } from './components/PropertiesPanel';
 
 // ── Fabric context — provides the imperative API to all editor components ────
@@ -100,6 +101,7 @@ function EditorInner( { design } ) {
 				<Header />
 				<div className="socialframe-editor__body">
 					<IconNav />
+					<LayersColumn />
 					<ContentPanel />
 					<Canvas canvasRef={ canvasRef } areaRef={ areaRef } />
 					<PropertiesPanel />

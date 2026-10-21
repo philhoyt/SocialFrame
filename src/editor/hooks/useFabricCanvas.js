@@ -8,6 +8,7 @@ import { configureFabric } from '../../shared/configureFabric';
 import { containInBox, readTree } from '../../shared/frameLayout';
 import { STORE_KEY } from '../store';
 import { useFrameLayout } from './useFrameLayout';
+import { buildRows } from '../utils/layerTree';
 import { FORMATS } from '../utils/formats';
 import {
 	createShape,
@@ -1925,44 +1926,26 @@ function isArtboardObject( o ) {
 }
 
 function syncLayersToStore( canvas, dispatch ) {
-	const objects = canvas
-		.getObjects()
-		.filter( ( o ) => ! isArtboardObject( o ) );
+	const objects = canvas.getObjects();
 	// Ensure every object has a stable ID before syncing to the store.
 	objects.forEach( ( obj ) => {
 		if ( ! obj.id ) {
 			obj.id = genId();
 		}
 	} );
-	// Top layer first; a frame's layers follow it, indented, in layout order.
-	const tree = readTree( canvas.getObjects() );
-	const inFrame = ( id ) => {
-		const p = tree.parent.get( id );
-		return p !== undefined && ! tree.byId.get( p )?.isArtboard;
-	};
-	const layers = [];
-	const add = ( obj, depth ) => {
-		layers.push( {
-			id: obj.id,
-			name: obj.name || getDefaultLayerName( obj ),
-			type: getObjectType( obj ),
-			locked: ! ( obj.selectable ?? true ),
-			visible: obj.visible ?? true,
-			depth,
-			isFrame: tree.frames.has( obj.id ),
-			inFrame: tree.parent.has( obj.id ),
-		} );
-		for ( const c of tree.children.get( obj.id ) ?? [] ) {
-			const child = tree.byId.get( c );
-			if ( child ) {
-				add( child, depth + 1 );
-			}
-		}
-	};
-	for ( const obj of [ ...objects ].reverse() ) {
-		if ( ! inFrame( obj.id ) ) {
-			add( obj, 0 );
-		}
-	}
-	dispatch.setLayers( layers );
+	const byId = new Map( objects.map( ( o ) => [ o.id, o ] ) );
+	dispatch.setLayers(
+		buildRows( objects ).map( ( row ) => {
+			const obj = byId.get( row.id );
+			return {
+				...row,
+				name:
+					row.kind === 'artboard'
+						? __( 'Artboard', 'socialframe' )
+						: row.name || getDefaultLayerName( obj ),
+				type:
+					row.kind === 'artboard' ? 'artboard' : getObjectType( obj ),
+			};
+		} )
+	);
 }

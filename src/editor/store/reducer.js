@@ -24,6 +24,8 @@ const DEFAULT_STATE = {
 	zoom: 100,
 	// Open layer menu: { x, y } in viewport pixels, or null.
 	contextMenu: null,
+	// Narrow screens: whether the Layers drawer is open.
+	layersOpen: false,
 };
 
 export function reducer( state = DEFAULT_STATE, action ) {
@@ -131,6 +133,9 @@ export function reducer( state = DEFAULT_STATE, action ) {
 
 		case 'CLOSE_CONTEXT_MENU':
 			return { ...state, contextMenu: null };
+
+		case 'SET_LAYERS_OPEN':
+			return { ...state, layersOpen: action.open };
 
 		case 'SET_ZOOM':
 			return { ...state, zoom: action.zoom };
