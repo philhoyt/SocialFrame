@@ -19,11 +19,14 @@ const { postTypes: AVAILABLE = [] } = window.socialFrameConfig ?? {};
  */
 export function PostTypesSection() {
 	const fabric = useFabric();
-	const { designId, assigned, layers } = useSelect( ( select ) => ( {
-		designId: select( STORE_KEY ).getDesignId(),
-		assigned: select( STORE_KEY ).getPostTypes(),
-		layers: select( STORE_KEY ).getLayers(),
-	} ) );
+	const { designId, assigned, layers, sourcePost } = useSelect(
+		( select ) => ( {
+			designId: select( STORE_KEY ).getDesignId(),
+			assigned: select( STORE_KEY ).getPostTypes(),
+			layers: select( STORE_KEY ).getLayers(),
+			sourcePost: select( STORE_KEY ).getSourcePost(),
+		} )
+	);
 	const { setPostTypes } = useDispatch( STORE_KEY );
 	const { createErrorNotice } = useDispatch( noticesStore );
 	// Layers change once the canvas has loaded and whenever objects do.
@@ -32,7 +35,8 @@ export function PostTypesSection() {
 		[ fabric, layers ] // eslint-disable-line react-hooks/exhaustive-deps
 	);
 
-	if ( ! AVAILABLE.length ) {
+	// A design generated from a post is that post's output, not a template.
+	if ( ! AVAILABLE.length || sourcePost > 0 ) {
 		return null;
 	}
 

@@ -6,6 +6,7 @@ const DEFAULT_STATE = {
 	designTitle: '',
 	format: '',
 	postTypes: [],
+	sourcePost: 0,
 	selection: {
 		type: 'none',
 		objectId: null,
@@ -36,6 +37,7 @@ export function reducer( state = DEFAULT_STATE, action ) {
 				designTitle: action.title,
 				format: action.format,
 				postTypes: action.postTypes,
+				sourcePost: action.sourcePost,
 				isDirty: false,
 			};
 

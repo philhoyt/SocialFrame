@@ -112,6 +112,7 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 * Added: Assign designs to post types and generate them from a SocialFrame panel in the block editor. Each post keeps one generated design and image per assigned design, and Regenerate replaces the image in place.
 * Added: REST endpoints `GET /posts/{id}/frames` and `POST /designs/{id}/generate`, the `assigned_to` filter on `GET /designs`, `postTypes` on `PUT /designs/{id}`, and the `socialframe_frame_post_types` filter.
 * Fixed: Duplicated layers keep their shape type (star, arrow and similar) and template field.
+* Fixed: Export PNG saves at the format's exact size on high-DPI screens instead of at twice the size.
 * Fixed: Saves run one at a time, so an older autosave can no longer overwrite a newer save, and a failed manual save now always shows an error.
 
 = 1.0.0 =
