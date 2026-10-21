@@ -153,7 +153,7 @@ Assign a design with template fields to one or more post types, and every post o
 
 The post's current title, excerpt and featured image are used even before you save. Other fields (content, custom fields, terms, date, author) come from the last saved version.
 
-Each post has one generated design and one image per assigned design. **Regenerate** fills the same design again and replaces its image, keeping the Media Library attachment ID. Changes made to the generated design in SocialFrame are lost, and you are asked to confirm first. Click **Edit in SocialFrame** to touch up a generated design by hand.
+Each post has one generated design and one image per assigned design. **Regenerate** fills the same design again and replaces its image, keeping the Media Library attachment ID. Changes made to the generated design in SocialFrame are lost, and you are asked to confirm first. Click **Edit in SocialFrame** to touch up a generated design by hand. After generating, a **Share to Phone** QR code opens so you can download the image on your phone; the **Share to Phone** button reopens it.
 
 A generated design holds content from its post, which may be a draft, so only users who can edit that post see it in the designs list.
 

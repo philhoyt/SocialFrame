@@ -120,9 +120,25 @@ test.describe( 'Post editor SocialFrame panel', () => {
 
 		expect( first.created ).toBe( true );
 		expect( fabricRequests.length ).toBeGreaterThan( 0 );
+
+		// Share to Phone opens with a QR code for the new image, as Export does.
+		const share = page.getByRole( 'dialog', { name: 'Share to Phone' } );
+		await expect( share ).toBeVisible();
+		await expect( share.locator( 'canvas' ) ).toBeVisible();
+		await expect(
+			share.getByRole( 'link', { name: 'Open Image' } )
+		).toHaveAttribute( 'href', first.imageUrl );
+		await share.getByRole( 'button', { name: 'Close' } ).click();
+		await expect( share ).toBeHidden();
 		await expect(
 			panel.getByRole( 'img', { name: 'Generated E2E Frame image' } )
 		).toBeVisible();
+
+		// And reopens from the panel.
+		await panel.getByRole( 'button', { name: 'Share to Phone' } ).click();
+		await expect( share ).toBeVisible();
+		await page.keyboard.press( 'Escape' );
+		await expect( share ).toBeHidden();
 
 		const output = await requestUtils.rest( {
 			path: `/socialframe/v1/designs/${ first.design.id }`,
@@ -154,6 +170,12 @@ test.describe( 'Post editor SocialFrame panel', () => {
 			.getByRole( 'button', { name: 'Regenerate' } )
 			.click();
 		const second = await ( await recommitted ).json();
+		await expect(
+			page
+				.getByRole( 'dialog', { name: 'Share to Phone' } )
+				.getByRole( 'link', { name: 'Open Image' } )
+		).toHaveAttribute( 'href', second.imageUrl );
+		await page.keyboard.press( 'Escape' );
 
 		expect( second.created ).toBe( false );
 		expect( second.design.id ).toBe( first.design.id );

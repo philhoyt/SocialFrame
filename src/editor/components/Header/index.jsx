@@ -13,7 +13,8 @@ import {
 	saveAsTemplate,
 	sendPreview,
 } from '../../utils/exportHelpers';
-import { ShareModal } from './ShareModal';
+import { ShareModal } from '../../../shared/ShareModal';
+import '../../../shared/ShareModal.css';
 
 import './Header.css';
 

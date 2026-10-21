@@ -1,4 +1,4 @@
-import { useState } from '@wordpress/element';
+import { lazy, Suspense, useState } from '@wordpress/element';
 import {
 	Button,
 	ExternalLink,
@@ -11,6 +11,13 @@ import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { buildOverrides } from './overrides';
+
+// The QR code library loads only when someone shares an image.
+const ShareModal = lazy( () =>
+	import( /* webpackChunkName: "share-modal" */ '../shared/ShareModal' ).then(
+		( m ) => ( { default: m.ShareModal } )
+	)
+);
 
 /**
  * One assigned design: its current image and a Generate button.
@@ -27,6 +34,7 @@ export function FrameRow( { frame, postId, onChanged } ) {
 	const { design, fieldNames, output } = frame;
 	const [ status, setStatus ] = useState( '' );
 	const [ confirming, setConfirming ] = useState( false );
+	const [ shareUrl, setShareUrl ] = useState( null );
 	const busy = '' !== status;
 
 	const edited = useSelect( ( select ) => {
@@ -63,7 +71,7 @@ export function FrameRow( { frame, postId, onChanged } ) {
 			} );
 
 			setStatus( __( 'Saving the image…', 'socialframe' ) );
-			await apiFetch( {
+			const saved = await apiFetch( {
 				path,
 				method: 'POST',
 				data: { post_id: postId, values, imageData },
@@ -78,6 +86,9 @@ export function FrameRow( { frame, postId, onChanged } ) {
 				{ type: 'snackbar' }
 			);
 			onChanged();
+			if ( saved?.imageUrl ) {
+				setShareUrl( saved.imageUrl );
+			}
 		} catch ( error ) {
 			createErrorNotice(
 				'generating' === error?.code
@@ -141,6 +152,16 @@ export function FrameRow( { frame, postId, onChanged } ) {
 						? __( 'Regenerate', 'socialframe' )
 						: __( 'Generate', 'socialframe' ) }
 				</Button>
+				{ output?.imageUrl && (
+					<Button
+						variant="secondary"
+						disabled={ busy }
+						accessibleWhenDisabled
+						onClick={ () => setShareUrl( output.imageUrl ) }
+					>
+						{ __( 'Share to Phone', 'socialframe' ) }
+					</Button>
+				) }
 				{ output && (
 					<ExternalLink href={ output.design.editUrl }>
 						{ __( 'Edit in SocialFrame', 'socialframe' ) }
@@ -159,6 +180,15 @@ export function FrameRow( { frame, postId, onChanged } ) {
 				>
 					{ __( 'View in Media Library', 'socialframe' ) }
 				</ExternalLink>
+			) }
+
+			{ shareUrl && (
+				<Suspense fallback={ null }>
+					<ShareModal
+						url={ shareUrl }
+						onClose={ () => setShareUrl( null ) }
+					/>
+				</Suspense>
 			) }
 
 			<ConfirmDialog
