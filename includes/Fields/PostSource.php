@@ -68,6 +68,62 @@ class PostSource {
 	}
 
 	/**
+	 * Whether the current user may generate images for posts of this type.
+	 *
+	 * Uses the type's own edit capability rather than core edit_posts, so a
+	 * role that edits only a custom post type can generate for it. Generating
+	 * always creates an attachment, so upload_files is required too.
+	 *
+	 * @param string $post_type Post type slug.
+	 */
+	public static function can_generate_for_type( string $post_type ): bool {
+		// Checked first: get_post_type_object() is null for unknown types.
+		if ( ! in_array( $post_type, self::frame_post_types(), true ) || ! current_user_can( 'upload_files' ) ) {
+			return false;
+		}
+
+		$type = get_post_type_object( $post_type );
+
+		return $type
+			&& current_user_can( $type->cap->edit_posts )
+			&& self::filter_can_generate( $post_type, 0 );
+	}
+
+	/**
+	 * Whether the current user may generate images for this post.
+	 *
+	 * @param \WP_Post $post Source post.
+	 */
+	public static function can_generate_for_post( \WP_Post $post ): bool {
+		return in_array( $post->post_type, self::frame_post_types(), true )
+			&& current_user_can( 'upload_files' )
+			&& current_user_can( 'edit_post', $post->ID )
+			&& self::filter_can_generate( $post->post_type, $post->ID );
+	}
+
+	/**
+	 * Apply socialframe_can_generate to a check that already passed.
+	 *
+	 * @param string $post_type Post type slug.
+	 * @param int    $post_id   Post ID, or 0 for the type-level check.
+	 */
+	private static function filter_can_generate( string $post_type, int $post_id ): bool {
+		/**
+		 * Filters whether the current user may generate images from posts.
+		 *
+		 * Runs only after the user passed upload_files and the edit check
+		 * (the type's edit capability, or edit_post for one post), so it can
+		 * only narrow access: returning true never lets a user generate from
+		 * a post they cannot edit.
+		 *
+		 * @param bool   $can       Whether the user may generate. Always true.
+		 * @param string $post_type Post type slug.
+		 * @param int    $post_id   Post ID, or 0 when checking the whole type.
+		 */
+		return (bool) apply_filters( 'socialframe_can_generate', true, $post_type, $post_id );
+	}
+
+	/**
 	 * Whether the current user may pull content from this post.
 	 *
 	 * Only published posts of public, REST-visible types the user can read,

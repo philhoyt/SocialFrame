@@ -32,7 +32,59 @@ abstract class RestTestCase extends WP_UnitTestCase {
 		global $wp_rest_server;
 		$wp_rest_server = null;
 
+		if ( post_type_exists( 'problem' ) ) {
+			unregister_post_type( 'problem' );
+			remove_role( 'problem_author' );
+			foreach ( [ 'administrator', 'author' ] as $role ) {
+				foreach ( [ 'edit_problems', 'edit_others_problems', 'edit_published_problems', 'publish_problems' ] as $cap ) {
+					get_role( $role )->remove_cap( $cap );
+				}
+			}
+		}
+		remove_all_filters( 'socialframe_can_generate' );
+
 		parent::tear_down();
+	}
+
+	/**
+	 * Register a `problem` post type with its own capabilities and a
+	 * Problem Author role that edits only it, mirroring a custom role
+	 * without core edit_posts. Administrators and Authors get the problem
+	 * capabilities too, as a site granting them would.
+	 *
+	 * @return int A Problem Author user ID.
+	 */
+	protected function make_problem_author(): int {
+		register_post_type(
+			'problem',
+			[
+				'public'          => true,
+				'show_in_rest'    => true,
+				'supports'        => [ 'title', 'editor', 'author' ],
+				'capability_type' => [ 'problem', 'problems' ],
+				'map_meta_cap'    => true,
+			]
+		);
+
+		add_role(
+			'problem_author',
+			'Problem Author',
+			[
+				'read'                    => true,
+				'upload_files'            => true,
+				'edit_problems'           => true,
+				'edit_published_problems' => true,
+				'publish_problems'        => true,
+			]
+		);
+
+		foreach ( [ 'administrator', 'author' ] as $role ) {
+			foreach ( [ 'edit_problems', 'edit_others_problems', 'edit_published_problems', 'publish_problems' ] as $cap ) {
+				get_role( $role )->add_cap( $cap );
+			}
+		}
+
+		return self::factory()->user->create( [ 'role' => 'problem_author' ] );
 	}
 
 	/**

@@ -180,4 +180,82 @@ class PostSourceTest extends RestTestCase {
 		delete_post_meta( $design, 'socialframe_fabric_json' );
 		$this->assertSame( '', get_post_meta( $design, 'socialframe_has_fields', true ) );
 	}
+
+	/**
+	 * A role that edits only a custom type may generate for that type and
+	 * its own posts, without core edit_posts.
+	 */
+	public function test_can_generate_with_post_type_caps(): void {
+		$problem_author = $this->make_problem_author();
+		$own            = get_post(
+			self::factory()->post->create(
+				[
+					'post_type'   => 'problem',
+					'post_author' => $problem_author,
+				]
+			)
+		);
+		$others         = get_post(
+			self::factory()->post->create(
+				[
+					'post_type'   => 'problem',
+					'post_author' => self::factory()->user->create( [ 'role' => 'author' ] ),
+				]
+			)
+		);
+		$blog_post      = get_post( self::factory()->post->create( [ 'post_author' => $problem_author ] ) );
+
+		wp_set_current_user( $problem_author );
+
+		$this->assertFalse( current_user_can( 'edit_posts' ) );
+		$this->assertTrue( PostSource::can_generate_for_type( 'problem' ) );
+		$this->assertTrue( PostSource::can_generate_for_post( $own ) );
+		$this->assertFalse( PostSource::can_generate_for_post( $others ) );
+		$this->assertFalse( PostSource::can_generate_for_type( 'post' ) );
+		$this->assertFalse( PostSource::can_generate_for_post( $blog_post ) );
+		$this->assertFalse( PostSource::can_generate_for_type( 'no_such_type' ) );
+	}
+
+	/**
+	 * Users without upload_files never generate, even for posts they edit.
+	 */
+	public function test_cannot_generate_without_upload_files(): void {
+		$contributor = self::factory()->user->create( [ 'role' => 'contributor' ] );
+		$draft       = get_post(
+			self::factory()->post->create(
+				[
+					'post_author' => $contributor,
+					'post_status' => 'draft',
+				]
+			)
+		);
+
+		wp_set_current_user( $contributor );
+
+		$this->assertFalse( PostSource::can_generate_for_type( 'post' ) );
+		$this->assertFalse( PostSource::can_generate_for_post( $draft ) );
+	}
+
+	/**
+	 * The socialframe_can_generate filter narrows both checks.
+	 */
+	public function test_can_generate_filter_narrows(): void {
+		$post = get_post( self::factory()->post->create() );
+		$this->assertTrue( PostSource::can_generate_for_type( 'post' ) );
+
+		$seen = [];
+		add_filter(
+			'socialframe_can_generate',
+			function ( bool $can, string $post_type, int $post_id ) use ( &$seen ): bool {
+				$seen[] = [ $post_type, $post_id ];
+				return false;
+			},
+			10,
+			3
+		);
+
+		$this->assertFalse( PostSource::can_generate_for_type( 'post' ) );
+		$this->assertFalse( PostSource::can_generate_for_post( $post ) );
+		$this->assertSame( [ [ 'post', 0 ], [ 'post', $post->ID ] ], $seen );
+	}
 }
