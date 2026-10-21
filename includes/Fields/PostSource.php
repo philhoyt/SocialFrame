@@ -45,6 +45,29 @@ class PostSource {
 	}
 
 	/**
+	 * Post types a design can be assigned to and generated from.
+	 *
+	 * @return string[]
+	 */
+	public static function frame_post_types(): array {
+		// The panel lives in the block editor, so types edited elsewhere
+		// (Media, or types with the block editor turned off) cannot use it.
+		$public = array_values( array_filter( self::public_post_types(), 'use_block_editor_for_post_type' ) );
+
+		/**
+		 * Filters the post types designs can be assigned to.
+		 *
+		 * The result is intersected with the public, REST-visible post types,
+		 * so this filter can only narrow the list.
+		 *
+		 * @param string[] $types Post type slugs.
+		 */
+		$types = (array) apply_filters( 'socialframe_frame_post_types', $public );
+
+		return array_values( array_intersect( $public, array_map( 'strval', $types ) ) );
+	}
+
+	/**
 	 * Whether the current user may pull content from this post.
 	 *
 	 * Only published posts of public, REST-visible types the user can read,

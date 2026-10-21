@@ -280,6 +280,15 @@
 	font-size: 11px;
 }
 
+.socialframe-accordion__body .components-checkbox-control__label {
+	color: #e0e0e0;
+	font-size: 12px;
+}
+
+.socialframe-accordion__body .components-checkbox-control + .components-checkbox-control {
+	margin-top: 8px;
+}
+
 .socialframe-accordion__body .components-text-control__input,
 .socialframe-accordion__body .components-select-control__input {
 	background: #2a2a2a;
@@ -326,4 +335,11 @@
 
 .socialframe-props__row > * {
 	flex: 1;
+}
+
+.socialframe-props__hint {
+	margin: 0 0 8px;
+	font-size: 12px;
+	line-height: 1.4;
+	color: #888;
 }

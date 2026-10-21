@@ -60,96 +60,16 @@ class ExportController extends AbstractController {
 	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function handle_export( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$id         = (int) $request->get_param( 'id' );
-		$image_data = $request->get_param( 'imageData' );
-		$is_thumb   = (bool) $request->get_param( 'thumbnail' );
-
-		$post = get_post( $id );
-		if ( ! $post || 'socialframe_graphic' !== $post->post_type ) {
-			return new WP_Error( 'not_found', __( 'Design not found.', 'socialframe' ), [ 'status' => 404 ] );
+		$post = $this->get_graphic( (int) $request->get_param( 'id' ) );
+		if ( is_wp_error( $post ) ) {
+			return $post;
 		}
 
-		// Strip the data URI prefix.
-		$base64 = preg_replace( '/^data:image\/png;base64,/', '', $image_data );
-		$binary = base64_decode( $base64, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
-
-		if ( false === $binary ) {
-			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
+		$stored = $this->store_png( $post, (string) $request->get_param( 'imageData' ), (bool) $request->get_param( 'thumbnail' ) );
+		if ( is_wp_error( $stored ) ) {
+			return $stored;
 		}
 
-		// Verify the decoded bytes are actually a PNG before trusting them.
-		// base64_decode() only proves the string was valid base64, not that it
-		// is an image — without this an edit_posts user could store arbitrary
-		// bytes under a .png name.
-		// The leading @ suppresses the read-error notice getimagesizefromstring()
-		// emits on malformed/truncated data; the false return is handled below.
-		$image_info = @getimagesizefromstring( $binary ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-		if ( false === $image_info || IMAGETYPE_PNG !== $image_info[2] ) {
-			return new WP_Error( 'invalid_image', __( 'Invalid image data.', 'socialframe' ), [ 'status' => 400 ] );
-		}
-
-		// If thumbnail requested, resize via GD.
-		if ( $is_thumb ) {
-			$binary = $this->resize_png( $binary, 400 );
-			if ( ! $binary ) {
-				return new WP_Error( 'resize_failed', __( 'Could not generate thumbnail.', 'socialframe' ), [ 'status' => 500 ] );
-			}
-		}
-
-		// Write to the uploads directory via the WordPress filesystem API.
-		// wp_upload_bits() handles the path, unique filename, and extension
-		// validation that a raw file_put_contents() would bypass.
-		$suffix   = $is_thumb ? '-thumb' : '';
-		$filename = 'socialframe-' . $id . $suffix . '-' . time() . '.png';
-
-		$upload = wp_upload_bits( $filename, null, $binary );
-
-		if ( ! empty( $upload['error'] ) ) {
-			return new WP_Error( 'write_failed', __( 'Could not write image file.', 'socialframe' ), [ 'status' => 500 ] );
-		}
-
-		$filepath = $upload['file'];
-		$file_url = $upload['url'];
-
-		// Create the media library attachment.
-		$attachment_id = wp_insert_attachment(
-			[
-				'post_mime_type' => 'image/png',
-				'post_title'     => sprintf(
-					$is_thumb
-						/* translators: %s: design title. */
-						? __( '%s Thumbnail', 'socialframe' )
-						/* translators: %s: design title. */
-						: __( '%s Export', 'socialframe' ),
-					$post->post_title
-				),
-				'post_status'    => 'inherit',
-				'post_parent'    => $id,
-				'guid'           => $file_url,
-			],
-			$filepath,
-			$id,
-			true
-		);
-
-		if ( is_wp_error( $attachment_id ) ) {
-			return $attachment_id;
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-		$metadata = wp_generate_attachment_metadata( $attachment_id, $filepath );
-		wp_update_attachment_metadata( $attachment_id, $metadata );
-
-		// Store reference on the design post.
-		update_post_meta( $id, 'socialframe_image_id', $attachment_id );
-
-		return $this->respond(
-			[
-				'attachmentId' => $attachment_id,
-				'url'          => wp_get_attachment_url( $attachment_id ),
-				'libraryUrl'   => admin_url( 'upload.php?item=' . $attachment_id ),
-			],
-			201
-		);
+		return $this->respond( $stored, 201 );
 	}
 }

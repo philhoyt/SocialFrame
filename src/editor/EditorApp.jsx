@@ -50,6 +50,7 @@ export function EditorApp() {
 					designId: d.id,
 					title: d.title,
 					format: d.format,
+					postTypes: d.postTypes,
 				} );
 				setDesign( d );
 			} )

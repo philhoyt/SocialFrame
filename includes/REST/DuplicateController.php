@@ -52,11 +52,10 @@ class DuplicateController extends AbstractController {
 	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function handle_duplicate( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$id          = (int) $request->get_param( 'id' );
-		$source_post = get_post( $id );
+		$source_post = $this->get_graphic( (int) $request->get_param( 'id' ) );
 
-		if ( ! $source_post || 'socialframe_graphic' !== $source_post->post_type ) {
-			return new WP_Error( 'not_found', __( 'Design not found.', 'socialframe' ), [ 'status' => 404 ] );
+		if ( is_wp_error( $source_post ) ) {
+			return $source_post;
 		}
 
 		/* translators: %s: title of the design being duplicated. */

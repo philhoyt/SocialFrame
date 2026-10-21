@@ -110,7 +110,6 @@ class FieldsController extends AbstractController {
 		}
 		[ $design, $decoded ] = $canvas;
 
-		$values = [];
 		$source = null;
 
 		if ( $has_post ) {
@@ -118,23 +117,13 @@ class FieldsController extends AbstractController {
 			if ( ! $source || ! PostSource::can_read( $source ) ) {
 				return new WP_Error( 'post_not_found', __( 'Post not found.', 'socialframe' ), [ 'status' => 404 ] );
 			}
-			$names  = array_column( FieldFiller::collect( $decoded ), 'name' );
-			$values = PostSource::values_for( $source, $names );
 		}
 
-		foreach ( (array) $request->get_param( 'values' ) as $name => $value ) {
-			$values[ (string) $name ] = is_string( $value ) ? sanitize_textarea_field( $value ) : (int) $value;
-		}
-
-		$result = FieldFiller::fill( $decoded, $values );
+		$result = $this->fill_canvas( $decoded, $source, (array) $request->get_param( 'values' ) );
 
 		$title = (string) $request->get_param( 'title' );
 		if ( '' === $title ) {
-			$title = $source
-				/* translators: 1: design title, 2: title of the post the design was filled from. */
-				? sprintf( __( '%1$s: %2$s', 'socialframe' ), $design->post_title, PostSource::title( $source ) )
-				/* translators: %s: design title. */
-				: sprintf( __( '%s (Filled)', 'socialframe' ), $design->post_title );
+			$title = $this->filled_title( $design, $source );
 		}
 
 		$encoded = wp_json_encode( $result['canvas'] );
@@ -155,26 +144,5 @@ class FieldsController extends AbstractController {
 			],
 			201
 		);
-	}
-
-	/**
-	 * Load a graphic and its decoded canvas.
-	 *
-	 * @param int $id Post ID.
-	 * @return array{0: \WP_Post, 1: array<string, mixed>}|WP_Error
-	 */
-	private function get_canvas( int $id ): array|WP_Error {
-		$post = get_post( $id );
-
-		if ( ! $post || 'socialframe_graphic' !== $post->post_type ) {
-			return new WP_Error( 'not_found', __( 'Design not found.', 'socialframe' ), [ 'status' => 404 ] );
-		}
-
-		$decoded = json_decode( (string) get_post_meta( $post->ID, 'socialframe_fabric_json', true ), true );
-		if ( ! is_array( $decoded ) ) {
-			return new WP_Error( 'empty_design', __( 'This design has no saved canvas yet.', 'socialframe' ), [ 'status' => 400 ] );
-		}
-
-		return [ $post, $decoded ];
 	}
 }

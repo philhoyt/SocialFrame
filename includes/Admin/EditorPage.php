@@ -110,6 +110,13 @@ class EditorPage {
 						'adminUrl'  => esc_url( admin_url( 'admin.php?page=socialframe' ) ),
 						'formats'   => socialframe_get_formats(),
 						'canUpload' => current_user_can( 'upload_files' ),
+						'postTypes' => array_map(
+							fn( string $slug ): array => [
+								'slug'  => $slug,
+								'label' => (string) get_post_type_object( $slug )->labels->name,
+							],
+							\SocialFrame\Fields\PostSource::frame_post_types()
+						),
 					]
 				)
 			) . ';',

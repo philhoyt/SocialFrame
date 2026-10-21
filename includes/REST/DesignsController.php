@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use SocialFrame\Fields\PostSource;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
@@ -35,21 +36,26 @@ class DesignsController extends AbstractController {
 					'callback'            => [ $this, 'get_designs' ],
 					'permission_callback' => [ $this, 'require_edit_posts' ],
 					'args'                => [
-						'type'       => [
+						'type'        => [
 							'type'    => 'string',
 							'default' => 'design',
 							'enum'    => [ 'design', 'template', 'any' ],
 						],
-						'has_fields' => [
+						'has_fields'  => [
 							'type'    => 'boolean',
 							'default' => false,
 						],
-						'page'       => [
+						'assigned_to' => [
+							'type'              => 'string',
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_key',
+						],
+						'page'        => [
 							'type'    => 'integer',
 							'default' => 1,
 							'minimum' => 1,
 						],
-						'per_page'   => [
+						'per_page'    => [
 							'type'    => 'integer',
 							'default' => 100,
 							'minimum' => 1,
@@ -123,6 +129,10 @@ class DesignsController extends AbstractController {
 						'fabricJson' => [
 							'type' => 'string',
 						],
+						'postTypes'  => [
+							'type'  => 'array',
+							'items' => [ 'type' => 'string' ],
+						],
 					],
 				],
 				[
@@ -164,6 +174,12 @@ class DesignsController extends AbstractController {
 				'value' => '1',
 			];
 		}
+		if ( '' !== $request->get_param( 'assigned_to' ) ) {
+			$meta_query[] = [
+				'key'   => 'socialframe_post_types',
+				'value' => $request->get_param( 'assigned_to' ),
+			];
+		}
 
 		$query = new \WP_Query(
 			[
@@ -190,9 +206,12 @@ class DesignsController extends AbstractController {
 			_prime_post_caches( $image_ids, false, true );
 		}
 
+		// Generated designs the user may not see are dropped after the query,
+		// so a page can hold fewer than per_page items; totals stay the
+		// query's, which keeps pagination stable.
 		$designs = array_map(
 			fn( \WP_Post $post ): array => $this->format_design( $post, false ),
-			$query->posts
+			array_values( array_filter( $query->posts, [ self::class, 'can_access_graphic' ] ) )
 		);
 
 		$response = $this->respond( $designs );
@@ -250,7 +269,7 @@ class DesignsController extends AbstractController {
 	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function get_design( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$post = $this->get_graphic_post( (int) $request->get_param( 'id' ) );
+		$post = $this->get_graphic( (int) $request->get_param( 'id' ) );
 
 		if ( is_wp_error( $post ) ) {
 			return $post;
@@ -265,7 +284,7 @@ class DesignsController extends AbstractController {
 	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function update_design( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$post = $this->get_graphic_post( (int) $request->get_param( 'id' ) );
+		$post = $this->get_graphic( (int) $request->get_param( 'id' ) );
 
 		if ( is_wp_error( $post ) ) {
 			return $post;
@@ -285,6 +304,18 @@ class DesignsController extends AbstractController {
 			update_post_meta( $post->ID, 'socialframe_fabric_json', wp_slash( $request->get_param( 'fabricJson' ) ) );
 		}
 
+		if ( $request->has_param( 'postTypes' ) ) {
+			$types = array_intersect(
+				PostSource::frame_post_types(),
+				array_map( 'sanitize_key', (array) $request->get_param( 'postTypes' ) )
+			);
+
+			delete_post_meta( $post->ID, 'socialframe_post_types' );
+			foreach ( $types as $type ) {
+				add_post_meta( $post->ID, 'socialframe_post_types', $type );
+			}
+		}
+
 		return $this->respond( $this->format_design( get_post( $post->ID ) ) );
 	}
 
@@ -294,7 +325,7 @@ class DesignsController extends AbstractController {
 	 * @param WP_REST_Request $request Full request data.
 	 */
 	public function delete_design( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$post = $this->get_graphic_post( (int) $request->get_param( 'id' ) );
+		$post = $this->get_graphic( (int) $request->get_param( 'id' ) );
 
 		if ( is_wp_error( $post ) ) {
 			return $post;
@@ -312,21 +343,5 @@ class DesignsController extends AbstractController {
 				'id'      => $post->ID,
 			]
 		);
-	}
-
-	/**
-	 * Fetch and validate a socialframe_graphic post by ID.
-	 *
-	 * @param int $id Post ID.
-	 * @return \WP_Post|WP_Error
-	 */
-	private function get_graphic_post( int $id ): \WP_Post|WP_Error {
-		$post = get_post( $id );
-
-		if ( ! $post || 'socialframe_graphic' !== $post->post_type ) {
-			return new WP_Error( 'not_found', __( 'Design not found.', 'socialframe' ), [ 'status' => 404 ] );
-		}
-
-		return $post;
 	}
 }
