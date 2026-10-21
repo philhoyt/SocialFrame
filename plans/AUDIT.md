@@ -13,7 +13,7 @@
 | Severity | Count | Open |
 |----------|-------|------|
 | Critical | 1 | 0 |
-| Warning  | 13 | 1 (DEP-01: fabric 7 only) |
+| Warning  | 13 | 0 |
 | Info     | 8 | 1 (TST-03) |
 
 **Baseline**
@@ -45,7 +45,7 @@
 | A11Y-03 | Toggle buttons don't expose state or a clear name | ✅ Fixed |
 | STD-01 | Untranslated, concatenated user-facing strings | ✅ Fixed |
 | PRF-01 | List endpoints return full Fabric JSON plus N+1 attachment lookups | ✅ Fixed |
-| DEP-01 | Several `@wordpress/*` packages and `fabric` are majors behind | ⚠️ Partly fixed — fabric 7 deferred |
+| DEP-01 | Several `@wordpress/*` packages and `fabric` are majors behind | ✅ Fixed |
 | STD-02 | `Tested up to: 6.9` (stable is 7.1) | ✅ Fixed |
 | PRV-01 | Previews served from a predictable public URL | ✅ Fixed |
 | ARC-04 | Duplicate drops custom width/height; templates drop custom size | ✅ Fixed |
@@ -253,6 +253,11 @@ Also return 404 (or omit content and excerpt) when `post_password_required( $pos
 
 ### [DEP-01] Outdated dependencies
 
+> **✅ Fixed (2026-10-20):** `fabric` is now 7.4.
+> - Fabric 7 changed the default `originX`/`originY` to center. A shared `configureFabric()` now sets them back to `left`/`top` for the editor and the post-editor renderer. Saved designs and bundled templates already store their origin.
+> - `initAligningGuidelines` became the `AligningGuidelines` class.
+> - **Browser QA:** designs 27 and 32 render with no pixel difference from their v6 exports. Designs 26 and 29 match their v6 previews apart from resampling. A post-editor regenerate matches the v6 export (largest channel difference 9). New text and shapes get a top-left origin at 100,100, as before. Dragging, alignment guides, text editing, duplicate and undo/redo all work.
+>
 > **⚠️ Partly fixed (2026-10-16):**
 > - `@wordpress/scripts` is now 36. Unit tests moved to Vitest, as scripts 36 requires.
 > - The `@wordpress/*` runtime packages are on their latest versions.
@@ -403,6 +408,7 @@ Checked in Chrome on social-frame.local (WP 7.1.3) against a duplicate of an exi
 
 | Date | Changes |
 |------|---------|
+| 2026-10-20 | Fixed DEP-01: upgraded fabric 6.9.1 → 7.4.0 on `fix/fabric-7` and kept the top-left origin defaults. Checked saved designs against their v6 exports and previews. Open: TST-03. Checks: PHPUnit 104/104 and Vitest 49/49 pass; ESLint, Stylelint and phpcs are clean. |
 | 2026-10-16 | Fixed QA-03: Save as Template now generates the template's preview thumbnail. Verified in Chrome. |
 | 2026-10-16 | Browser QA in Chrome (WP 7.1.3): found and fixed QA-01 (undo/redo threw Redux #3) and QA-02 (Fabric 6 `toJSON()` dropped custom props). Manual save now clears a stale autosave-failure notice. Vitest passes 26/26. |
 | 2026-10-16 | Worked through the rest of the audit: fixed SEC-02/03, ARC-02/03/04, ADM-01/02, A11Y-01/02/03, STD-01/02, PRF-01, PRV-01, TST-01/02 and INF-01. Upgraded DEP-01 apart from fabric. Closed ARC-05 as won't fix. Raised Requires at least to 7.0 for DataViews 17. Open: fabric 7 (DEP-01) and E2E tests (TST-03). Checks: PHPUnit 53/53, Vitest 24/24, phpcs, ESLint and Stylelint clean, build passes. |

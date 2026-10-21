@@ -5,6 +5,8 @@
  * for it when they actually render.
  */
 
+import { configureFabric } from './configureFabric';
+
 const TEXT_TYPES = [ 'text', 'i-text', 'itext', 'textbox' ];
 const LOAD_TIMEOUT_MS = 30000;
 
@@ -137,13 +139,7 @@ export async function renderDesign( fabricJson, size = {} ) {
 	);
 
 	const fabric = await import( /* webpackChunkName: "fabric" */ 'fabric' );
-	fabric.FabricObject.customProperties = [
-		'id',
-		'isArtboard',
-		'sfShapeType',
-		'name',
-		'fieldName',
-	];
+	configureFabric( fabric );
 
 	const canvas = new fabric.StaticCanvas(
 		document.createElement( 'canvas' ),

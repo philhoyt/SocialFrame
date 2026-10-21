@@ -2,8 +2,9 @@ import { useRef, useEffect, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import * as fabric from 'fabric';
-import { initAligningGuidelines } from 'fabric/extensions';
+import { AligningGuidelines } from 'fabric/extensions';
 
+import { configureFabric } from '../../shared/configureFabric';
 import { STORE_KEY } from '../store';
 import { FORMATS } from '../utils/formats';
 import {
@@ -15,16 +16,7 @@ import {
 	getDefaultLayerName,
 } from '../utils/fabricHelpers';
 
-// Custom properties every object carries through toObject() and clone().
-// Registering them here (rather than passing a list to toObject) is what
-// keeps layer ids, names and template fields on duplicated objects too.
-fabric.FabricObject.customProperties = [
-	'id',
-	'isArtboard',
-	'sfShapeType',
-	'name',
-	'fieldName',
-];
+configureFabric( fabric );
 
 /**
  * Initializes and manages the Fabric.js canvas instance.
@@ -228,7 +220,7 @@ export function useFabricCanvas(
 		}
 
 		// ── Enable smart alignment guides ─────────────────────────────────────
-		const cleanupGuides = initAligningGuidelines( canvas, {
+		const guides = new AligningGuidelines( canvas, {
 			color: 'rgba(0, 115, 170, 0.85)',
 			width: 1,
 			margin: 6,
@@ -584,7 +576,7 @@ export function useFabricCanvas(
 
 		return () => {
 			canvas.off( 'after:render', drawOverlay );
-			cleanupGuides();
+			guides.dispose();
 			resizeObserver.disconnect();
 			container.removeEventListener( 'wheel', handleWheel );
 			document.removeEventListener( 'keydown', handleKeyDown );
@@ -612,7 +604,7 @@ export function useFabricCanvas(
 
 	/** Serialize the canvas to JSON, including isArtboard marker on each object. */
 	const getJSON = useCallback( () => {
-		// Custom properties come from FabricObject.customProperties above.
+		// Custom properties come from configureFabric().
 		return fabricRef.current?.toObject() ?? null;
 	}, [] );
 
