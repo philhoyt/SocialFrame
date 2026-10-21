@@ -32,7 +32,7 @@ jobs:
       - name: Lint CSS
         run: npm run lint:css -- 'src/**/*.css'
 
-      - name: Jest
+      - name: Vitest
         run: npm run test:js
 
       - name: Build
@@ -84,3 +84,39 @@ jobs:
 
       - name: PHPUnit
         run: vendor/bin/phpunit
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start wp-env
+        run: npm run wp-env start
+
+      - name: Playwright
+        run: npm run test:e2e
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-artifacts
+          path: artifacts/
+          retention-days: 7
