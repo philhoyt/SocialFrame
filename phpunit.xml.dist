@@ -15,6 +15,7 @@
 	</testsuites>
 	<coverage>
 		<include>
+			<file>./socialframe.php</file>
 			<directory suffix=".php">includes</directory>
 		</include>
 	</coverage>

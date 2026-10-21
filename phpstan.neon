@@ -1,0 +1,18 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 5
+    paths:
+        - socialframe.php
+        - uninstall.php
+        - includes
+    bootstrapFiles:
+        - tests/phpstan/bootstrap.php
+        - lib/plugin-update-checker/plugin-update-checker.php
+    excludePaths:
+        - vendor
+        - node_modules
+        - build
+        - tests
+        - lib

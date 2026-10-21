@@ -3,7 +3,14 @@ build/
 vendor/
 *.DS_Store
 *.zip
-/docs
+/docs/*
+!/docs/KB.md
 /memory
 .phpunit.result.cache
 artifacts/
+
+# Claude Code — machine-specific session permissions, not shared
+.claude/settings.local.json
+
+# Claude Code — local feature planning notes, not part of the codebase
+plans/

@@ -56,7 +56,11 @@ if ( file_exists( SOCIALFRAME_DIR . 'lib/plugin-update-checker/plugin-update-che
 		SOCIALFRAME_FILE,
 		'socialframe'
 	);
-	$socialframe_update_checker->getVcsApi()->enableReleaseAssets();
+	// getVcsApi() is typed as the base Api class; only the GitHub API has enableReleaseAssets().
+	$socialframe_vcs_api = $socialframe_update_checker->getVcsApi();
+	if ( method_exists( $socialframe_vcs_api, 'enableReleaseAssets' ) ) {
+		$socialframe_vcs_api->enableReleaseAssets();
+	}
 }
 
 register_activation_hook(

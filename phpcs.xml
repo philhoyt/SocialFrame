@@ -27,7 +27,7 @@
     <rule ref="WordPress-Core"/>
     <rule ref="WordPress-Docs"/>
 
-    <!-- Minimum PHP version. -->
-    <config name="minimum_supported_wp_version" value="7.0"/>
+    <!-- Minimum WP and PHP versions. -->
+    <config name="minimum_wp_version" value="7.0"/>
     <config name="testVersion" value="8.1-"/>
 </ruleset>

@@ -11,7 +11,9 @@
 		"phpcsstandards/phpcsutils": "^1.0",
 		"phpcsstandards/phpcsextra": "^1.2",
 		"phpunit/phpunit": "^9.6",
-		"yoast/phpunit-polyfills": "^2.0"
+		"yoast/phpunit-polyfills": "^2.0",
+		"phpstan/phpstan": "^2.3",
+		"szepeviktor/phpstan-wordpress": "^2.0"
 	},
 	"config": {
 		"allow-plugins": {
@@ -27,6 +29,9 @@
 		"test": "phpunit",
 		"copy-puc": "rsync -a --delete vendor/yahnis-elsts/plugin-update-checker/ lib/plugin-update-checker/",
 		"post-install-cmd": "@copy-puc",
-		"post-update-cmd": "@copy-puc"
+		"post-update-cmd": "@copy-puc",
+		"lint": "./vendor/bin/phpcs",
+		"lint:fix": "./vendor/bin/phpcbf",
+		"analyse": "./vendor/bin/phpstan analyse --memory-limit=1G"
 	}
 }

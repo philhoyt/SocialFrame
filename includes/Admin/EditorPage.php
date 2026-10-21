@@ -34,7 +34,7 @@ class EditorPage {
 	 */
 	public function register_page(): void {
 		add_submenu_page(
-			null, // Hidden — does not appear in the sidebar.
+			'', // Hidden — does not appear in the sidebar. '' rather than null, which PHP 8.1+ flags as deprecated inside core.
 			__( 'SocialFrame Editor', 'socialframe' ),
 			__( 'SocialFrame Editor', 'socialframe' ),
 			'edit_posts',
