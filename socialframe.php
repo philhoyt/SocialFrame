@@ -3,7 +3,7 @@
  * Plugin Name:       SocialFrame
  * Plugin URI:        https://github.com/philhoyt/socialframe
  * Description:       Social media graphic editor inside wp-admin.
- * Version:           1.3.0
+ * Version:           1.3.1
  * Requires at least: 7.0
  * Tested up to:      7.1
  * Requires PHP:      8.1
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOCIALFRAME_VERSION', '1.3.0' );
+define( 'SOCIALFRAME_VERSION', '1.3.1' );
 define( 'SOCIALFRAME_FILE', __FILE__ );
 define( 'SOCIALFRAME_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SOCIALFRAME_URL', plugin_dir_url( __FILE__ ) );

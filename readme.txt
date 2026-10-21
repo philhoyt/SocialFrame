@@ -3,7 +3,7 @@ Contributors:      philhoyt
 Tags:              social media, graphics, editor, canvas, design
 Requires at least: 7.0
 Tested up to:      7.1
-Stable tag:        1.3.0
+Stable tag:        1.3.1
 Requires PHP:      8.1
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -105,6 +105,9 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 4. The admin designs list built with WordPress DataViews.
 
 == Changelog ==
+
+= 1.3.1 =
+* Fix: Updating from the WordPress dashboard failed with "PCLZIP_ERR_BAD_FORMAT" because the plugin downloaded the release's readme.txt instead of its zip. Sites on 1.3.0 or older need to install this version once by uploading the zip; later updates work from the dashboard.
 
 = 1.3.0 =
 * Add: Anyone who can edit a post and upload files can generate its images from the SocialFrame panel in the block editor, including roles that edit only a custom post type and lack the Edit Posts capability. Edit in SocialFrame is hidden from users who cannot open the design editor. Developers can narrow who may generate with the socialframe_can_generate filter.
