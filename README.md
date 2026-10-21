@@ -163,6 +163,21 @@ Developers can narrow the post types offered with the `socialframe_frame_post_ty
 add_filter( 'socialframe_frame_post_types', fn( $types ) => array_intersect( $types, [ 'post', 'event' ] ) );
 ```
 
+### Vertical stack
+Templates filled from posts get content of unknown size. A vertical stack lets layers flow top to bottom, so a tall photo or a long title pushes the layers below it down instead of overlapping them.
+
+1. Lay the layers out where you want them, with the spacing you want
+2. Select a layer and tick **Part of the vertical stack** under **Stack** in the properties panel. Do this for each layer in the flow
+3. Layers that sit side by side (for example a badge and the text on it) join one row and move together
+
+**How it behaves**
+- The space above each row is kept as you drew it. Dragging a stacked layer up or down changes that space, and **Move row up** / **Move row down** change the order.
+- A stacked image's box is its maximum size. A filled or replaced image is shown whole inside it, as wide as the box allows and centred, never cropped.
+- If the stack runs past the bottom of the canvas (minus the **Bottom padding** set with the artboard selected), text with **Shrink to fit** gets smaller down to its **Minimum size**, then is shortened with "…" in exports and generated images. The design keeps the full text, and the editor marks the overflow in red.
+- Rotated, skewed and grouped layers can't join, and only text boxes that wrap can shrink.
+
+The layout runs in the browser: in the editor, on export, and when generating from the block editor. Designs filled through `POST /designs/{id}/fill` and rendered elsewhere get the stacked image's size but not the reflowed positions.
+
 ### Exporting
 1. Click **Export PNG** in the top-right toolbar
 2. The image is saved to the WordPress Media Library at full resolution
