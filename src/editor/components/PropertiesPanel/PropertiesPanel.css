@@ -343,3 +343,7 @@
 	line-height: 1.4;
 	color: #888;
 }
+
+.socialframe-props__hint--warning {
+	color: #f86368;
+}
