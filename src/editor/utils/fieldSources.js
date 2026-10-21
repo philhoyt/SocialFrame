@@ -68,6 +68,70 @@ export const FIELD_SOURCES = [
 	},
 ];
 
+/**
+ * One-click layers in the Elements panel that come bound to a fixed source.
+ *
+ * - `name`  Field name, one of the fixed FIELD_SOURCES names.
+ * - `kind`  'text' or 'image'.
+ * - `role`  Text size role for createText().
+ * - `text`  Placeholder text shown until the design is filled.
+ */
+export const FIELD_ITEMS = [
+	{
+		name: 'post.title',
+		kind: 'text',
+		role: 'extra-large',
+		text: __( 'Post title', 'socialframe' ),
+	},
+	{
+		name: 'post.excerpt',
+		kind: 'text',
+		role: 'medium',
+		text: __( 'A short summary of the post.', 'socialframe' ),
+	},
+	{
+		name: 'post.content',
+		kind: 'text',
+		role: 'medium',
+		text: __( 'The post content appears here.', 'socialframe' ),
+	},
+	{
+		name: 'post.date',
+		kind: 'text',
+		role: 'small',
+		text: __( 'Post date', 'socialframe' ),
+	},
+	{
+		name: 'post.author',
+		kind: 'text',
+		role: 'small',
+		text: __( 'Author name', 'socialframe' ),
+	},
+	{
+		name: 'post.featured_image',
+		kind: 'image',
+	},
+].map( ( item ) => ( {
+	...item,
+	label: FIELD_SOURCES.find( ( s ) => s.name === item.name ).label,
+} ) );
+
+/**
+ * Placeholder picture for an image field: a grey 4:3 box with a mountain
+ * and sun, as an SVG data URL so it needs no upload or network request.
+ *
+ * @return {string} Data URL, 800×600.
+ */
+export function imageFieldPlaceholder() {
+	const svg =
+		'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">' +
+		'<rect width="800" height="600" fill="#d9dde3"/>' +
+		'<circle cx="490" cy="230" r="44" fill="#aab2bd"/>' +
+		'<path d="M250 400 L350 270 L420 350 L470 300 L550 400 Z" fill="#aab2bd"/>' +
+		'</svg>';
+	return `data:image/svg+xml;charset=utf-8,${ encodeURIComponent( svg ) }`;
+}
+
 /** Same rule as FieldFiller::NAME_PATTERN on the server. */
 export const FIELD_NAME_PATTERN = /^[A-Za-z0-9_.\-]{1,100}$/;
 

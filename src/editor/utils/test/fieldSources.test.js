@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
 import {
+	FIELD_ITEMS,
 	FIELD_SOURCES,
 	FIELD_NAME_PATTERN,
 	buildFieldName,
 	canvasHasFields,
+	imageFieldPlaceholder,
 	parseFieldName,
 	sourcesFor,
 } from '../fieldSources';
@@ -72,5 +74,43 @@ describe( 'fieldSources', () => {
 				],
 			} )
 		).toBe( true );
+	} );
+
+	it( 'offers the core post fields as one-click items', () => {
+		expect( FIELD_ITEMS.map( ( i ) => i.name ) ).toEqual( [
+			'post.title',
+			'post.excerpt',
+			'post.content',
+			'post.date',
+			'post.author',
+			'post.featured_image',
+		] );
+	} );
+
+	it.each( FIELD_ITEMS.map( ( i ) => [ i.name, i ] ) )(
+		'binds the %s item to a fixed source of its kind',
+		( name, item ) => {
+			const { source, key } = parseFieldName( name );
+			expect( key ).toBe( '' );
+			expect( sourcesFor( item.kind ).map( ( s ) => s.value ) ).toContain(
+				source
+			);
+			expect( item.label ).toBeTruthy();
+		}
+	);
+
+	it( 'gives every text item placeholder text and a size', () => {
+		FIELD_ITEMS.filter( ( i ) => i.kind === 'text' ).forEach( ( i ) => {
+			expect( i.text ).toBeTruthy();
+			expect( i.role ).toBeTruthy();
+		} );
+	} );
+
+	it( 'builds a 4:3 SVG placeholder for image fields', () => {
+		const url = imageFieldPlaceholder();
+		expect( url.startsWith( 'data:image/svg+xml' ) ).toBe( true );
+		const svg = decodeURIComponent( url.slice( url.indexOf( ',' ) + 1 ) );
+		expect( svg ).toContain( 'width="800"' );
+		expect( svg ).toContain( 'height="600"' );
 	} );
 } );

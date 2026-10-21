@@ -17,7 +17,7 @@ A graphic editor that runs inside your WordPress Admin. It reads your theme's `t
 |---|---|
 | Templates | Load bundled starters or your own saved templates |
 | Text | Five size presets — Huge down to Small |
-| Elements | Rect, rounded rect, circle, triangle, line |
+| Elements | Rect, rounded rect, circle, triangle, line, plus ready-bound template fields (post title, excerpt, content, date, author, featured image) |
 | Media | Pick from the Media Library |
 | Import Post | Search any public post type; import title, featured image, content, excerpt, terms, and meta, or create a filled copy of a template |
 | Layers | Always-visible layer tree: drag and drop into and out of frames, multi-select, right-click menu, rename, hide, lock |
@@ -112,6 +112,8 @@ Turn a design into a template that fills itself from a post.
 1. Select a text or image layer and open **Template field** at the bottom of the properties panel
 2. Choose where its value comes from, for example **Post title** or **Featured image**
 3. Save the design (as a design or a template)
+
+Or skip the first two steps: the **Template fields** group in the **Elements** panel adds a Post title, Post excerpt, Post content, Post date or Post author text, or a Featured image placeholder, already bound to its field. For custom fields and taxonomies, add a plain layer and pick the source under **Template field**.
 
 To fill it, either:
 - open **Import Post** in the editor, pick a post and click **Create filled copy**, or

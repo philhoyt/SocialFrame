@@ -10,6 +10,7 @@ import { STORE_KEY } from '../store';
 import { useFrameLayout } from './useFrameLayout';
 import { buildRows } from '../utils/layerTree';
 import { FORMATS } from '../utils/formats';
+import { imageFieldPlaceholder } from '../utils/fieldSources';
 import {
 	createShape,
 	createText,
@@ -919,6 +920,61 @@ export function useFabricCanvas(
 		[ dispatch ]
 	);
 
+	/**
+	 * Add a layer already bound to a template field: placeholder text, or a
+	 * placeholder picture for an image field. Unlike addText, the text is not
+	 * opened for editing, since a fill replaces it.
+	 *
+	 * @param {Object}         item       Item from FIELD_ITEMS.
+	 * @param {string}         item.name  Field name.
+	 * @param {'text'|'image'} item.kind  Layer kind.
+	 * @param {string}         item.role  Text size role.
+	 * @param {string}         item.text  Placeholder text.
+	 * @param {string}         item.label Layer name.
+	 */
+	const addField = useCallback(
+		async ( { name, kind, role, text, label } ) => {
+			const canvas = fabricRef.current;
+			if ( ! canvas ) {
+				return;
+			}
+			let obj;
+			if ( kind === 'image' ) {
+				const artW = artboardWRef.current;
+				const artH = artboardHRef.current;
+				obj = await fabric.FabricImage.fromURL(
+					imageFieldPlaceholder()
+				);
+				obj.scale( ( Math.min( artW, artH ) * 0.6 ) / obj.width );
+				obj.set( {
+					id: genId(),
+					left: artW / 2 - obj.getScaledWidth() / 2,
+					top: artH / 2 - obj.getScaledHeight() / 2,
+				} );
+			} else {
+				obj = createText( role, { text } );
+			}
+			obj.set( { fieldName: name, name: label } );
+			canvas.add( obj );
+			canvas.setActiveObject( obj );
+			canvas.renderAll();
+			dispatch.pushHistory( {
+				label: __( 'Add template field', 'socialframe' ),
+				undo: () => {
+					canvas.remove( obj );
+					canvas.discardActiveObject();
+					canvas.renderAll();
+				},
+				redo: () => {
+					canvas.add( obj );
+					canvas.setActiveObject( obj );
+					canvas.renderAll();
+				},
+			} );
+		},
+		[ dispatch ]
+	);
+
 	const updateSelected = useCallback(
 		( changes, label = 'Update' ) => {
 			const canvas = fabricRef.current;
@@ -1790,6 +1846,7 @@ export function useFabricCanvas(
 		addShape,
 		addText,
 		addImage,
+		addField,
 		updateSelected,
 		deleteSelected,
 		replaceImage,
