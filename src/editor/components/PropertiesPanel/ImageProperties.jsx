@@ -1,5 +1,5 @@
 import { useSelect } from '@wordpress/data';
-import { Button } from '@wordpress/components';
+import { Button, RangeControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { STORE_KEY } from '../../store';
@@ -135,6 +135,23 @@ export function ImageProperties() {
 				>
 					{ __( 'Replace Image', 'socialframe' ) }
 				</Button>
+				<RangeControl
+					label={ __( 'Corner Radius', 'socialframe' ) }
+					help={ __(
+						'Kept the same size when a template fill or a frame resizes the image.',
+						'socialframe'
+					) }
+					value={ props.sfRadius ?? 0 }
+					min={ 0 }
+					max={ 200 }
+					onChange={ ( v ) =>
+						update(
+							{ sfRadius: v ?? 0 },
+							__( 'Corner radius', 'socialframe' )
+						)
+					}
+					style={ { marginTop: 8 } }
+				/>
 			</Accordion>
 
 			{ /* ── Layout ───────────────────────────────────────────────────── */ }

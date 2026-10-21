@@ -107,6 +107,7 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 = Unreleased =
 * Add: Frames. Lay layers out with a direction, padding, gap and alignment, nest frames for rows, and let the artboard lay out the card. Framed images are shown whole at their own aspect ratio, and text set to shrink fits its frame, then is shortened with "…" in exports.
 * Add: The Layers panel is now an always-visible column (a drawer on narrow screens) with frames nested as a tree. Drag layers to reorder them or move them into and out of frames, Shift- or Cmd-click to select several, and right-click a layer in the tree or on the canvas for Create frame, Add to frame, Remove from frame, Duplicate, Lock, Hide, Rename and Delete.
+* Add: Corner radius for images. The corners keep their size when a frame resizes the image or a template fill swaps the photo.
 * Fix: Locked layers stay locked after saving and reloading.
 
 = 1.1.0 =
