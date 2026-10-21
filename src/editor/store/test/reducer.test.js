@@ -43,6 +43,11 @@ describe( 'editor reducer', () => {
 			} )
 		);
 		expect( loaded.postTypes ).toEqual( [ 'post' ] );
+		expect( loaded.sourcePost ).toBe( 0 );
+		expect(
+			fromDefault( setDesign( { designId: 7, sourcePost: 30 } ) )
+				.sourcePost
+		).toBe( 30 );
 
 		const changed = reducer( loaded, setPostTypes( [ 'post', 'page' ] ) );
 		expect( changed.postTypes ).toEqual( [ 'post', 'page' ] );

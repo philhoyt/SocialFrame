@@ -51,6 +51,7 @@ export function EditorApp() {
 					title: d.title,
 					format: d.format,
 					postTypes: d.postTypes,
+					sourcePost: d.sourcePost,
 				} );
 				setDesign( d );
 			} )

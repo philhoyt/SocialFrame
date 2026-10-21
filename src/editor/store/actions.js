@@ -3,12 +3,19 @@ export const setActivePanel = ( panel ) => ( {
 	panel,
 } );
 
-export const setDesign = ( { designId, title, format, postTypes = [] } ) => ( {
+export const setDesign = ( {
+	designId,
+	title,
+	format,
+	postTypes = [],
+	sourcePost = 0,
+} ) => ( {
 	type: 'SET_DESIGN',
 	designId,
 	title,
 	format,
 	postTypes,
+	sourcePost,
 } );
 
 export const setTitle = ( title ) => ( { type: 'SET_TITLE', title } );

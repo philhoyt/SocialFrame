@@ -3,6 +3,7 @@ export const getDesignId = ( state ) => state.designId;
 export const getDesignTitle = ( state ) => state.designTitle;
 export const getFormat = ( state ) => state.format;
 export const getPostTypes = ( state ) => state.postTypes;
+export const getSourcePost = ( state ) => state.sourcePost;
 export const getSelection = ( state ) => state.selection;
 export const getSelectionType = ( state ) => state.selection.type;
 export const getSelectionProps = ( state ) => state.selection.properties;
