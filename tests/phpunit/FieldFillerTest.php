@@ -180,6 +180,94 @@ class FieldFillerTest extends RestTestCase {
 	}
 
 	/**
+	 * A one-image canvas whose image sits in a vertical stack with the given box.
+	 *
+	 * @param mixed $box The image's sfBox.
+	 * @return array<string, mixed>
+	 */
+	private function stacked_canvas( $box ): array {
+		return [
+			'objects' => [
+				[
+					'type'        => 'Image',
+					'src'         => 'old.png',
+					'left'        => 0,
+					'top'         => 120,
+					'width'       => 1080,
+					'height'      => 810,
+					'cropX'       => 40,
+					'cropY'       => 30,
+					'scaleX'      => 1,
+					'scaleY'      => 1,
+					'fieldName'   => 'photo',
+					'sfBox'       => $box,
+					'sfStackItem' => [ 'row' => 'r1', 'offset' => 0 ],
+				],
+			],
+		];
+	}
+
+	/**
+	 * A stacked portrait image is shown whole at the box height, centred.
+	 */
+	public function test_stacked_portrait_image_is_contained_not_cropped(): void {
+		$attachment = $this->make_image_attachment( 2048, 2560 );
+		$box        = [
+			'left'   => 0,
+			'width'  => 1080,
+			'height' => 810,
+		];
+
+		$image = FieldFiller::fill( $this->stacked_canvas( $box ), [ 'photo' => $attachment ] )['canvas']['objects'][0];
+
+		$this->assertSame( [ 0, 0 ], [ $image['cropX'], $image['cropY'] ] );
+		$this->assertEqualsWithDelta( 2048, $image['width'], 1e-9 );
+		$this->assertEqualsWithDelta( 2560, $image['height'], 1e-9 );
+		$this->assertEqualsWithDelta( 810 / 2560, $image['scaleX'], 1e-9 );
+		$this->assertEqualsWithDelta( 648, $image['width'] * $image['scaleX'], 1e-6 );
+		$this->assertEqualsWithDelta( 810, $image['height'] * $image['scaleY'], 1e-6 );
+		$this->assertEqualsWithDelta( 216, $image['left'], 1e-6 );
+		$this->assertSame( 120, $image['top'], 'The browser layout owns the top.' );
+		$this->assertSame( $box, $image['sfBox'] );
+	}
+
+	/**
+	 * A stacked landscape image fills the box width and is shorter than it.
+	 */
+	public function test_stacked_landscape_image_fills_box_width(): void {
+		$attachment = $this->make_image_attachment( 2048, 1152 );
+		$canvas     = $this->stacked_canvas(
+			[
+				'left'   => 40,
+				'width'  => 1000,
+				'height' => 810,
+			]
+		);
+
+		$image = FieldFiller::fill( $canvas, [ 'photo' => $attachment ] )['canvas']['objects'][0];
+
+		$this->assertEqualsWithDelta( 1000, $image['width'] * $image['scaleX'], 1e-6 );
+		$this->assertEqualsWithDelta( 562.5, $image['height'] * $image['scaleY'], 1e-6 );
+		$this->assertEqualsWithDelta( 40, $image['left'], 1e-6 );
+	}
+
+	/**
+	 * An unusable box falls back to the cover crop, so bad data can't break a fill.
+	 */
+	public function test_invalid_stack_box_falls_back_to_cover(): void {
+		$attachment = $this->make_image_attachment( 2048, 2560 );
+
+		foreach ( [ 'nope', [ 'width' => -5, 'height' => 810 ], [ 'width' => 1e9, 'height' => 810 ], [ 'width' => '1080', 'height' => '810' ] ] as $box ) {
+			$image = FieldFiller::fill( $this->stacked_canvas( $box ), [ 'photo' => $attachment ] )['canvas']['objects'][0];
+
+			// Cover keeps the on-canvas box at 1080 x 810 and crops the rest.
+			$this->assertEqualsWithDelta( 1080, $image['width'] * $image['scaleX'], 1e-6, wp_json_encode( $box ) );
+			$this->assertEqualsWithDelta( 810, $image['height'] * $image['scaleY'], 1e-6, wp_json_encode( $box ) );
+			$this->assertGreaterThan( 0, $image['cropY'], wp_json_encode( $box ) );
+		}
+	}
+
+	/**
 	 * A portrait image into a wide box: width fills, top and bottom are cropped.
 	 */
 	public function test_image_cover_crops_tall_image_into_wide_box(): void {
