@@ -27,6 +27,24 @@ describe( 'resolveShortcut', () => {
 		);
 	} );
 
+	it( 'leaves keys to the Layers tree, its menu, and handled events', () => {
+		const tree = document.createElement( 'div' );
+		tree.setAttribute( 'role', 'tree' );
+		const row = document.createElement( 'div' );
+		tree.appendChild( row );
+		const menu = document.createElement( 'div' );
+		menu.setAttribute( 'role', 'menu' );
+
+		expect( resolveShortcut( key( 'Delete', {}, row ) ) ).toBeNull();
+		expect(
+			resolveShortcut( key( 'd', { metaKey: true }, menu ) )
+		).toBeNull();
+		expect(
+			resolveShortcut( key( 'Delete', { defaultPrevented: true } ) )
+		).toBeNull();
+		expect( resolveShortcut( key( 'Delete' ) ) ).toBe( 'delete' );
+	} );
+
 	it( 'leaves Ctrl/Cmd +, - and 0 to the browser', () => {
 		expect( resolveShortcut( key( '=', { ctrlKey: true } ) ) ).toBeNull();
 		expect( resolveShortcut( key( '-', { metaKey: true } ) ) ).toBeNull();

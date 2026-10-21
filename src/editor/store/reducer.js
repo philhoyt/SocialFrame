@@ -22,6 +22,8 @@ const DEFAULT_STATE = {
 	undoIndex: -1,
 	layers: [],
 	zoom: 100,
+	// Open layer menu: { x, y } in viewport pixels, or null.
+	contextMenu: null,
 };
 
 export function reducer( state = DEFAULT_STATE, action ) {
@@ -123,6 +125,12 @@ export function reducer( state = DEFAULT_STATE, action ) {
 
 		case 'SET_LAYERS':
 			return { ...state, layers: action.layers };
+
+		case 'OPEN_CONTEXT_MENU':
+			return { ...state, contextMenu: { x: action.x, y: action.y } };
+
+		case 'CLOSE_CONTEXT_MENU':
+			return { ...state, contextMenu: null };
 
 		case 'SET_ZOOM':
 			return { ...state, zoom: action.zoom };
