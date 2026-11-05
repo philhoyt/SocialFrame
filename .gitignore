@@ -1,6 +1,7 @@
 node_modules/
 build/
-vendor/
+# Composer's vendor/ only. lib/plugin-update-checker/vendor/ is PUC's own and must ship.
+/vendor/
 *.DS_Store
 *.zip
 /docs/*
