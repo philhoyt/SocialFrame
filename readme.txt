@@ -3,7 +3,7 @@ Contributors:      philhoyt
 Tags:              social media, graphics, editor, canvas, design
 Requires at least: 7.0
 Tested up to:      7.1
-Stable tag:        1.3.1
+Stable tag:        1.3.2
 Requires PHP:      8.1
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -105,6 +105,10 @@ Yes. Open a design with template fields, click an empty part of the canvas, and 
 4. The admin designs list built with WordPress DataViews.
 
 == Changelog ==
+
+= 1.3.2 =
+* Fix: The update checker's bundled Markdown and readme parsers now ship with the plugin, so update checks no longer fail with a missing class.
+* Change: Tested against WordPress 7.1 and rebuilt with the current block editor toolchain.
 
 = 1.3.1 =
 * Fix: Updating from the WordPress dashboard failed with "PCLZIP_ERR_BAD_FORMAT" because the plugin downloaded the release's readme.txt instead of its zip. Sites on 1.3.0 or older need to install this version once by uploading the zip; later updates work from the dashboard.
