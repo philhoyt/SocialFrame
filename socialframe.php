@@ -61,7 +61,10 @@ if ( file_exists( SOCIALFRAME_DIR . 'lib/plugin-update-checker/plugin-update-che
 	// by name, so readme.txt would come ahead of socialframe.zip.
 	$socialframe_vcs_api = $socialframe_update_checker->getVcsApi();
 	if ( method_exists( $socialframe_vcs_api, 'enableReleaseAssets' ) ) {
-		$socialframe_vcs_api->enableReleaseAssets( '/^socialframe\.zip$/' );
+		// REQUIRE_RELEASE_ASSETS: a release without a matching zip reports no update
+		// instead of falling back to GitHub's source archive, which installs as
+		// <Repo>-<tag>/ and breaks the plugin directory.
+		$socialframe_vcs_api->enableReleaseAssets( '/^socialframe\.zip$/', $socialframe_vcs_api::REQUIRE_RELEASE_ASSETS );
 	}
 }
 
