@@ -2,8 +2,8 @@
 Contributors:      philhoyt
 Tags:              social media, graphics, editor, canvas, design
 Requires at least: 7.0
-Tested up to:      7.1
-Stable tag:        1.3.3
+Tested up to:      7.2
+Stable tag:        1.3.4
 Requires PHP:      8.1
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -103,6 +103,10 @@ Uninstalling deletes every design and template and their preview images. Exporte
 4. The designs list in wp-admin.
 
 == Changelog ==
+
+= 1.3.4 =
+* Fixed the Designs screen styles for WordPress 7.2 by updating the bundled DataViews package.
+* Tested up to WordPress 7.2.
 
 = 1.3.3 =
 * Fixed the update checker so a release that is missing its zip is skipped instead of installing GitHub's source archive.
